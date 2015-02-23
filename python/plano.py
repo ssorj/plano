@@ -179,7 +179,7 @@ def prepend(file, string):
     write(file, prepended)
 
 def touch(file):
-    return append(file, "")
+    append(file, "")
 
 def read_lines(file):
     with _codecs.open(file, encoding="utf-8", mode="r") as f:
@@ -267,7 +267,7 @@ def copy(from_path, to_path):
 def move(from_path, to_path):
     notice("Moving '{}' to '{}'", from_path, to_path)
 
-    return _shutil.move(from_path, to_path)
+    _shutil.move(from_path, to_path)
 
 def rename(path, expr, replacement):
     path = normalize_path(path)
