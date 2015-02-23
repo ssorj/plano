@@ -21,6 +21,7 @@
 from distutils.core import setup
 
 setup(name="plano",
-      version="0.1",
-      packages=["plano"],
+      version="0.2",
+      url="http://www.ssorj.net/projects/plano.html",
+      py_modules=["plano"],
       package_dir={"": "python"})

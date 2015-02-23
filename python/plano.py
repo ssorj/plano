@@ -47,9 +47,9 @@ import traceback as _traceback
 # - "expr" param means a regular expression
 # - "command" param means something we pass to the shell
 #
-# - read_, write_, append_, and touch_entry are for stashing named
-#   values in the a temporary location in the filesystem, to make it
-#   easy to use those values when you invoke an external command
+# - read_, write_, append_, and make_temp are for stashing named
+#   values in a temporary location in the filesystem, to make it easy
+#   to use those values when you invoke an external command
 #
 # - If the function involves creating a file or directory, it may
 #   return the path
@@ -124,11 +124,12 @@ is_link = _os.path.islink
 
 join = _os.path.join
 split = _os.path.split
-split_ext = _os.path.splitext
+split_extension = _os.path.splitext
 
 LINE_SEP = _os.linesep
 PATH_SEP = _os.sep
 ENV = _os.environ
+ARGV = _sys.argv
 
 current_dir = _os.getcwd
 
@@ -144,19 +145,19 @@ def file_name(file):
 
     return name
 
-def file_stem(file):
+def name_stem(file):
     name = file_name(file)
 
     if name.endswith(".tar.gz"):
         name = name[:-3]
 
-    stem, ext = split_ext(name)
+    stem, ext = split_extension(name)
 
     return stem
 
-def file_ext(file):
+def name_extension(file):
     name = file_name(file)
-    stem, ext = split_ext(name)
+    stem, ext = split_extension(name)
     
     return ext
 
@@ -225,6 +226,11 @@ def append_temp(key, string):
     append(file, string)
     return file
 
+def prepend_temp(key, string):
+    file = _get_temp_file(key)
+    prepend(file, string)
+    return file
+
 def make_temp(key):
     return append_temp(key, "")
 
@@ -273,16 +279,6 @@ def rename(path, expr, replacement):
 
     move(path, to_path)
     
-def make_link(source_path, link_file):
-    if exists(link_file):
-        assert read_link(link_file) == source_path
-        return
-
-    _os.symlink(source_path, link_file)
-
-def read_link(file):
-    return _os.readlink(file)
-
 def remove(path):
     notice("Removing '{}'", path)
 
@@ -293,6 +289,16 @@ def remove(path):
         _shutil.rmtree(path, ignore_errors=True)
     else:
         _os.remove(path)
+
+def make_link(source_path, link_file):
+    if exists(link_file):
+        assert read_link(link_file) == source_path
+        return
+
+    _os.symlink(source_path, link_file)
+
+def read_link(file):
+    return _os.readlink(file)
 
 def find(dir, *patterns):
     matched_paths = set()
@@ -322,6 +328,7 @@ def find_only_one(dir, *patterns):
 def string_replace(string, expr, replacement, count=0):
     return _re.sub(expr, replacement, string, count)
 
+# XXX this should optionally take a user
 def get_home_dir():
     return _os.path.expanduser("~")
 
@@ -346,6 +353,12 @@ def get_lib_dir(prefix=None):
 
     return _get_prefixed_dir("lib", prefix)
     
+def make_dir(dir):
+    if not exists(dir):
+        _os.makedirs(dir)
+
+    return dir
+
 # Returns the current working directory so you can change it back
 def change_dir(dir):
     notice("Changing directory to '{}'", dir)
@@ -353,18 +366,6 @@ def change_dir(dir):
     cwd = current_dir()
     _os.chdir(dir)
     return cwd
-
-class working_dir(object):
-    def __init__(self, dir):
-        self.dir = dir
-        self.prev_dir = None
-
-    def __enter__(self):
-        self.prev_dir = change_dir(self.dir)
-        return self.dir
-
-    def __exit__(self, type, value, traceback):
-        change_dir(self.prev_dir)
 
 def list_dir(dir, *patterns):
     assert is_dir(dir)
@@ -387,11 +388,17 @@ def first_name(dir, *patterns):
     except IndexError:
         return None
 
-def make_dir(dir):
-    if not exists(dir):
-        _os.makedirs(dir)
+class working_dir(object):
+    def __init__(self, dir):
+        self.dir = dir
+        self.prev_dir = None
 
-    return dir
+    def __enter__(self):
+        self.prev_dir = change_dir(self.dir)
+        return self.dir
+
+    def __exit__(self, type, value, traceback):
+        change_dir(self.prev_dir)
 
 def _init_call(command, args, kwargs):
     if args:
@@ -447,7 +454,7 @@ def extract_archive(archive_file, output_dir):
 def rename_archive(archive_file, new_archive_stem):
     assert is_file(archive_file)
 
-    if file_stem(archive_file) == new_archive_stem:
+    if name_stem(archive_file) == new_archive_stem:
         return
 
     temp_dir = make_temp_dir()
