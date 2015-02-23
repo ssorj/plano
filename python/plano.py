@@ -319,6 +319,9 @@ def find(dir, *patterns):
 def find_only_one(dir, *patterns):
     paths = find(dir, *patterns)
 
+    if len(paths) == 0:
+        return
+    
     assert len(paths) == 1
 
     return paths[0]
@@ -386,7 +389,7 @@ def first_name(dir, *patterns):
     try:
         return list_dir(dir, *patterns)[0]
     except IndexError:
-        return None
+        return
 
 class working_dir(object):
     def __init__(self, dir):
