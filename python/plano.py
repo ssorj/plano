@@ -451,6 +451,8 @@ def extract_archive(archive_file, output_dir):
     if not exists(output_dir):
         make_dir(output_dir)
 
+    archive_file = absolute_path(archive_file)
+
     with working_dir(output_dir):
         call("tar -xf {}", archive_file)
 
