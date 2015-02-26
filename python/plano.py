@@ -33,34 +33,7 @@ import tarfile as _tarfile
 import tempfile as _tempfile
 import traceback as _traceback
 
-# The notion here is to use the global function namespace for common
-# script operations.  They fall into a few patterns:
-# 
-# - split and join are path operations
-#
-# - "path" param means path to a file or direcotry
-# - "dir" param means path to a directory
-# - "file" param means path to a file
-# - "name" param means the file or directory name without any
-#   preceding path
-# - "pattern" param means a shell glob, a la "*.py"
-# - "expr" param means a regular expression
-# - "command" param means something we pass to the shell
-#
-# - read_, write_, append_, and make_temp are for stashing named
-#   values in a temporary location in the filesystem, to make it easy
-#   to use those values when you invoke an external command
-#
-# - If the function involves creating a file or directory, it may
-#   return the path
-#
-# - Don't fuss, just do it
-#
-# - Don't be shy about talking about what you're doing on the console
-# 
-# Groups:
-#
-# - Logging: fail, error, warn, notice, debug, exit
+# See documentation at http://www.ssorj.net/projects/plano.html
 
 def fail(message, *args):
     error(message, *args)
@@ -129,9 +102,12 @@ split_extension = _os.path.splitext
 LINE_SEP = _os.linesep
 PATH_SEP = _os.sep
 ENV = _os.environ
-ARGV = _sys.argv
+ARGS = _sys.argv
 
 current_dir = _os.getcwd
+
+def home_dir(user=""):
+    return _os.path.expanduser("~{}".format(user))
 
 def parent_dir(path):
     path = normalize_path(path)
@@ -169,17 +145,22 @@ def write(file, string):
     with _codecs.open(file, encoding="utf-8", mode="w") as f:
         f.write(string)
 
+    return file
+
 def append(file, string):
     with _codecs.open(file, encoding="utf-8", mode="a") as f:
         f.write(string)
 
+    return file
+
 def prepend(file, string):
     orig = read(file)
     prepended = string + orig
-    write(file, prepended)
+
+    return write(file, prepended)
 
 def touch(file):
-    append(file, "")
+    return append(file, "")
 
 def read_lines(file):
     with _codecs.open(file, encoding="utf-8", mode="r") as f:
@@ -187,11 +168,15 @@ def read_lines(file):
 
 def write_lines(file, lines):
     with _codecs.open(file, encoding="utf-8", mode="r") as f:
-        return f.writelines(lines)
+        f.writelines(lines)
+
+    return file
 
 def append_lines(file, lines):
     with _codecs.open(file, encoding="utf-8", mode="a") as f:
         f.writelines(string)
+
+    return file
 
 def prepend_lines(file, lines):
     orig_lines = read_lines(file)
@@ -199,6 +184,8 @@ def prepend_lines(file, lines):
     with _codecs.open(file, encoding="utf-8", mode="w") as f:
         f.writelines(lines)
         f.writelines(orig_lines)
+
+    return file
 
 _temp_dir = _tempfile.mkdtemp(prefix="plano.")
 
@@ -218,18 +205,15 @@ def read_temp(key):
 
 def write_temp(key, string):
     file = _get_temp_file(key)
-    write(file, string)
-    return file
+    return write(file, string)
 
 def append_temp(key, string):
     file = _get_temp_file(key)
-    append(file, string)
-    return file
+    return append(file, string)
 
 def prepend_temp(key, string):
     file = _get_temp_file(key)
-    prepend(file, string)
-    return file
+    return prepend(file, string)
 
 def make_temp(key):
     return append_temp(key, "")
@@ -264,10 +248,14 @@ def copy(from_path, to_path):
     else:
         _shutil.copy(from_path, to_path)
 
+    return to_path
+
 def move(from_path, to_path):
     notice("Moving '{}' to '{}'", from_path, to_path)
 
     _shutil.move(from_path, to_path)
+
+    return to_path
 
 def rename(path, expr, replacement):
     path = normalize_path(path)
@@ -278,7 +266,9 @@ def rename(path, expr, replacement):
     notice("Renaming '{}' to '{}'", path, to_path)
 
     move(path, to_path)
-    
+
+    return to_path
+
 def remove(path):
     notice("Removing '{}'", path)
 
@@ -290,12 +280,16 @@ def remove(path):
     else:
         _os.remove(path)
 
+    return path
+
 def make_link(source_path, link_file):
     if exists(link_file):
         assert read_link(link_file) == source_path
         return
 
     _os.symlink(source_path, link_file)
+
+    return link_file
 
 def read_link(file):
     return _os.readlink(file)
@@ -331,31 +325,6 @@ def find_only_one(dir, *patterns):
 def string_replace(string, expr, replacement, count=0):
     return _re.sub(expr, replacement, string, count)
 
-# XXX this should optionally take a user
-def get_home_dir():
-    return _os.path.expanduser("~")
-
-def _get_prefixed_dir(name, prefix=None):
-    if prefix is None:
-        prefix = join("", "usr")
-    
-    return join(prefix, name)
-
-def get_bin_dir(prefix=None):
-    return _get_prefixed_dir("bin", prefix)
-
-def get_sbin_dir(prefix=None):
-    return _get_prefixed_dir("sbin", prefix)
-
-def get_include_dir(prefix=None):
-    return _get_prefixed_dir("include", prefix)
-    
-def get_lib_dir(prefix=None):
-    if _sys.maxsize > 2**32:
-        return _get_prefixed_dir("lib64", prefix)
-
-    return _get_prefixed_dir("lib", prefix)
-    
 def make_dir(dir):
     if not exists(dir):
         _os.makedirs(dir)
@@ -435,10 +404,10 @@ def make_archive(input_dir, output_dir, archive_stem):
     temp_input_dir = join(temp_dir, archive_stem)
 
     copy(input_dir, temp_input_dir)
+    make_dir(output_dir)
 
     output_file = "{}.tar.gz".format(join(output_dir, archive_stem))
-
-    make_dir(output_dir)
+    output_file = absolute_path(output_file)
 
     with working_dir(temp_dir):
         call("tar -czf {} {}", output_file, archive_stem)
