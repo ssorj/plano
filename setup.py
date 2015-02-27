@@ -21,7 +21,7 @@
 from distutils.core import setup
 
 setup(name="plano",
-      version="0.3",
+      version="0.2",
       url="http://www.ssorj.net/projects/plano.html",
       author="Justin Ross",
       author_email="justin.ross@gmail.com",
