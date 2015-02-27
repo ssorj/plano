@@ -425,6 +425,8 @@ def extract_archive(archive_file, output_dir):
     with working_dir(output_dir):
         call("tar -xf {}", archive_file)
 
+    return output_dir
+
 def rename_archive(archive_file, new_archive_stem):
     assert is_file(archive_file)
 
@@ -444,6 +446,8 @@ def rename_archive(archive_file, new_archive_stem):
 
     move(output_file, new_archive_file)
     remove(archive_file)
+
+    return new_archive_file
 
 def random_port(min=49152, max=65535):
     return _random.randint(min, max)
