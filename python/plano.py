@@ -381,14 +381,6 @@ def _init_call(command, args, kwargs):
 
     notice("Calling '{}'", command)
 
-    if "env" in kwargs:
-        notice("Calling with custom environment:")
-
-        env = kwargs["env"]
-
-        for key in sorted(env):
-            notice("  {:30}  {}", key, env[key])
-
     return command, kwargs
 
 def call(command, *args, **kwargs):
