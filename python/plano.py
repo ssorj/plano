@@ -310,6 +310,14 @@ def find(dir, *patterns):
 
     return sorted(matched_paths)
 
+def find_any_one(dir, *patterns):
+    paths = find(dir, *patterns)
+
+    if len(paths) == 0:
+        return
+    
+    return paths[0]
+
 def find_only_one(dir, *patterns):
     paths = find(dir, *patterns)
 
@@ -353,12 +361,6 @@ def list_dir(dir, *patterns):
         matched_names.update(_fnmatch.filter(names, pattern))
 
     return sorted(matched_names)
-
-def first_name(dir, *patterns):
-    try:
-        return list_dir(dir, *patterns)[0]
-    except IndexError:
-        return
 
 class working_dir(object):
     def __init__(self, dir):
