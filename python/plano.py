@@ -496,13 +496,13 @@ def _copytree(src, dst, symlinks=False, ignore=None):
                 _shutil.copy2(srcname, dstname)
         # catch the Error from the recursive copytree so that we can
         # continue with other files
-        except _shutil.Error, err:
+        except _shutil.Error as err:
             errors.extend(err.args[0])
-        except EnvironmentError, why:
+        except EnvironmentError as why:
             errors.append((srcname, dstname, str(why)))
     try:
         _shutil.copystat(src, dst)
-    except OSError, why:
+    except OSError as why:
         if _shutil.WindowsError is not None and isinstance \
                (why, _shutil.WindowsError):
             # Copying file access times may fail on Windows
@@ -510,4 +510,4 @@ def _copytree(src, dst, symlinks=False, ignore=None):
         else:
             errors.append((src, dst, str(why)))
     if errors:
-        raise _shutil.Error, errors
+        raise _shutil.Error(errors)
