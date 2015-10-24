@@ -431,7 +431,7 @@ def rename_archive(archive_file, new_archive_stem):
 
     extract_archive(archive_file, temp_dir)
 
-    input_name = first_name(temp_dir)
+    input_name = list_dir(temp_dir)[0]
     input_dir = join(temp_dir, input_name)
     output_file = make_archive(input_dir, temp_dir, new_archive_stem)
     output_name = file_name(output_file)
