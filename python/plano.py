@@ -60,9 +60,7 @@ def exit(message=None, *args):
     if message is None:
         _sys.exit()
 
-    message_args = args[1:]
-
-    _print_message("Error", message, message_args, _sys.stderr)
+    _print_message("Error", message, args, _sys.stderr)
 
     _sys.exit(1)
 
@@ -75,6 +73,9 @@ def _print_message(category, message, args, file):
 def _format_message(category, message, args):
     if isinstance(message, BaseException):
         message = str(message)
+
+        if message == "":
+            message = message.__class__.__name__
 
     if category:
         message = "{}: {}".format(category, message)
