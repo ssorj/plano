@@ -193,7 +193,7 @@ _temp_dir = _tempfile.mkdtemp(prefix="plano.")
 def _get_temp_file(key):
     assert not key.startswith("_")
 
-    return join(_temp_dir, "file", key)
+    return join(_temp_dir, "_file_{}".format(key))
 
 def _remove_temp_dir():
     _shutil.rmtree(_temp_dir, ignore_errors=True)
@@ -221,12 +221,11 @@ def make_temp(key):
 
 def open_temp(key, mode="r"):
     file = _get_temp_file(key)
-
     return _codecs.open(file, encoding="utf-8", mode=mode)
 
 # This one is deleted on process exit
 def make_temp_dir():
-    return _tempfile.mkdtemp(prefix="_", dir=_temp_dir)
+    return _tempfile.mkdtemp(prefix="_dir_", dir=_temp_dir)
 
 # This one sticks around
 def make_user_temp_dir():
