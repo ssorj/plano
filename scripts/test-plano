@@ -18,12 +18,17 @@
 # under the License.
 #
 
-from distutils.core import setup
+from plano import *
 
-setup(name="plano",
-      version="1",
-      url="http://www.ssorj.net/projects/plano.html",
-      author="Justin Ross",
-      author_email="justin.ross@gmail.com",
-      py_modules=["plano"],
-      package_dir={"": "python"})
+path = "/alpha/beta.ext"
+path_split = "/alpha", "beta.ext"
+path_split_extension = "/alpha/beta", ".ext"
+
+result = join(*path_split)
+assert result == path, result
+
+result = split(path)
+assert result == path_split, result
+
+result = split_extension(path)
+assert result == path_split_extension, result

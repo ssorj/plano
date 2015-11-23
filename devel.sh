@@ -1,6 +1,4 @@
-path=$(python - <<EOF
-from __future__ import print_function
-
+path=$(python3 - <<EOF
 import distutils.sysconfig as config
 import os
 
