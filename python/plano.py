@@ -425,7 +425,7 @@ def rename_archive(archive_file, new_archive_stem):
     assert is_file(archive_file)
 
     if name_stem(archive_file) == new_archive_stem:
-        return
+        return archive_file
 
     temp_dir = make_temp_dir()
 
