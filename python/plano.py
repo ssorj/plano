@@ -20,6 +20,7 @@
 from __future__ import print_function
 
 import atexit as _atexit
+import binascii as _binascii
 import codecs as _codecs
 import fnmatch as _fnmatch
 import getpass as _getpass
@@ -32,6 +33,7 @@ import sys as _sys
 import tarfile as _tarfile
 import tempfile as _tempfile
 import traceback as _traceback
+import uuid as _uuid
 
 # See documentation at http://www.ssorj.net/projects/plano.html
 
@@ -262,6 +264,15 @@ def make_user_temp_dir():
     user_temp_dir = join(temp_dir, user)
 
     return make_dir(user_temp_dir)
+
+def unique_id(length=16):
+    assert length >= 1
+    assert length <= 16
+
+    uuid_bytes = _uuid.uuid4().bytes
+    uuid_bytes = uuid_bytes[:length]
+
+    return _binascii.hexlify(uuid_bytes).decode("utf-8")
 
 def copy(from_path, to_path):
     notice("Copying '{0}' to '{1}'", from_path, to_path)

@@ -32,3 +32,8 @@ assert result == path_split, result
 
 result = split_extension(path)
 assert result == path_split_extension, result
+
+##
+
+print(unique_id())
+print(unique_id(4))
