@@ -1,3 +1,5 @@
+export PYTHONPATH := $(shell scripts/gen-python3-path install):${PYTHONPATH}
+
 DESTDIR := ""
 PREFIX := ${HOME}/.local
 
