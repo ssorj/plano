@@ -6,9 +6,9 @@
 # to you under the Apache License, Version 2.0 (the
 # "License"); you may not use this file except in compliance
 # with the License.  You may obtain a copy of the License at
-# 
+#
 #   http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
 # "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -44,7 +44,6 @@ def fail(message, *args):
     raise Exception(message)
 
 def error(message, *args):
-    _traceback.print_exc()
     _print_message("Error", message, args, _sys.stderr)
 
 def warn(message, *args):
@@ -78,15 +77,19 @@ def _format_message(category, message, args):
             message = message.__class__.__name__
 
     if category:
-        message = "{}: {}".format(category, message)
+        message = "{0}: {1}".format(category, message)
 
     if args:
         message = message.format(*args)
 
     script = split(_sys.argv[0])[1]
-    message = "{}: {}".format(script, message)
+    message = "{0}: {1}".format(script, message)
 
     return message
+
+def flush():
+    _sys.stdout.flush()
+    _sys.stderr.flush()
 
 absolute_path = _os.path.abspath
 normalize_path = _os.path.normpath
@@ -102,13 +105,14 @@ split_extension = _os.path.splitext
 
 LINE_SEP = _os.linesep
 PATH_SEP = _os.sep
+PATH_VAR_SEP = _os.pathsep
 ENV = _os.environ
 ARGS = _sys.argv
 
 current_dir = _os.getcwd
 
 def home_dir(user=""):
-    return _os.path.expanduser("~{}".format(user))
+    return _os.path.expanduser("~{0}".format(user))
 
 def parent_dir(path):
     path = normalize_path(path)
@@ -135,7 +139,7 @@ def name_stem(file):
 def name_extension(file):
     name = file_name(file)
     stem, ext = split_extension(name)
-    
+
     return ext
 
 def read(file):
@@ -163,6 +167,9 @@ def prepend(file, string):
 def touch(file):
     return append(file, "")
 
+def tail(file, n):
+    return "".join(tail_lines(file, n))
+
 def read_lines(file):
     with _codecs.open(file, encoding="utf-8", mode="r") as f:
         return f.readlines()
@@ -188,12 +195,33 @@ def prepend_lines(file, lines):
 
     return file
 
+# Derived from http://stackoverflow.com/questions/136168/get-last-n-lines-of-a-file-with-python-similar-to-tail
+def tail_lines(file, n):
+    assert n >= 0
+
+    with _codecs.open(file, encoding="utf-8", mode="r") as f:
+        pos = n + 1
+        lines = list()
+
+        while len(lines) <= n:
+                try:
+                    f.seek(-pos, 2)
+                except IOError:
+                    f.seek(0)
+                    break
+                finally:
+                    lines = f.readlines()
+
+                pos *= 2
+
+        return lines[-n:]
+
 _temp_dir = _tempfile.mkdtemp(prefix="plano.")
 
 def _get_temp_file(key):
     assert not key.startswith("_")
 
-    return join(_temp_dir, "_file_{}".format(key))
+    return join(_temp_dir, "_file_{0}".format(key))
 
 def _remove_temp_dir():
     _shutil.rmtree(_temp_dir, ignore_errors=True)
@@ -236,7 +264,7 @@ def make_user_temp_dir():
     return make_dir(user_temp_dir)
 
 def copy(from_path, to_path):
-    notice("Copying '{}' to '{}'", from_path, to_path)
+    notice("Copying '{0}' to '{1}'", from_path, to_path)
 
     to_dir = parent_dir(to_path)
 
@@ -251,7 +279,7 @@ def copy(from_path, to_path):
     return to_path
 
 def move(from_path, to_path):
-    notice("Moving '{}' to '{}'", from_path, to_path)
+    notice("Moving '{0}' to '{1}'", from_path, to_path)
 
     _shutil.move(from_path, to_path)
 
@@ -263,14 +291,14 @@ def rename(path, expr, replacement):
     to_name = string_replace(name, expr, replacement)
     to_path = join(parent_dir, to_name)
 
-    notice("Renaming '{}' to '{}'", path, to_path)
+    notice("Renaming '{0}' to '{1}'", path, to_path)
 
     move(path, to_path)
 
     return to_path
 
 def remove(path):
-    notice("Removing '{}'", path)
+    notice("Removing '{0}'", path)
 
     if not exists(path):
         return
@@ -315,7 +343,7 @@ def find_any_one(dir, *patterns):
 
     if len(paths) == 0:
         return
-    
+
     return paths[0]
 
 def find_only_one(dir, *patterns):
@@ -323,7 +351,7 @@ def find_only_one(dir, *patterns):
 
     if len(paths) == 0:
         return
-    
+
     assert len(paths) == 1
 
     return paths[0]
@@ -341,7 +369,7 @@ def make_dir(dir):
 
 # Returns the current working directory so you can change it back
 def change_dir(dir):
-    notice("Changing directory to '{}'", dir)
+    notice("Changing directory to '{0}'", dir)
 
     cwd = current_dir()
     _os.chdir(dir)
@@ -381,17 +409,17 @@ def _init_call(command, args, kwargs):
     if "shell" not in kwargs:
         kwargs["shell"] = True
 
-    notice("Calling '{}'", command)
+    notice("Calling '{0}'", command)
 
     return command, kwargs
 
 def call(command, *args, **kwargs):
-    command, args = _init_call(command, args, kwargs)
+    command, kwargs = _init_call(command, args, kwargs)
     _subprocess.check_call(command, **kwargs)
 
 def call_for_output(command, *args, **kwargs):
-    command, args = _init_call(command, args, kwargs)
-    return _subprocess.check_output(command, **kwargs)
+    command, kwargs = _init_call(command, args, kwargs)
+    return _subprocess_check_output(command, **kwargs)
 
 def make_archive(input_dir, output_dir, archive_stem):
     temp_dir = make_temp_dir()
@@ -400,11 +428,11 @@ def make_archive(input_dir, output_dir, archive_stem):
     copy(input_dir, temp_input_dir)
     make_dir(output_dir)
 
-    output_file = "{}.tar.gz".format(join(output_dir, archive_stem))
+    output_file = "{0}.tar.gz".format(join(output_dir, archive_stem))
     output_file = absolute_path(output_file)
 
     with working_dir(temp_dir):
-        call("tar -czf {} {}", output_file, archive_stem)
+        call("tar -czf {0} {1}", output_file, archive_stem)
 
     return output_file
 
@@ -417,7 +445,7 @@ def extract_archive(archive_file, output_dir):
     archive_file = absolute_path(archive_file)
 
     with working_dir(output_dir):
-        call("tar -xf {}", archive_file)
+        call("tar -xf {0}", archive_file)
 
     return output_dir
 
@@ -513,3 +541,19 @@ def _copytree(src, dst, symlinks=False, ignore=None):
             errors.append((src, dst, str(why)))
     if errors:
         raise _shutil.Error(errors)
+
+# For Python 2.6 compatibility
+def _subprocess_check_output(command, **kwargs):
+    kwargs["stdout"] = _subprocess.PIPE
+
+    proc = _subprocess.Popen(command, **kwargs)
+    output = proc.communicate()[0]
+    exit_code = proc.poll()
+
+    if exit_code not in (None, 0):
+        error = _subprocess.CalledProcessError(exit_code, command)
+        error.output = output
+
+        raise error
+
+    return output
