@@ -357,9 +357,16 @@ def remove(path):
     return path
 
 def make_link(source_path, link_file):
+    notice("Making link '{0}' to '{1}'", link_file, source_path)
+
     if exists(link_file):
         assert read_link(link_file) == source_path
         return
+
+    link_dir = parent_dir(link_file)
+
+    if link_dir:
+        make_dir(link_dir)
 
     _os.symlink(source_path, link_file)
 
