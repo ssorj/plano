@@ -199,6 +199,13 @@ def program_name(command=None):
         if "=" not in arg:
             return file_name(arg)
 
+def which(program_name):
+    for dir in ENV["PATH"].split(PATH_VAR_SEP):
+        program = join(dir, program_name)
+
+        if _os.access(program, _os.X_OK):
+            return program
+
 def read(file):
     with _codecs.open(file, encoding="utf-8", mode="r") as f:
         return f.read()
