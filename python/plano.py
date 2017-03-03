@@ -31,6 +31,7 @@ import re as _re
 import shlex as _shlex
 import shutil as _shutil
 import signal as _signal
+import socket as _socket
 import subprocess as _subprocess
 import sys as _sys
 import tarfile as _tarfile
@@ -75,14 +76,14 @@ def fail(message, *args):
     if isinstance(message, BaseException):
         raise message
 
-    raise Exception(message)
+    raise Exception(message.format(*args))
 
 def error(message, *args):
     _print_message("Error", message, args)
 
 def warn(message, *args):
     if _message_threshold <= _warn:
-        _print_message("Warn", message, args)
+        _print_message("Warning", message, args)
 
 def notice(message, *args):
     if _message_threshold <= _notice:
@@ -100,7 +101,11 @@ def exit(arg=None, *args):
         error(arg, args)
         _sys.exit(1)
     elif isinstance(arg, _types.IntType):
-        error("Exiting with code {0}", arg)
+        if arg > 0:
+            error("Exiting with code {0}", arg)
+        else:
+            notice("Exiting with code {0}", arg)
+
         _sys.exit(arg)
     else:
         raise Exception()
@@ -498,6 +503,46 @@ def call_for_output(command, *args, **kwargs):
 
     return output
 
+_child_processes = list()
+
+class _Process(_subprocess.Popen):
+    def __init__(self, command, *args, **kwargs):
+        super(_Process, self).__init__(command, *args, **kwargs)
+
+        try:
+            self.name = kwargs["name"]
+        except KeyError:
+            if _is_string(command):
+                self.name = program_name(command)
+            elif isinstance(command, _collections.Iterable):
+                self.name = command[0]
+            else:
+                raise Exception()
+
+        _child_processes.append(self)
+
+    def __repr__(self):
+        return "process {0} ({1})".format(self.pid, self.name)
+
+def _command_string(command):
+    if _is_string(command):
+        return command
+
+    elems = ["\"{0}\"".format(x) if " " in x else x for x in command]
+
+    return " ".join(elems)
+
+def terminate_child_processes():
+    for proc in _child_processes:
+        if proc.poll() is None:
+            proc.terminate()
+
+def _sigterm_handler(signum, frame):
+    terminate_child_processes()
+    exit(-(_signal.SIGTERM))
+
+_signal.signal(_signal.SIGTERM, _sigterm_handler)
+
 def start_process(command, *args, **kwargs):
     if _is_string(command):
         command = command.format(*args)
@@ -521,31 +566,6 @@ def start_process(command, *args, **kwargs):
 
     return proc
 
-def _command_string(command):
-    if _is_string(command):
-        return command
-
-    elems = ["\"{0}\"".format(x) if " " in x else x for x in command]
-
-    return " ".join(elems)
-
-class _Process(_subprocess.Popen):
-    def __init__(self, command, *args, **kwargs):
-        super(_Process, self).__init__(command, *args, **kwargs)
-
-        try:
-            self.name = kwargs["name"]
-        except KeyError:
-            if _is_string(command):
-                self.name = program_name(command)
-            elif isinstance(command, _collections.Iterable):
-                self.name = command[0]
-            else:
-                raise Exception()
-
-    def __repr__(self):
-        return "process {0} ({1})".format(self.pid, self.name)
-
 def stop_process(proc):
     notice("Stopping {0}", proc)
 
@@ -553,10 +573,9 @@ def stop_process(proc):
         if proc.returncode == 0:
             debug("{0} already exited normally", proc)
         elif proc.returncode == -(_signal.SIGTERM):
-            notice("{0} was already terminated", proc)
+            debug("{0} was already terminated", proc)
         else:
-            m = "{0} already exited with code {1}"
-            error(m, proc, proc.returncode)
+            debug("{0} already exited with code {1}", proc, proc.returncode)
 
         return
 
@@ -572,9 +591,9 @@ def wait_for_process(proc):
     if proc.returncode == 0:
         debug("{0} exited normally", proc)
     elif proc.returncode == -(_signal.SIGTERM):
-        notice("{0} exited after termination", proc)
+        debug("{0} exited after termination", proc)
     else:
-        error("{0} exited with code {1}", proc, proc.returncode)
+        debug("{0} exited with code {1}", proc, proc.returncode)
 
     return proc.returncode
 
@@ -630,6 +649,27 @@ def rename_archive(archive_file, new_archive_stem):
 
 def random_port(min=49152, max=65535):
     return _random.randint(min, max)
+
+def wait_for_port(port, host="", timeout=30):
+    if _is_string(port):
+        port = int(port)
+
+    sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+    sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+
+    start = _time.time()
+
+    try:
+        while True:
+            if sock.connect_ex((host, port)) == 0:
+                return
+
+            sleep(0.1)
+
+            if _time.time() - start > timeout:
+                fail("Timed out waiting for port {0} to open", port)
+    finally:
+        sock.close()
 
 # Modified copytree impl that allows for already existing destination
 # dirs

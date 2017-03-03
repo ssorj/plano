@@ -1,4 +1,4 @@
-export PYTHONPATH := $(shell scripts/gen-python3-path install):${PYTHONPATH}
+export PYTHONPATH := $(shell python3 scripts/python-path install):${PYTHONPATH}
 
 DESTDIR := ""
 PREFIX := ${HOME}/.local
@@ -8,9 +8,10 @@ default: devel
 
 help:
 	@echo "build          Build the code"
+	@echo "test           Run the tests"
 	@echo "install        Install the code"
 	@echo "clean          Remove transient files from the checkout"
-	@echo "devel          Clean, build, install, and test inside"
+	@echo "devel          Clean, build, install, and smoke test inside"
 	@echo "               this checkout [default]"
 
 .PHONY: build
@@ -30,5 +31,8 @@ clean:
 .PHONY: devel
 devel: PREFIX := ${PWD}/install
 devel: clean install
-	scripts/test-plano
 	./setup.py check
+
+.PHONY: test
+test: devel
+	scripts/test-plano
