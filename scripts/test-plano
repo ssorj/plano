@@ -37,3 +37,25 @@ assert result == path_split_extension, result
 
 print(unique_id())
 print(unique_id(4))
+
+##
+
+temp_dir = make_temp_dir()
+
+alpha_dir = make_dir(join(temp_dir, "alpha-dir"))
+alpha_file = touch(join(alpha_dir, "alpha-file"))
+
+beta_dir = make_dir(join(temp_dir, "beta-dir"))
+beta_file = touch(join(beta_dir, "beta-file"))
+
+copied_file = copy(alpha_file, beta_dir)
+assert copied_file == join(beta_dir, "alpha-file")
+
+copied_dir = copy(alpha_dir, beta_dir)
+assert copied_dir == join(beta_dir, "alpha-dir")
+
+moved_file = move(beta_file, alpha_dir)
+assert moved_file == join(alpha_dir, "beta-file")
+
+moved_dir = move(beta_dir, alpha_dir)
+assert moved_dir == join(alpha_dir, "beta-dir")
