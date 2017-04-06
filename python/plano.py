@@ -25,6 +25,7 @@ import codecs as _codecs
 import collections as _collections
 import fnmatch as _fnmatch
 import getpass as _getpass
+import json as _json
 import os as _os
 import random as _random
 import re as _re
@@ -294,6 +295,14 @@ def tail_lines(file, n):
                 pos *= 2
 
         return lines[-n:]
+
+def read_json(file):
+    with _codecs.open(file, encoding="utf-8", mode="r") as f:
+        return _json.load(f)
+
+def write_json(file, obj):
+    with _codecs.open(file, encoding="utf-8", mode="w") as f:
+        return _json.dump(obj, f, indent=4, separators=(",", ": "), sort_keys=True)
 
 _temp_dir = _tempfile.mkdtemp(prefix="plano-")
 
