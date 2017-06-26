@@ -52,8 +52,9 @@ PATH_VAR_SEP = _os.pathsep
 ENV = _os.environ
 ARGS = _sys.argv
 
-STD_ERR = _sys.stderr
+STD_IN = _sys.stdin
 STD_OUT = _sys.stdout
+STD_ERR = _sys.stderr
 NULL_DEV = _os.devnull
 
 _message_levels = (
