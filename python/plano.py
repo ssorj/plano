@@ -571,6 +571,7 @@ def default_sigterm_handler(signum, frame):
 _signal.signal(_signal.SIGTERM, default_sigterm_handler)
 
 def start_process(command, *args, **kwargs):
+    # XXX This duplicates the command string logic in _Process
     if _is_string(command):
         command = command.format(*args)
         command_args = _shlex.split(command)
@@ -578,7 +579,7 @@ def start_process(command, *args, **kwargs):
     elif isinstance(command, _collections.Iterable):
         assert len(args) == 0, args
         command_args = command
-        command_string = _command_string(command)
+        command_string = _command_string(command, [])
     else:
         raise Exception()
 
@@ -643,6 +644,20 @@ def check_process(proc):
 
     if proc.returncode != 0:
         raise CalledProcessError(proc.returncode, proc.command_string)
+
+class running_process(object):
+    def __init__(self, command, *args, **kwargs):
+        self.command = command
+        self.args = args
+        self.kwargs = kwargs
+        self.proc = None
+
+    def __enter__(self):
+        self.proc = start_process(self.command, *self.args, **self.kwargs)
+        return self.proc
+
+    def __exit__(self, type, value, traceback):
+        stop_process(self.proc)
 
 def make_archive(input_dir, output_dir, archive_stem):
     temp_dir = make_temp_dir()
