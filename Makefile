@@ -47,5 +47,25 @@ clean:
 	./setup.py clean --all
 
 .PHONY: test
-test: devel
+test:
 	scripts/test-plano
+#	python3 scripts/test-plano
+
+.PHONY: big-test
+big-test: test
+
+
+.PHONY: test-centos
+test-centos:
+	sudo docker build -f scripts/test-centos.dockerfile -t plano-test-centos .
+	sudo docker run plano-test-centos
+
+.PHONY: test-fedora
+test-fedora:
+	sudo docker build -f scripts/test-fedora.dockerfile -t plano-test-fedora .
+	sudo docker run plano-test-fedora
+
+.PHONY: test-ubuntu
+test-ubuntu:
+	sudo docker build -f scripts/test-ubuntu.dockerfile -t plano-test-ubuntu .
+	sudo docker run plano-test-ubuntu
