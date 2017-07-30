@@ -52,8 +52,7 @@ test:
 #	python3 scripts/test-plano
 
 .PHONY: big-test
-big-test: test
-
+big-test: test test-centos test-fedora test-ubuntu
 
 .PHONY: test-centos
 test-centos:
