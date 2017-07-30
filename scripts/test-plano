@@ -18,7 +18,10 @@
 # under the License.
 #
 
+from commandant import TestCommand
 from plano import *
+
+import plano_test
 
 path = "/alpha/beta.ext"
 path_split = "/alpha", "beta.ext"
@@ -59,3 +62,7 @@ assert moved_file == join(alpha_dir, "beta-file")
 
 moved_dir = move(beta_dir, alpha_dir)
 assert moved_dir == join(alpha_dir, "beta-dir")
+
+if __name__ == "__main__":
+    command = TestCommand([plano_test])
+    command.main()

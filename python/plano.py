@@ -23,6 +23,7 @@ import atexit as _atexit
 import binascii as _binascii
 import codecs as _codecs
 import collections as _collections
+import ctypes as _ctypes
 import fnmatch as _fnmatch
 import getpass as _getpass
 import json as _json
@@ -46,6 +47,9 @@ from subprocess import CalledProcessError
 from subprocess import PIPE
 
 # See documentation at http://www.ssorj.net/projects/plano.html
+
+class PlanoException(Exception):
+    pass
 
 LINE_SEP = _os.linesep
 PATH_SEP = _os.sep
@@ -89,7 +93,7 @@ def fail(message, *args):
     if isinstance(message, BaseException):
         raise message
 
-    raise Exception(message.format(*args))
+    raise PlanoException(message.format(*args))
 
 def error(message, *args):
     _print_message("Error", message, args)
@@ -306,27 +310,40 @@ def write_json(file, obj):
     with _codecs.open(file, encoding="utf-8", mode="w") as f:
         return _json.dump(obj, f, indent=4, separators=(",", ": "), sort_keys=True)
 
-_temp_dir = _tempfile.mkdtemp(prefix="plano-")
-
-def _remove_temp_dir():
-    _shutil.rmtree(_temp_dir, ignore_errors=True)
-
-_atexit.register(_remove_temp_dir)
-
 def make_temp_file(suffix=""):
-    return _tempfile.mkstemp(prefix="", suffix=suffix, dir=_temp_dir)[1]
+    return _tempfile.mkstemp(prefix="plano-", suffix=suffix)[1]
 
-# This one is deleted on process exit
 def make_temp_dir(suffix=""):
-    return _tempfile.mkdtemp(prefix="", suffix=suffix, dir=_temp_dir)
+    return _tempfile.mkdtemp(prefix="plano-", suffix=suffix)
 
-# This one sticks around
 def make_user_temp_dir():
     temp_dir = _tempfile.gettempdir()
     user = _getpass.getuser()
     user_temp_dir = join(temp_dir, user)
 
     return make_dir(user_temp_dir)
+
+class temp_file(object):
+    def __init__(self, suffix=""):
+        self.file = make_temp_file(suffix=suffix)
+
+    def __enter__(self):
+        return self.file
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exists(self.file):
+            _os.remove(self.file)
+
+class temp_dir(object):
+    def __init__(self, suffix=""):
+        self.dir = make_temp_dir(suffix=suffix)
+
+    def __enter__(self):
+        return self.dir
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exists(self.dir):
+            _shutil.rmtree(self.dir, ignore_errors=True)
 
 def unique_id(length=16):
     assert length >= 1
@@ -488,6 +505,16 @@ class working_dir(object):
     def __exit__(self, exc_type, exc_value, traceback):
         change_dir(self.prev_dir)
 
+class temp_working_dir(working_dir):
+    def __init__(self):
+        super(temp_working_dir, self).__init__(make_temp_dir())
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        super(temp_working_dir, self).__exit__(exc_type, exc_value, traceback)
+
+        if exists(self.dir):
+            _shutil.rmtree(self.dir, ignore_errors=True)
+
 def call(command, *args, **kwargs):
     proc = start_process(command, *args, **kwargs)
     check_process(proc)
@@ -515,15 +542,14 @@ def call_for_output(command, *args, **kwargs):
     return output
 
 def call_and_print_on_error(command, *args, **kwargs):
-    output_file = make_temp_file()
-
-    try:
-        with open(output_file, "w") as out:
-            kwargs["output"] = out
-            call(command, *args, **kwargs)
-    except CalledProcessError:
-        eprint(read(output_file), end="")
-        raise
+    with temp_file() as output_file:
+        try:
+            with open(output_file, "w") as out:
+                kwargs["output"] = out
+                call(command, *args, **kwargs)
+        except CalledProcessError:
+            eprint(read(output_file), end="")
+            raise
 
 _child_processes = list()
 
@@ -536,6 +562,16 @@ class _Process(_subprocess.Popen):
 
         _child_processes.append(self)
 
+    @property
+    def exit_code(self):
+        return self.returncode
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        stop_process(self.proc)
+
     def __repr__(self):
         return "process {0} ({1})".format(self.pid, self.name)
 
@@ -544,7 +580,7 @@ def default_sigterm_handler(signum, frame):
         if proc.poll() is None:
             proc.terminate()
 
-    _remove_temp_dir()
+    #_remove_temp_dir()
 
     exit(-(_signal.SIGTERM))
 
@@ -556,6 +592,14 @@ def _command_string(command, args):
     string = string.format(*args)
 
     return string
+
+_libc = None
+
+if _sys.platform == "linux2":
+    try:
+        _libc = _ctypes.CDLL(_ctypes.util.find_library("c"))
+    except:
+        _traceback.print_exc()
 
 def start_process(command, *args, **kwargs):
     if _is_string(command):
@@ -581,6 +625,10 @@ def start_process(command, *args, **kwargs):
 
         kwargs["stdout"] = out
         kwargs["stderr"] = out
+
+    if "preexec_fn" not in kwargs:
+        if _libc is not None:
+            kwargs["preexec_fn"] = _libc.prctl(1, _signal.SIGKILL)
 
     if "shell" in kwargs and kwargs["shell"] is True:
         proc = _Process(command_string, kwargs, name, command_string)
@@ -636,40 +684,46 @@ def check_process(proc):
     if proc.returncode != 0:
         raise CalledProcessError(proc.returncode, proc.command_string)
 
-class running_process(object):
-    def __init__(self, command, *args, **kwargs):
-        self.command = command
-        self.args = args
-        self.kwargs = kwargs
-        self.proc = None
+def exec_process(command, *args):
+    if _is_string(command):
+        command = command.format(*args)
+        command_args = _shlex.split(command)
+        command_string = command
+    elif isinstance(command, _collections.Iterable):
+        assert len(args) == 0, args
+        command_args = command
+        command_string = _command_string(command, [])
+    else:
+        raise Exception()
 
-    def __enter__(self):
-        self.proc = start_process(self.command, *self.args, **self.kwargs)
-        return self.proc
+    notice("Calling '{0}'", command_string)
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        stop_process(self.proc)
+    _os.execvp(command_args[0], command_args[1:])
 
 def make_archive(input_dir, output_dir, archive_stem):
-    temp_dir = make_temp_dir()
-    temp_input_dir = join(temp_dir, archive_stem)
+    assert is_dir(input_dir), input_dir
+    assert is_dir(output_dir), output_dir
+    assert _is_string(archive_stem), archive_stem
 
-    copy(input_dir, temp_input_dir)
-    make_dir(output_dir)
+    with temp_dir() as dir:
+        temp_input_dir = join(dir, archive_stem)
 
-    output_file = "{0}.tar.gz".format(join(output_dir, archive_stem))
-    output_file = absolute_path(output_file)
+        copy(input_dir, temp_input_dir)
+        make_dir(output_dir)
 
-    with working_dir(temp_dir):
-        call("tar -czf {0} {1}", output_file, archive_stem)
+        output_file = "{0}.tar.gz".format(join(output_dir, archive_stem))
+        output_file = absolute_path(output_file)
+
+        with working_dir(dir):
+            call("tar -czf {0} {1}", output_file, archive_stem)
 
     return output_file
 
 def extract_archive(archive_file, output_dir):
-    assert is_file(archive_file)
+    assert is_file(archive_file), archive_file
+    assert is_dir(output_dir), output_dir
 
-    if not exists(output_dir):
-        make_dir(output_dir)
+    make_dir(output_dir)
 
     archive_file = absolute_path(archive_file)
 
@@ -679,24 +733,24 @@ def extract_archive(archive_file, output_dir):
     return output_dir
 
 def rename_archive(archive_file, new_archive_stem):
-    assert is_file(archive_file)
+    assert is_file(archive_file), archive_file
+    assert _is_string(new_archive_stem), new_archive_stem
 
     if name_stem(archive_file) == new_archive_stem:
         return archive_file
 
-    temp_dir = make_temp_dir()
+    with temp_dir() as dir:
+        extract_archive(archive_file, dir)
 
-    extract_archive(archive_file, temp_dir)
+        input_name = list_dir(dir)[0]
+        input_dir = join(dir, input_name)
+        output_file = make_archive(input_dir, dir, new_archive_stem)
+        output_name = file_name(output_file)
+        archive_dir = parent_dir(archive_file)
+        new_archive_file = join(archive_dir, output_name)
 
-    input_name = list_dir(temp_dir)[0]
-    input_dir = join(temp_dir, input_name)
-    output_file = make_archive(input_dir, temp_dir, new_archive_stem)
-    output_name = file_name(output_file)
-    archive_dir = parent_dir(archive_file)
-    new_archive_file = join(archive_dir, output_name)
-
-    move(output_file, new_archive_file)
-    remove(archive_file)
+        move(output_file, new_archive_file)
+        remove(archive_file)
 
     return new_archive_file
 
