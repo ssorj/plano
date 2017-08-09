@@ -40,7 +40,7 @@ def test_logging(session):
                 debug("By the way")
                 debug("abc{}{}{}", 1, 2, 3)
                 eprint("Here's a story")
-                eprint("About a {}", "man named Brady")
+                eprint("About a", "man named Brady")
                 flush()
             except KeyboardInterrupt:
                 raise
@@ -76,3 +76,14 @@ def test_path_operations(session):
     result = real_path(path)
 
     assert result == "/c", result
+
+def test_temp_files(session):
+    make_temp_file()
+    make_temp_file(".txt")
+    make_temp_dir()
+
+    with temp_file() as f:
+        write(f, "test")
+
+    with temp_dir() as d:
+        list_dir(d)

@@ -179,8 +179,8 @@ split_extension = _os.path.splitext
 current_dir = _os.getcwd
 sleep = _time.sleep
 
-def home_dir(user=""):
-    return _os.path.expanduser("~{0}".format(user))
+def home_dir(user=None):
+    return _os.path.expanduser("~{0}".format(user or ""))
 
 def parent_dir(path):
     path = normalize_path(path)
@@ -311,17 +311,20 @@ def write_json(file, obj):
         return _json.dump(obj, f, indent=4, separators=(",", ": "), sort_keys=True)
 
 def make_temp_file(suffix=""):
-    return _tempfile.mkstemp(prefix="plano-", suffix=suffix)[1]
+    try:
+        dir = ENV["XDG_RUNTIME_DIR"]
+    except KeyError:
+        dir = None
+
+    return _tempfile.mkstemp(prefix="plano-", suffix=suffix, dir=dir)[1]
 
 def make_temp_dir(suffix=""):
-    return _tempfile.mkdtemp(prefix="plano-", suffix=suffix)
+    try:
+        dir = ENV["XDG_RUNTIME_DIR"]
+    except KeyError:
+        dir = None
 
-def make_user_temp_dir():
-    temp_dir = _tempfile.gettempdir()
-    user = _getpass.getuser()
-    user_temp_dir = join(temp_dir, user)
-
-    return make_dir(user_temp_dir)
+    return _tempfile.mkdtemp(prefix="plano-", suffix=suffix, dir=dir)
 
 class temp_file(object):
     def __init__(self, suffix=""):

@@ -68,3 +68,7 @@ test-fedora:
 test-ubuntu:
 	sudo docker build -f scripts/test-ubuntu.dockerfile -t plano-test-ubuntu .
 	sudo docker run plano-test-ubuntu
+
+.PHONY: update-%
+update-%:
+	curl "https://raw.githubusercontent.com/ssorj/$*/master/python/$*.py" -o python/$*.py
