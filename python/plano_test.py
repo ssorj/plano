@@ -49,7 +49,7 @@ def test_logging(session):
                 print(read(file))
                 raise
             finally:
-                set_message_output(STD_ERR)
+                set_message_output(STDERR)
                 set_message_threshold("warn")
 
 def test_path_operations(session):
