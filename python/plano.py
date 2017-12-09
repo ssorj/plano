@@ -57,10 +57,10 @@ PATH_VAR_SEP = _os.pathsep
 ENV = _os.environ
 ARGS = _sys.argv
 
-STD_IN = _sys.stdin
-STD_OUT = _sys.stdout
-STD_ERR = _sys.stderr
-NULL_DEV = _os.devnull
+STDIN = _sys.stdin
+STDOUT = _sys.stdout
+STDERR = _sys.stderr
+DEVNULL = _os.devnull
 
 _message_levels = (
     "debug",
@@ -74,7 +74,7 @@ _notice = _message_levels.index("notice")
 _warn = _message_levels.index("warn")
 _error = _message_levels.index("error")
 
-_message_output = STD_ERR
+_message_output = STDERR
 _message_threshold = _notice
 
 def set_message_output(writeable):
@@ -526,17 +526,29 @@ def call_for_exit_code(command, *args, **kwargs):
     proc = start_process(command, *args, **kwargs)
     return wait_for_process(proc)
 
-def call_for_output(command, *args, **kwargs):
+def call_for_stdout(command, *args, **kwargs):
     kwargs["stdout"] = _subprocess.PIPE
 
     proc = start_process(command, *args, **kwargs)
     output = proc.communicate()[0]
     exit_code = proc.poll()
 
-    # XXX I don't know if None is possible here
-    assert exit_code is not None
+    if exit_code != 0:
+        error = CalledProcessError(exit_code, proc.command_string)
+        error.output = output
 
-    if exit_code not in (None, 0):
+        raise error
+
+    return output
+
+def call_for_stderr(command, *args, **kwargs):
+    kwargs["stderr"] = _subprocess.PIPE
+
+    proc = start_process(command, *args, **kwargs)
+    output = proc.communicate()[1]
+    exit_code = proc.poll()
+
+    if exit_code != 0:
         error = CalledProcessError(exit_code, proc.command_string)
         error.output = output
 
@@ -573,7 +585,7 @@ class _Process(_subprocess.Popen):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        stop_process(self.proc)
+        stop_process(self)
 
     def __repr__(self):
         return "process {0} ({1})".format(self.pid, self.name)
