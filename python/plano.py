@@ -78,14 +78,30 @@ _message_output = STDERR
 _message_threshold = _notice
 
 def set_message_output(writeable):
-    global _message_output
-    _message_output = writeable
+    warn("Deprecated! Use enable_logging(output=output) instead")
+    enable_logging(output=writeable)
 
 def set_message_threshold(level):
-    assert level in _message_levels
+    warn("Deprecated! Use enable_logging(level=level) instead")
+    enable_logging(level=level)
 
+def enable_logging(level=None, output=None):
+    if level is not None:
+        assert level in _message_levels
+
+        global _message_threshold
+        _message_threshold = _message_levels.index(level)
+
+    if output is not None:
+        if _is_string(output):
+            output = open(output, "w")
+
+        global _message_output
+        _message_output = output
+
+def disable_logging():
     global _message_threshold
-    _message_threshold = _message_levels.index(level)
+    _message_threshold = 4
 
 def fail(message, *args):
     error(message, *args)

@@ -20,13 +20,13 @@
 from plano import *
 
 def open_test_session(session):
-    set_message_threshold("warn")
+    enable_logging(level="warn")
 
 def test_logging(session):
     with temp_file() as file:
         with open(file, "w") as fp:
-            set_message_output(fp)
-            set_message_threshold("debug")
+            disable_logging()
+            enable_logging(output=fp, level="debug")
 
             try:
                 try:
@@ -49,8 +49,7 @@ def test_logging(session):
                 print(read(file))
                 raise
             finally:
-                set_message_output(STDERR)
-                set_message_threshold("warn")
+                enable_logging(output=STDERR, level="warn")
 
 def test_path_operations(session):
     curr_dir = current_dir()
