@@ -77,6 +77,12 @@ def test_path_operations(session):
 
     assert result == "/c", result
 
+def test_process_operations(session):
+    call("date", quiet=True)
+
+    with open(make_temp_file(), "w") as temp:
+        call("date", output=temp)
+
 def test_temp_files(session):
     make_temp_file()
     make_temp_file(".txt")

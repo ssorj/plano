@@ -557,23 +557,20 @@ def call_for_stderr(command, *args, **kwargs):
     return output
 
 def call_and_print_on_error(command, *args, **kwargs):
-    with temp_file() as output_file:
-        try:
-            with open(output_file, "w") as out:
-                kwargs["output"] = out
-                call(command, *args, **kwargs)
-        except CalledProcessError:
-            eprint(read(output_file), end="")
-            raise
+    warn("Deprecated! Use call() with quiet=True instead")
+
+    kwargs["quiet"] = True
+    call(command, *args, **kwargs)
 
 _child_processes = list()
 
 class _Process(_subprocess.Popen):
-    def __init__(self, command, options, name, command_string):
+    def __init__(self, command, options, name, command_string, temp_output_file):
         super(_Process, self).__init__(command, **options)
 
         self.name = name
         self.command_string = command_string
+        self.temp_output_file = temp_output_file
 
         _child_processes.append(self)
 
@@ -616,6 +613,8 @@ if _sys.platform == "linux2":
     except:
         _traceback.print_exc()
 
+# output - Send stdout and err to a file
+# quiet - No output unless there is an error
 def start_process(command, *args, **kwargs):
     if _is_string(command):
         command = command.format(*args)
@@ -641,14 +640,24 @@ def start_process(command, *args, **kwargs):
         kwargs["stdout"] = out
         kwargs["stderr"] = out
 
+    temp_output_file = None
+
+    if "quiet" in kwargs:
+        if kwargs.pop("quiet") is True:
+            temp_output_file = make_temp_file()
+            temp_output = open(temp_output_file, "w")
+
+            kwargs["stdout"] = temp_output
+            kwargs["stderr"] = temp_output
+
     if "preexec_fn" not in kwargs:
         if _libc is not None:
             kwargs["preexec_fn"] = _libc.prctl(1, _signal.SIGKILL)
 
     if "shell" in kwargs and kwargs["shell"] is True:
-        proc = _Process(command_string, kwargs, name, command_string)
+        proc = _Process(command_string, kwargs, name, command_string, temp_output_file)
     else:
-        proc = _Process(command_args, kwargs, name, command_string)
+        proc = _Process(command_args, kwargs, name, command_string, temp_output_file)
 
     debug("{0} started", proc)
 
@@ -689,7 +698,13 @@ def wait_for_process(proc):
     elif proc.returncode == -(_signal.SIGTERM):
         debug("{0} exited after termination", proc)
     else:
-        debug("{0} exited with code {1}", proc, proc.returncode)
+        debug("{0} exited with code {1}", proc, proc.exit_code)
+
+        if proc.temp_output_file is not None:
+            eprint(read(proc.temp_output_file), end="")
+
+    if proc.temp_output_file is not None:
+        _os.remove(proc.temp_output_file)
 
     return proc.returncode
 
