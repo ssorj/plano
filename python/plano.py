@@ -482,8 +482,6 @@ def find_only_one(dir, *patterns):
 
     return paths[0]
 
-# find_via_expr?
-
 def string_replace(string, expr, replacement, count=0):
     return _re.sub(expr, replacement, string, count)
 
@@ -611,8 +609,6 @@ def default_sigterm_handler(signum, frame):
     for proc in _child_processes:
         if proc.poll() is None:
             proc.terminate()
-
-    #_remove_temp_dir()
 
     exit(-(_signal.SIGTERM))
 
