@@ -265,9 +265,13 @@ def prepend(file, string):
 
     return write(file, prepended)
 
-# XXX Should this work on directories?
 def touch(file):
-    return append(file, "")
+    try:
+        _os.utime(file, None)
+    except OSError:
+        append(file, "")
+
+    return file
 
 def tail(file, n):
     return "".join(tail_lines(file, n))

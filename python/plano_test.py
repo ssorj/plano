@@ -22,6 +22,15 @@ from plano import *
 def open_test_session(session):
     enable_logging(level="warn")
 
+def test_file_io(session):
+    with temp_working_dir():
+        touch("some-file")
+
+        assert exists("some-file")
+
+        make_dir("some-dir")
+        touch("some-dir")
+
 def test_logging(session):
     with temp_file() as file:
         with open(file, "w") as fp:
