@@ -99,5 +99,5 @@ def test_temp_files(session):
     with temp_file() as f:
         write(f, "test")
 
-    with temp_dir() as d:
+    with temp_working_dir() as d:
         list_dir(d)

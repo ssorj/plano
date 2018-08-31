@@ -43,13 +43,13 @@ install: build
 .PHONY: clean
 clean:
 	find python -type f -name \*.pyc -delete
-	rm -rf dist
-	./setup.py clean --all
+	rm -rf python/__pycache__
+	rm -rf build dist MANIFEST
 
 .PHONY: test
 test:
-	scripts/test-plano
-#	python3 scripts/test-plano
+	scripts/test
+	python3 scripts/test
 
 .PHONY: big-test
 big-test: test test-centos test-fedora test-ubuntu
