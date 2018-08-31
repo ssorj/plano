@@ -239,7 +239,7 @@ def program_name(command=None):
 
 def which(program_name):
     assert "PATH" in ENV
-    
+
     for dir in ENV["PATH"].split(PATH_VAR_SEP):
         program = join(dir, program_name)
 
