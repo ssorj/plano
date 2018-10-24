@@ -87,6 +87,9 @@ def set_message_threshold(level):
 
 def enable_logging(level=None, output=None):
     if level is not None:
+        if level == "warning":
+            level = "warn"
+
         assert level in _message_levels
 
         global _message_threshold
@@ -519,8 +522,13 @@ def change_dir(dir):
     return _change_dir(dir)
 
 def _change_dir(dir):
-    cwd = current_dir()
+    try:
+        cwd = current_dir()
+    except FileNotFoundError:
+        cwd = None
+
     _os.chdir(dir)
+
     return cwd
 
 def list_dir(dir, *patterns):
