@@ -740,7 +740,11 @@ def start_process(command, *args, **kwargs):
 
     return proc
 
+# Exits without complaint if proc is null
 def terminate_process(proc):
+    if proc is None:
+        return
+
     notice("Terminating {0}", proc)
 
     if proc.poll() is None:
