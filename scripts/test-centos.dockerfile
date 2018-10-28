@@ -22,7 +22,9 @@ MAINTAINER Justin Ross <jross@apache.org>
 
 RUN yum -qy update && yum -q clean all
 
-RUN yum -y install make
+RUN yum -y install epel-release
+
+RUN yum -y install make python34
 
 COPY . /root/plano
 WORKDIR /root/plano

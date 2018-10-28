@@ -22,7 +22,7 @@ MAINTAINER Justin Ross <jross@apache.org>
 
 RUN apt-get update -qq && apt-get upgrade -y -qq
 
-RUN apt-get -y install make python
+RUN apt-get -y install make python python3
 
 COPY . /root/plano
 WORKDIR /root/plano
