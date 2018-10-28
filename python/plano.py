@@ -348,20 +348,18 @@ def write_json(file, obj):
     with _codecs.open(file, encoding="utf-8", mode="w") as f:
         return _json.dump(obj, f, indent=4, separators=(",", ": "), sort_keys=True)
 
-def make_temp_file(suffix=""):
+def user_temp_dir():
     try:
-        dir = ENV["XDG_RUNTIME_DIR"]
+        return ENV["XDG_RUNTIME_DIR"]
     except KeyError:
-        dir = None
+        return _tempfile.gettempdir()
 
+def make_temp_file(suffix=""):
+    dir = user_temp_dir()
     return _tempfile.mkstemp(prefix="plano-", suffix=suffix, dir=dir)[1]
 
 def make_temp_dir(suffix=""):
-    try:
-        dir = ENV["XDG_RUNTIME_DIR"]
-    except KeyError:
-        dir = None
-
+    dir = user_temp_dir()
     return _tempfile.mkdtemp(prefix="plano-", suffix=suffix, dir=dir)
 
 class temp_file(object):
@@ -374,6 +372,7 @@ class temp_file(object):
     def __exit__(self, exc_type, exc_value, traceback):
         _remove(self.file)
 
+# Length in bytes, renders twice as long in hex
 def unique_id(length=16):
     assert length >= 1
     assert length <= 16
