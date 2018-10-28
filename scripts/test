@@ -21,7 +21,7 @@
 from commandant import TestCommand
 from plano import *
 
-import plano_tests
+import tests
 
 path = "/alpha/beta.ext"
 path_split = "/alpha", "beta.ext"
@@ -64,5 +64,5 @@ moved_dir = move(beta_dir, alpha_dir)
 assert moved_dir == join(alpha_dir, "beta-dir")
 
 if __name__ == "__main__":
-    command = TestCommand([plano_tests])
+    command = TestCommand([tests])
     command.main()
