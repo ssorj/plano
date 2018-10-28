@@ -25,6 +25,7 @@ PREFIX := ${HOME}/.local
 .PHONY: default
 default: build
 
+.PHONY: help
 help:
 	@echo "build          Build the code"
 	@echo "test           Run the tests"
@@ -48,7 +49,7 @@ clean:
 
 .PHONY: test
 test:
-	scripts/test
+	python2 scripts/test
 	python3 scripts/test
 
 .PHONY: big-test
