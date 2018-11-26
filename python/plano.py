@@ -726,7 +726,7 @@ def start_process(command, *args, **kwargs):
         raise Exception()
 
     command_string = command_string.replace("\n", "\\n")
-    
+
     notice("Calling '{0}'", command_string)
 
     name = kwargs.get("name", command_args[0])
