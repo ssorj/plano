@@ -348,6 +348,36 @@ def write_json(file, obj):
     with _codecs.open(file, encoding="utf-8", mode="w") as f:
         return _json.dump(obj, f, indent=4, separators=(",", ": "), sort_keys=True)
 
+def parse_json(json):
+    return _json.loads(json)
+
+def emit_json(obj):
+    return _json.dumps(obj, f, indent=4, separators=(",", ": "), sort_keys=True)
+
+def http_get(url, output_file=None):
+    options = "-f -H 'Expect:'"
+
+    if output_file is None:
+        return call_for_stdout("curl {0} {1}", options, url)
+
+    call("curl {0} {1} -o {2}", options, url, output_file)
+
+def http_put(url, input_file, output_file=None):
+    options = "-f -X PUT -H 'Expect:'"
+
+    if output_file is None:
+        return call_for_stdout("curl {0} {1} -d @{2}", options, url, input_file)
+
+    call("curl {0} {1} -d @{2} -o {3}", options, url, input_file, output_file)
+
+def http_get_json(url):
+    return parse_json(http_get(url))
+
+def http_put_json(url, data):
+    with temp_file() as f:
+        write_json(f, data)
+        http_put(url, f)
+
 def user_temp_dir():
     try:
         return ENV["XDG_RUNTIME_DIR"]
