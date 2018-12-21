@@ -356,7 +356,7 @@ def emit_json(obj):
 
 def http_get(url, output_file=None, insecure=False):
     options = [
-        "-f",
+        "-sf",
         "-H", "'Expect:'",
     ]
 
@@ -370,7 +370,7 @@ def http_get(url, output_file=None, insecure=False):
 
 def http_put(url, input_file, output_file=None, insecure=False):
     options = [
-        "-f",
+        "-sf",
         "-X", "PUT",
         "-H", "'Expect:'",
     ]
@@ -397,17 +397,21 @@ def user_temp_dir():
     except KeyError:
         return _tempfile.gettempdir()
 
-def make_temp_file(suffix=""):
-    dir = user_temp_dir()
+def make_temp_file(suffix="", dir=None):
+    if dir is None:
+        dir = user_temp_dir()
+
     return _tempfile.mkstemp(prefix="plano-", suffix=suffix, dir=dir)[1]
 
-def make_temp_dir(suffix=""):
-    dir = user_temp_dir()
+def make_temp_dir(suffix="", dir=None):
+    if dir is None:
+        dir = user_temp_dir()
+
     return _tempfile.mkdtemp(prefix="plano-", suffix=suffix, dir=dir)
 
 class temp_file(object):
-    def __init__(self, suffix=""):
-        self.file = make_temp_file(suffix=suffix)
+    def __init__(self, suffix="", dir=None):
+        self.file = make_temp_file(suffix=suffix, dir=dir)
 
     def __enter__(self):
         return self.file
