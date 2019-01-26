@@ -79,7 +79,7 @@ def test_logging(session):
             warn("Warning!")
             notice("Take a look!")
             debug("By the way")
-            debug("abc{}{}{}", 1, 2, 3)
+            debug("abc{0}{1}{2}", 1, 2, 3)
             eprint("Here's a story")
             eprint("About a", "man named Brady")
 
