@@ -18,7 +18,6 @@
 #
 
 FROM ubuntu
-MAINTAINER Justin Ross <jross@apache.org>
 
 RUN apt-get update -qq && apt-get upgrade -y -qq
 

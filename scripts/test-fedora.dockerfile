@@ -18,7 +18,6 @@
 #
 
 FROM fedora
-MAINTAINER Justin Ross <jross@apache.org>
 
 RUN dnf -qy update && dnf -q clean all
 

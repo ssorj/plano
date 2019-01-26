@@ -58,17 +58,22 @@ big-test: test test-centos test-fedora test-ubuntu
 .PHONY: test-centos
 test-centos:
 	sudo docker build -f scripts/test-centos.dockerfile -t plano-test-centos .
-	sudo docker run plano-test-centos
+	sudo docker run --rm plano-test-centos
+
+.PHONY: test-centos-6
+test-centos-6:
+	sudo docker build -f scripts/test-centos-6.dockerfile -t plano-test-centos .
+	sudo docker run --rm plano-test-centos
 
 .PHONY: test-fedora
 test-fedora:
 	sudo docker build -f scripts/test-fedora.dockerfile -t plano-test-fedora .
-	sudo docker run plano-test-fedora
+	sudo docker run --rm plano-test-fedora
 
 .PHONY: test-ubuntu
 test-ubuntu:
 	sudo docker build -f scripts/test-ubuntu.dockerfile -t plano-test-ubuntu .
-	sudo docker run plano-test-ubuntu
+	sudo docker run --rm plano-test-ubuntu
 
 .PHONY: update-%
 update-%:
