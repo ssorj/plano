@@ -624,7 +624,7 @@ class working_dir(object):
         if not exists(self.dir):
             _make_dir(self.dir)
 
-        notice("Entering working directory '{0}'", absolute_path(self.dir))
+        notice("Entering directory '{0}'", absolute_path(self.dir))
 
         self.prev_dir = _change_dir(self.dir)
 
