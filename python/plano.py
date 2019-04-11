@@ -271,9 +271,7 @@ def append(file, string):
 
 def prepend(file, string):
     orig = read(file)
-    prepended = string + orig
-
-    return write(file, prepended)
+    return write(file, string + orig)
 
 def touch(file):
     try:
