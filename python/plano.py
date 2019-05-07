@@ -799,10 +799,16 @@ def start_process(command, *args, **kwargs):
         if _libc is not None:
             kwargs["preexec_fn"] = _libc.prctl(1, _signal.SIGKILL)
 
-    if "shell" in kwargs and kwargs["shell"] is True:
-        proc = _Process(command_string, kwargs, name, command_string, temp_output_file)
-    else:
-        proc = _Process(command_args, kwargs, name, command_string, temp_output_file)
+    try:
+        if "shell" in kwargs and kwargs["shell"] is True:
+            proc = _Process(command_string, kwargs, name, command_string, temp_output_file)
+        else:
+            proc = _Process(command_args, kwargs, name, command_string, temp_output_file)
+    except OSError as e:
+        if e.errno == 2:
+            fail("{0}: {1}", str(e))
+
+        raise
 
     debug("{0} started", proc)
 
@@ -954,6 +960,29 @@ def wait_for_port(port, host="", timeout=30):
                 fail("Timed out waiting for port {0} to open", port)
     finally:
         sock.close()
+
+def nvl(value, substitution, template=None):
+    assert substitution is not None
+
+    if value is None:
+        return substitution
+
+    if template is not None:
+        return template.format(value)
+
+    return value
+
+def shorten(string, max):
+    assert max is not None
+    assert isinstance(max, int)
+
+    if string is None:
+        return ""
+
+    if len(string) < max:
+        return string
+    else:
+        return string[0:max]
 
 def plural(noun, count=0):
     if noun is None:
