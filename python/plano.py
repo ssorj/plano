@@ -555,12 +555,12 @@ def find_exactly_one(dir, *patterns):
 def string_replace(string, expr, replacement, count=0):
     return _re.sub(expr, replacement, string, count)
 
-def configure_file(input_file, output_file, **kwargs):
+def configure_file(input_file, output_file, **substitutions):
     notice("Configuring '{0}' for output '{1}'", input_file, output_file)
 
     content = read(input_file)
 
-    for name, value in kwargs.items():
+    for name, value in substitutions.items():
         content = content.replace("@{0}@".format(name), value)
 
     write(output_file, content)
