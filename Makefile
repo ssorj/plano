@@ -62,8 +62,8 @@ test-centos:
 
 .PHONY: test-centos-6
 test-centos-6:
-	sudo docker build -f scripts/test-centos-6.dockerfile -t plano-test-centos .
-	sudo docker run --rm plano-test-centos
+	sudo docker build -f scripts/test-centos-6.dockerfile -t plano-test-centos-6 .
+	sudo docker run --rm plano-test-centos-6
 
 .PHONY: test-fedora
 test-fedora:
