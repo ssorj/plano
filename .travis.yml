@@ -1,5 +1,4 @@
 sudo: enabled
-dist: trusty
 
 services:
  - docker
