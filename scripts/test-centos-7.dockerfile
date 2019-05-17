@@ -17,13 +17,13 @@
 # under the License.
 #
 
-FROM centos
+FROM centos:7
 
 RUN yum -q -y update && yum -q clean all
 
 RUN yum -y install epel-release
 
-RUN yum -y install make python34
+RUN yum -y install make python36
 
 COPY . /root/plano
 WORKDIR /root/plano
