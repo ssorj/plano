@@ -94,20 +94,20 @@ def test_logging(session):
 
 # XXX parent_dir, file_name, name_stem, name_extension, program_name
 def test_path_operations(session):
-    result = home_dir()
+    result = get_home_dir()
     assert result == ENV["HOME"], result
 
-    result = home_dir("alice")
+    result = get_home_dir("alice")
     assert result.endswith("alice"), result
 
-    curr_dir = current_dir()
+    curr_dir = get_current_dir()
 
     path = "a/b/c"
-    result = absolute_path(path)
+    result = get_absolute_path(path)
     assert result == join(curr_dir, path), result
 
     path = "/x/y/z"
-    result = absolute_path(path)
+    result = get_absolute_path(path)
     assert result == path, result
 
     path = "a//b/../c/"
@@ -115,7 +115,7 @@ def test_path_operations(session):
     assert result == "a/c", result
 
     path = "/a/../c"
-    result = real_path(path)
+    result = get_real_path(path)
     assert result == "/c", result
 
     path = "/alpha/beta.ext"
@@ -133,7 +133,7 @@ def test_path_operations(session):
 
 # XXX temp_working_dir
 def test_temp_operations(session):
-    td = user_temp_dir()
+    td = get_temp_dir()
 
     result = make_temp_file()
     assert result.startswith(td), result
@@ -151,14 +151,14 @@ def test_temp_operations(session):
         list_dir(d)
 
 def test_unique_id(session):
-    id1 = unique_id()
-    id2 = unique_id()
+    id1 = get_unique_id()
+    id2 = get_unique_id()
     assert id1 != id2
 
-    result = unique_id(1)
+    result = get_unique_id(1)
     assert len(result) == 2
 
-    result = unique_id(16)
+    result = get_unique_id(16)
     assert len(result) == 32
 
 # XXX Much too limited
