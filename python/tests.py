@@ -165,5 +165,37 @@ def test_unique_id(session):
 def test_process_operations(session):
     call("date", quiet=True)
 
-    with open(make_temp_file(), "w") as temp:
+    with temp_file() as temp:
         call("date", output=temp)
+
+    try:
+        call_for_stdout("echo hello", quiet=True)
+    except PlanoException:
+        pass
+
+    try:
+        call_for_stdout("echo hello", output=DEVNULL)
+    except PlanoException:
+        pass
+
+    try:
+        call_for_stdout("echo hello", stdout=DEVNULL)
+    except PlanoException:
+        pass
+
+    try:
+        call_for_stderr("echo hello", quiet=True)
+    except PlanoException:
+        pass
+
+    try:
+        call_for_stderr("echo hello", output=DEVNULL)
+    except PlanoException:
+        pass
+
+    try:
+        call_for_stderr("echo hello", stderr=DEVNULL)
+    except PlanoException:
+        pass
+
+    # XXX call with output= and std*= args

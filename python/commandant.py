@@ -39,13 +39,14 @@ class Command(object):
     def __init__(self, home=None, name=None, standard_args=True):
         self.home = home
         self.name = name
+        self.standard_args = standard_args
 
         self._parser = _argparse.ArgumentParser()
         self._parser.formatter_class = _argparse.RawDescriptionHelpFormatter
 
         self._args = None
 
-        if standard_args:
+        if self.standard_args:
             self.add_argument("--quiet", action="store_true",
                               help="Print no logging to the console")
             self.add_argument("--verbose", action="store_true",
@@ -57,6 +58,10 @@ class Command(object):
             self.name = self._parser.prog
 
         self.id = self.name
+
+        self.quiet = False
+        self.verbose = False
+        self.init_only = False
 
     def add_argument(self, *args, **kwargs):
         self.parser.add_argument(*args, **kwargs)
@@ -104,9 +109,10 @@ class Command(object):
 
         self._args = self.parser.parse_args()
 
-        self.quiet = self.args.quiet
-        self.verbose = self.args.verbose
-        self.init_only = self.args.init_only
+        if self.standard_args:
+            self.quiet = self.args.quiet
+            self.verbose = self.args.verbose
+            self.init_only = self.args.init_only
 
     def run(self):
         raise NotImplementedError()
@@ -159,8 +165,8 @@ class TestSkipped(Exception):
     pass
 
 class TestCommand(Command):
-    def __init__(self, test_modules, home=None, name=None):
-        super(TestCommand, self).__init__(home=home, name=name)
+    def __init__(self, test_modules, **kwargs):
+        super(TestCommand, self).__init__(**kwargs)
 
         self.test_modules = list()
 
@@ -208,7 +214,7 @@ class TestCommand(Command):
 
         for i in range(self.iterations):
             for module in self.test_modules:
-                session = _TestSession(self)
+                session = _TestSession(module)
                 sessions.append(session)
 
                 module.run_tests(session)
@@ -235,6 +241,8 @@ class _TestSession(object):
         self.skipped_tests = list()
         self.passed_tests = list()
         self.failed_tests = list()
+
+        self.test_timeout = self.module.command.test_timeout
 
 class _TestFunction(object):
     def __init__(self, module, function):
@@ -302,8 +310,8 @@ class _TestModule(object):
                 return True
 
             for pattern in self.command.include_patterns:
-                 if _fnmatch.filter(names, pattern):
-                     return True
+                if _fnmatch.filter(names, pattern):
+                    return True
 
         def excluded(names):
             for pattern in self.command.exclude_patterns:
@@ -356,7 +364,7 @@ class _TestModule(object):
             self.command.notice("Running {0}", function)
 
             try:
-                with _Timer(self.command.test_timeout):
+                with _Timer(session.test_timeout):
                     function(session)
             except KeyboardInterrupt:
                 raise
@@ -391,7 +399,7 @@ class _TestModule(object):
             try:
                 with open(output_file, "w") as out:
                     with _OutputRedirected(out, out):
-                        with _Timer(self.command.test_timeout):
+                        with _Timer(session.test_timeout):
                             function(session)
             except KeyboardInterrupt:
                 raise

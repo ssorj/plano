@@ -21,6 +21,7 @@ export PYTHONPATH := python:${PYTHONPATH}
 
 DESTDIR := ""
 PREFIX := ${HOME}/.local
+DOCKER_COMMAND := podman
 
 .PHONY: default
 default: build
@@ -57,23 +58,23 @@ big-test: test test-centos-7 test-centos-6 test-fedora test-ubuntu
 
 .PHONY: test-centos-7
 test-centos-7:
-	sudo docker build -f scripts/test-centos-7.dockerfile -t plano-test-centos-7 .
-	sudo docker run --rm plano-test-centos-7
+	${DOCKER_COMMAND} build -f scripts/test-centos-7.dockerfile -t plano-test-centos-7 .
+	${DOCKER_COMMAND} run --rm plano-test-centos-7
 
 .PHONY: test-centos-6
 test-centos-6:
-	sudo docker build -f scripts/test-centos-6.dockerfile -t plano-test-centos-6 .
-	sudo docker run --rm plano-test-centos-6
+	${DOCKER_COMMAND} build -f scripts/test-centos-6.dockerfile -t plano-test-centos-6 .
+	${DOCKER_COMMAND} run --rm plano-test-centos-6
 
 .PHONY: test-fedora
 test-fedora:
-	sudo docker build -f scripts/test-fedora.dockerfile -t plano-test-fedora .
-	sudo docker run --rm plano-test-fedora
+	${DOCKER_COMMAND} build -f scripts/test-fedora.dockerfile -t plano-test-fedora .
+	${DOCKER_COMMAND} run --rm plano-test-fedora
 
 .PHONY: test-ubuntu
 test-ubuntu:
-	sudo docker build -f scripts/test-ubuntu.dockerfile -t plano-test-ubuntu .
-	sudo docker run --rm plano-test-ubuntu
+	${DOCKER_COMMAND} build -f scripts/test-ubuntu.dockerfile -t plano-test-ubuntu .
+	${DOCKER_COMMAND} run --rm plano-test-ubuntu
 
 .PHONY: update-%
 update-%:
