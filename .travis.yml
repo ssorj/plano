@@ -8,4 +8,4 @@ before_install:
   - sudo apt-get install -qq -y make python
 
 script:
- - make big-test
+ - make big-test DOCKER_COMMAND=docker
