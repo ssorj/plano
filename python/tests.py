@@ -31,8 +31,8 @@ def open_test_session(session):
 # def test_file_io(session):
 
 # def test_archive_operations(session):
-
 # def test_port_operations(session):
+# def test_user_operaitons
 
 # XXX rename remove make_link read_link
 def test_file_operations(session):
@@ -64,7 +64,7 @@ def test_file_operations(session):
     moved_dir = move(beta_dir, alpha_dir)
     assert moved_dir == join(alpha_dir, "beta-dir")
 
-def test_logging(session):
+def test_logging_operations(session):
     with temp_file() as f:
         disable_logging()
         enable_logging(output=f, level="debug")
@@ -150,6 +150,59 @@ def test_temp_operations(session):
     with temp_working_dir() as d:
         list_dir(d)
 
+def test_process_operations(session):
+    run("date")
+    run("date", quiet=True)
+
+    with temp_file() as temp:
+        run("date", output=temp)
+
+    run("date", output=DEVNULL)
+    run("date", stdout=DEVNULL)
+    run("date", stderr=DEVNULL)
+
+    run("echo hello", quiet=True)
+    run("echo hello | cat", quiet=True, shell=True)
+
+    try:
+        run("cat /whoa/not/really", quiet=True)
+    except PlanoProcessError:
+        pass
+
+    try:
+        call("cat /whoa/not/really")
+    except PlanoProcessError:
+        pass
+
+    result = call("echo hello")
+    assert result == "hello\n", result
+
+    result = call("echo hello | cat", shell=True)
+    assert result == "hello\n", result
+
+    with start("sleep 10"):
+        sleep(0.5)
+
+# XXX nvl, shorten
+def test_string_operations(session):
+    result = plural(None)
+    assert result == "", result
+
+    result = plural("")
+    assert result == "", result
+
+    result = plural("test")
+    assert result == "tests", result
+
+    result = plural("test", 1)
+    assert result == "test", result
+
+    result = plural("bus")
+    assert result == "busses", result
+
+    result = plural("bus", 1)
+    assert result == "bus", result
+
 def test_unique_id(session):
     id1 = get_unique_id()
     id2 = get_unique_id()
@@ -160,42 +213,3 @@ def test_unique_id(session):
 
     result = get_unique_id(16)
     assert len(result) == 32
-
-# XXX Much too limited
-def test_process_operations(session):
-    call("date", quiet=True)
-
-    with temp_file() as temp:
-        call("date", output=temp)
-
-    try:
-        call_for_stdout("echo hello", quiet=True)
-    except PlanoException:
-        pass
-
-    try:
-        call_for_stdout("echo hello", output=DEVNULL)
-    except PlanoException:
-        pass
-
-    try:
-        call_for_stdout("echo hello", stdout=DEVNULL)
-    except PlanoException:
-        pass
-
-    try:
-        call_for_stderr("echo hello", quiet=True)
-    except PlanoException:
-        pass
-
-    try:
-        call_for_stderr("echo hello", output=DEVNULL)
-    except PlanoException:
-        pass
-
-    try:
-        call_for_stderr("echo hello", stderr=DEVNULL)
-    except PlanoException:
-        pass
-
-    # XXX call with output= and std*= args
