@@ -22,47 +22,9 @@ from plano import *
 def open_test_session(session):
     enable_logging(level="warn")
 
-# XXX which string_replace working_env random_port
-
-# XXX make_dir, change_dir, list_dir, working_dir, find*
-# def test_dir_operations(session):
-
-# XXX read*, write*, append*, prepend*, touch, tail*
-# def test_file_io(session):
-
+# XXX
 # def test_archive_operations(session):
-# def test_port_operations(session):
 # def test_user_operaitons
-
-# XXX rename remove make_link read_link
-def test_file_operations(session):
-    with temp_working_dir():
-        touch("some-file")
-
-        assert exists("some-file")
-
-        make_dir("some-dir")
-        touch("some-dir")
-
-    temp_dir = make_temp_dir()
-
-    alpha_dir = make_dir(join(temp_dir, "alpha-dir"))
-    alpha_file = touch(join(alpha_dir, "alpha-file"))
-
-    beta_dir = make_dir(join(temp_dir, "beta-dir"))
-    beta_file = touch(join(beta_dir, "beta-file"))
-
-    copied_file = copy(alpha_file, beta_dir)
-    assert copied_file == join(beta_dir, "alpha-file")
-
-    copied_dir = copy(alpha_dir, beta_dir)
-    assert copied_dir == join(beta_dir, "alpha-dir")
-
-    moved_file = move(beta_file, alpha_dir)
-    assert moved_file == join(alpha_dir, "beta-file")
-
-    moved_dir = move(beta_dir, alpha_dir)
-    assert moved_dir == join(alpha_dir, "beta-dir")
 
 def test_logging_operations(session):
     with temp_file() as f:
@@ -92,7 +54,7 @@ def test_logging_operations(session):
         finally:
             enable_logging(output=STDERR, level="warn")
 
-# XXX parent_dir, file_name, name_stem, name_extension, program_name
+# XXX file_name, name_stem, name_extension, program_name
 def test_path_operations(session):
     result = get_home_dir()
     assert result == ENV["HOME"], result
@@ -100,11 +62,13 @@ def test_path_operations(session):
     result = get_home_dir("alice")
     assert result.endswith("alice"), result
 
-    curr_dir = get_current_dir()
+    with working_dir("/"):
+        curr_dir = get_current_dir()
+        assert curr_dir == "/", curr_dir
 
-    path = "a/b/c"
-    result = get_absolute_path(path)
-    assert result == join(curr_dir, path), result
+        path = "a/b/c"
+        result = get_absolute_path(path)
+        assert result == join(curr_dir, path), result
 
     path = "/x/y/z"
     result = get_absolute_path(path)
@@ -131,7 +95,44 @@ def test_path_operations(session):
     result = split_extension(path)
     assert result == path_split_extension, result
 
-# XXX temp_working_dir
+    result = get_parent_dir("/x/y/z")
+    assert result == "/x/y", result
+
+# XXX rename remove make_link read_link
+# XXX read*, write*, append*, prepend*, touch, tail*
+def test_file_operations(session):
+    with working_dir():
+        touch("some-file")
+
+        assert exists("some-file")
+
+        make_dir("some-dir")
+        touch("some-dir")
+
+    temp = make_temp_dir()
+
+    alpha_dir = make_dir(join(temp, "alpha-dir"))
+    alpha_file = touch(join(alpha_dir, "alpha-file"))
+
+    beta_dir = make_dir(join(temp, "beta-dir"))
+    beta_file = touch(join(beta_dir, "beta-file"))
+
+    copied_file = copy(alpha_file, beta_dir)
+    assert copied_file == join(beta_dir, "alpha-file")
+
+    copied_dir = copy(alpha_dir, beta_dir)
+    assert copied_dir == join(beta_dir, "alpha-dir")
+
+    moved_file = move(beta_file, alpha_dir)
+    assert moved_file == join(alpha_dir, "beta-file")
+
+    moved_dir = move(beta_dir, alpha_dir)
+    assert moved_dir == join(alpha_dir, "beta-dir")
+
+# XXX make_dir, change_dir, list_dir, working_dir, find*
+# def test_dir_operations(session):
+#     pass
+
 def test_temp_operations(session):
     td = get_temp_dir()
 
@@ -147,12 +148,21 @@ def test_temp_operations(session):
     with temp_file() as f:
         write(f, "test")
 
-    with temp_working_dir() as d:
+    with working_dir() as d:
         list_dir(d)
 
 def test_process_operations(session):
+    result = get_process_id()
+    assert result, result
+
     run("date")
-    run("date", quiet=True)
+    run("date", stash=True)
+
+    proc = run("echo hello", check=False)
+    assert proc.exit_code == 0, proc.exit_code
+
+    proc = run("cat /uh/uh", check=False)
+    assert proc.exit_code > 0, proc.exit_code
 
     with temp_file() as temp:
         run("date", output=temp)
@@ -162,15 +172,10 @@ def test_process_operations(session):
     run("date", stderr=DEVNULL)
 
     run("echo hello", quiet=True)
-    run("echo hello | cat", quiet=True, shell=True)
+    run("echo hello | cat", shell=True)
 
     try:
-        run("cat /whoa/not/really", quiet=True)
-    except PlanoProcessError:
-        pass
-
-    try:
-        call("cat /whoa/not/really")
+        run("cat /whoa/not/really", stash=True)
     except PlanoProcessError:
         pass
 
@@ -180,11 +185,39 @@ def test_process_operations(session):
     result = call("echo hello | cat", shell=True)
     assert result == "hello\n", result
 
+    try:
+        call("cat /whoa/not/really")
+    except PlanoProcessError:
+        pass
+
     with start("sleep 10"):
         sleep(0.5)
 
-# XXX nvl, shorten
 def test_string_operations(session):
+    result = string_replace("ab", "a", "b")
+    assert result == "bb", result
+
+    result = string_replace("aba", "a", "b", count=1)
+    assert result == "bba", result
+
+    result = nvl(None, "a")
+    assert result == "a", result
+
+    result = nvl("b", "a")
+    assert result == "b", result
+
+    result = nvl(None, "c", "x{0}x")
+    assert result == "c", result
+
+    result = shorten("abc", 2)
+    assert result == "ab", result
+
+    result = shorten("abc", None)
+    assert result == "abc", result
+
+    result = shorten("ellipsis", 6, ellipsis="...")
+    assert result == "ell...", result
+
     result = plural(None)
     assert result == "", result
 
@@ -203,7 +236,13 @@ def test_string_operations(session):
     result = plural("bus", 1)
     assert result == "bus", result
 
-def test_unique_id(session):
+def test_port_operations(session):
+    result = get_random_port()
+    assert result >= 49152 and result <= 65535, result
+
+    # XXX wait_for_port
+
+def test_unique_id_operations(session):
     id1 = get_unique_id()
     id2 = get_unique_id()
     assert id1 != id2

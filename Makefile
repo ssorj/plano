@@ -78,6 +78,11 @@ test-ubuntu:
 	${DOCKER_COMMAND} build -f scripts/test-ubuntu.dockerfile -t plano-test-ubuntu .
 	${DOCKER_COMMAND} run --rm plano-test-ubuntu
 
+.PHONY: coverage
+coverage:
+	coverage run scripts/test
+	coverage report
+
 .PHONY: update-%
 update-%:
 	curl "https://raw.githubusercontent.com/ssorj/$*/master/python/$*.py" -o python/$*.py

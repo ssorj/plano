@@ -44,11 +44,6 @@ import traceback as _traceback
 import types as _types
 import uuid as _uuid
 
-# See documentation at http://www.ssorj.net/projects/plano.html
-
-class PlanoException(Exception):
-    pass
-
 LINE_SEP = _os.linesep
 PATH_SEP = _os.sep
 PATH_VAR_SEP = _os.pathsep
@@ -415,6 +410,37 @@ class temp_file(object):
     def __exit__(self, exc_type, exc_value, traceback):
         remove(self._file, quiet=True)
 
+# No args constructor gets a temp dir
+class working_dir(object):
+    def __init__(self, dir_=None, remove=False):
+        self._dir = dir_
+        self._prev_dir = None
+        self._remove = remove
+
+        if self._dir is None:
+            self._dir = make_temp_dir()
+            self._remove = True
+
+    def __enter__(self):
+        make_dir(self._dir, quiet=True)
+
+        notice("Entering directory '{0}'", get_absolute_path(self._dir))
+
+        self._prev_dir = change_dir(self._dir, quiet=True)
+
+        return self._dir
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self._dir is None or self._dir == ".":
+            return
+
+        notice("Returning to directory '{0}'", get_absolute_path(self._prev_dir))
+
+        change_dir(self._prev_dir, quiet=True)
+
+        if self._remove:
+            remove(self._dir, quiet=True)
+
 # Length in bytes, renders twice as long in hex
 def get_unique_id(length=16):
     assert length >= 1
@@ -606,40 +632,6 @@ def list_dir(dir_, *patterns):
 
     return sorted(matched_names)
 
-class working_dir(object):
-    def __init__(self, dir_):
-        self._dir = dir_
-        self._prev_dir = None
-
-    def __enter__(self):
-        if self._dir is None or self._dir == ".":
-            return
-
-        if not exists(self._dir):
-            make_dir(self._dir, quiet=True)
-
-        notice("Entering directory '{0}'", get_absolute_path(self._dir))
-
-        self._prev_dir = change_dir(self._dir, quiet=True)
-
-        return self._dir
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if self._dir is None or self._dir == ".":
-            return
-
-        notice("Returning to directory '{0}'", get_absolute_path(self._prev_dir))
-
-        change_dir(self._prev_dir, quiet=True)
-
-class temp_working_dir(working_dir):
-    def __init__(self):
-        super(temp_working_dir, self).__init__(make_temp_dir())
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        super(temp_working_dir, self).__exit__(exc_type, exc_value, traceback)
-        remove(self._dir, quiet=True)
-
 class working_env(object):
     def __init__(self, **env_vars):
         self.env_vars = env_vars
@@ -661,24 +653,25 @@ class working_env(object):
 
 ## Process operations
 
+def get_process_id():
+    return _os.getpid()
+
 def sleep(seconds, quiet=False):
     if not quiet:
         notice("Sleeping for {0} {1}", seconds, plural("second", seconds))
 
     _time.sleep(seconds)
 
+# quiet=False - Don't log at notice level
+# stash=False - No output unless there is an error
+# output=<file> - Send stdout and stderr to a file
+# stdout=<file> - Send stdout to a file
+# stderr=<file> - Send stderr to a file
 def start(command, *args, **options):
-    notice("Starting '{0}'", _format_command(command, args))
-
-    return _start(command, *args, **options)
-
-# output - Send stdout and err to a file
-# quiet - No output unless there is an error
-def _start(command, *args, **options):
-    if args:
-        command = command.format(*args)
-
-    debug("Executing '{0}'", _format_command(command, args))
+    if options.pop("quiet", False):
+        debug("Starting '{0}'", _format_command(command, args, None))
+    else:
+        notice("Starting '{0}'", _format_command(command, args, None))
 
     stdout = options.get("stdout", _sys.stdout)
     stderr = options.get("stderr", _sys.stderr)
@@ -698,7 +691,7 @@ def _start(command, *args, **options):
 
     temp_output_file = None
 
-    if options.pop("quiet", False) is True:
+    if options.pop("stash", False) is True:
         temp_output_file = make_temp_file()
         temp_output = open(temp_output_file, "w")
 
@@ -720,8 +713,11 @@ def _start(command, *args, **options):
 
     return proc
 
-def stop(proc):
-    notice("Stopping {0}", proc)
+def stop(proc, quiet=False):
+    if quiet:
+        debug("Stopping {0}", proc)
+    else:
+        notice("Stopping {0}", proc)
 
     if proc.poll() is not None:
         if proc.exit_code == 0:
@@ -731,16 +727,19 @@ def stop(proc):
         else:
             debug("{0} already exited with code {1}", proc, proc.exit_code)
 
-        return
+        return proc
 
     proc.terminate()
 
     # XXX kill after timeout
 
-    return wait(proc)
+    return wait(proc, quiet=True)
 
-def wait(proc, check=False):
-    debug("Waiting for {0} to exit", proc)
+def wait(proc, check=False, quiet=False):
+    if quiet:
+        debug("Waiting for {0} to exit", proc)
+    else:
+        notice("Waiting for {0} to exit", proc)
 
     proc.wait()
 
@@ -763,26 +762,35 @@ def wait(proc, check=False):
     return proc
 
 def run(command, *args, **options):
-    notice("Running '{0}'", _format_command(command, args))
+    if options.get("quiet", False):
+        debug("Running '{0}'", _format_command(command, args))
+    else:
+        notice("Running '{0}'", _format_command(command, args))
 
     check = options.pop("check", True)
-    proc = _start(command, *args, **options)
-    return wait(proc, check=check)
+    options["quiet"] = True
+
+    proc = start(command, *args, **options)
+
+    return wait(proc, check=check, quiet=True)
 
 def call(command, *args, **options):
-    notice("Calling '{0}'", _format_command(command, args))
+    if options.pop("quiet", False):
+        debug("Calling '{0}'", _format_command(command, args))
+    else:
+        notice("Calling '{0}'", _format_command(command, args))
 
-    if any([x in options for x in ("quiet", "output", "stdout", "stderr")]):
-        raise PlanoException("Illegal output options")
+    if any([x in options for x in ("check", "stash", "output", "stdout", "stderr")]):
+        raise PlanoException("Illegal options")
 
-    check = options.pop("check", True)
+    options["quiet"] = True
     options["stdout"] = _subprocess.PIPE
     options["stderr"] = _subprocess.PIPE
 
-    proc = _start(command, *args, **options)
+    proc = start(command, *args, **options)
     out, err = proc.communicate()
 
-    if check and proc.exit_code > 0:
+    if proc.exit_code > 0:
         error = PlanoProcessError(proc)
         error.stdout, error.stderr = out, err
         raise error
@@ -829,9 +837,12 @@ class PlanoProcess(_subprocess.Popen):
             stop(self)
 
     def __repr__(self):
-        return "process {0} ('{1}')".format(self.pid, _format_command(self.command, None))
+        return "process {0} ('{1}')".format(self.pid, _format_command(self.command, None, 40))
 
-class PlanoProcessError(_subprocess.CalledProcessError):
+class PlanoException(Exception):
+    pass
+
+class PlanoProcessError(_subprocess.CalledProcessError, PlanoException):
     def __init__(self, proc):
         super(PlanoProcessError, self).__init__(proc.exit_code, proc.command)
 
@@ -844,11 +855,11 @@ def default_sigterm_handler(signum, frame):
 
 _signal.signal(_signal.SIGTERM, default_sigterm_handler)
 
-def _format_command(command, args):
+def _format_command(command, args, max=None):
     if args:
         command = command.format(*args)
 
-    return shorten(command.replace("\n", "\\n"), 40, ellipsis="...")
+    return shorten(command.replace("\n", "\\n"), max, ellipsis="...")
 
 _libc = None
 
@@ -948,16 +959,16 @@ def nvl(value, substitution, template=None):
     return value
 
 def shorten(string, max_, ellipsis=""):
-    assert max_ is not None
-    assert isinstance(max_, int)
+    assert max_ is None or isinstance(max_, int)
 
     if string is None:
         return ""
 
-    if len(string) < max_:
+    if max_ is None or len(string) < max_:
         return string
     else:
         if ellipsis:
+            string = string + ellipsis
             end = max(0, max_ - len(ellipsis))
             return string[0:end] + ellipsis
         else:
