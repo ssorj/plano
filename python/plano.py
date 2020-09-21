@@ -24,7 +24,6 @@ import base64 as _base64
 import binascii as _binascii
 import codecs as _codecs
 import collections as _collections
-import ctypes as _ctypes
 import fnmatch as _fnmatch
 import getpass as _getpass
 import json as _json
@@ -130,12 +129,9 @@ def exit(arg=None, *args):
 
         _sys.exit(arg)
 
-    raise Exception()
+    raise PlanoException("Illegal argument")
 
 def _print_message(category, message, args):
-    if _message_output is None:
-        return
-
     message = _format_message(category, message, args)
 
     print(message, file=_message_output)
@@ -489,7 +485,7 @@ def move(from_path, to_path, quiet=False):
 def rename(path, expr, replacement):
     path = normalize_path(path)
     parent_dir, name = split(path)
-    to_name = string_replace(name, expr, replacement)
+    to_name = replace(name, expr, replacement)
     to_path = join(parent_dir, to_name)
 
     notice("Renaming '{0}' to '{1}'", path, to_path)
@@ -698,9 +694,6 @@ def start(command, *args, **options):
         options["stdout"] = temp_output
         options["stderr"] = temp_output
 
-    if "preexec_fn" not in options and _libc is not None:
-        options["preexec_fn"] = _libc.prctl(1, _signal.SIGKILL)
-
     try:
         proc = PlanoProcess(command, options, temp_output_file)
     except OSError as e:
@@ -861,14 +854,6 @@ def _format_command(command, args, max=None):
 
     return shorten(command.replace("\n", "\\n"), max, ellipsis="...")
 
-_libc = None
-
-if _sys.platform == "linux2":
-    try:
-        _libc = _ctypes.CDLL(_ctypes.util.find_library("c"))
-    except:
-        _traceback.print_exc()
-
 def make_archive(input_dir, output_dir, archive_stem):
     assert is_dir(input_dir), input_dir
     assert is_dir(output_dir), output_dir
@@ -944,7 +929,7 @@ def wait_for_port(port, host="", timeout=30):
     finally:
         sock.close()
 
-def string_replace(string, expr, replacement, count=0):
+def replace(string, expr, replacement, count=0):
     return _re.sub(expr, replacement, string, count)
 
 def nvl(value, substitution, template=None):

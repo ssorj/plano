@@ -82,6 +82,7 @@ test-ubuntu:
 coverage:
 	coverage run scripts/test
 	coverage report
+	coverage html
 
 .PHONY: update-%
 update-%:

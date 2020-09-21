@@ -29,6 +29,11 @@ def open_test_session(session):
 def test_logging_operations(session):
     with temp_file() as f:
         disable_logging()
+
+        enable_logging(output=f, level="error")
+        enable_logging(output=f, level="notice")
+        enable_logging(output=f, level="warn")
+        enable_logging(output=f, level="warning")
         enable_logging(output=f, level="debug")
 
         try:
@@ -45,9 +50,39 @@ def test_logging_operations(session):
             eprint("Here's a story")
             eprint("About a", "man named Brady")
 
+            exc = Exception("abc123")
+
+            try:
+                fail(exc)
+            except Exception as e:
+                assert e is exc, e
+
+            try:
+                exit()
+            except SystemExit as e:
+                pass
+
+            try:
+                exit("abc")
+            except SystemExit as e:
+                pass
+
+            try:
+                exit(123)
+            except SystemExit as e:
+                pass
+
+            try:
+                exit(-123)
+            except SystemExit as e:
+                pass
+
+            try:
+                exit(object())
+            except PlanoException:
+                pass
+
             flush()
-        except KeyboardInterrupt:
-            raise
         except:
             print(read(f))
             raise
@@ -194,10 +229,10 @@ def test_process_operations(session):
         sleep(0.5)
 
 def test_string_operations(session):
-    result = string_replace("ab", "a", "b")
+    result = replace("ab", "a", "b")
     assert result == "bb", result
 
-    result = string_replace("aba", "a", "b", count=1)
+    result = replace("aba", "a", "b", count=1)
     assert result == "bba", result
 
     result = nvl(None, "a")
@@ -206,8 +241,8 @@ def test_string_operations(session):
     result = nvl("b", "a")
     assert result == "b", result
 
-    result = nvl(None, "c", "x{0}x")
-    assert result == "c", result
+    result = nvl("b", "a", "x{0}x")
+    assert result == "xbx", result
 
     result = shorten("abc", 2)
     assert result == "ab", result
@@ -217,6 +252,9 @@ def test_string_operations(session):
 
     result = shorten("ellipsis", 6, ellipsis="...")
     assert result == "ell...", result
+
+    result = shorten(None, 6)
+    assert result == "", result
 
     result = plural(None)
     assert result == "", result
