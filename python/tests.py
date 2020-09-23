@@ -17,6 +17,8 @@
 # under the License.
 #
 
+import os as _os
+
 from plano import *
 
 def open_test_session(session):
@@ -24,7 +26,6 @@ def open_test_session(session):
 
 # XXX
 # def test_archive_operations(session):
-# def test_user_operaitons
 
 def test_logging_operations(session):
     with temp_file() as f:
@@ -134,16 +135,7 @@ def test_path_operations(session):
     assert result == "/x/y", result
 
 # XXX rename remove make_link read_link
-# XXX read*, write*, append*, prepend*, touch, tail*
 def test_file_operations(session):
-    with working_dir():
-        touch("some-file")
-
-        assert exists("some-file")
-
-        make_dir("some-dir")
-        touch("some-dir")
-
     temp = make_temp_dir()
 
     alpha_dir = make_dir(join(temp, "alpha-dir"))
@@ -151,6 +143,8 @@ def test_file_operations(session):
 
     beta_dir = make_dir(join(temp, "beta-dir"))
     beta_file = touch(join(beta_dir, "beta-file"))
+
+    assert exists(beta_file)
 
     copied_file = copy(alpha_file, beta_dir)
     assert copied_file == join(beta_dir, "alpha-file")
@@ -165,8 +159,13 @@ def test_file_operations(session):
     assert moved_dir == join(alpha_dir, "beta-dir")
 
 # XXX make_dir, change_dir, list_dir, working_dir, find*
-# def test_dir_operations(session):
-#     pass
+def test_dir_operations(session):
+    with working_dir():
+        make_dir("some-dir")
+        touch("some-dir/some-file")
+
+        result = list_dir("some-dir")
+        assert len(result), len(result)
 
 def test_temp_operations(session):
     td = get_temp_dir()
@@ -185,6 +184,15 @@ def test_temp_operations(session):
 
     with working_dir() as d:
         list_dir(d)
+
+def test_user_operations(session):
+    user = _os.getlogin()
+    result = get_user()
+    assert result == user, (result, user)
+
+# XXX read*, write*, append*, prepend*, touch, tail*
+def test_io_operations(session):
+    pass
 
 def test_process_operations(session):
     result = get_process_id()
@@ -274,6 +282,10 @@ def test_string_operations(session):
     result = plural("bus", 1)
     assert result == "bus", result
 
+    encoded_result = base64_encode(b"abc")
+    decoded_result = base64_decode(encoded_result)
+    assert decoded_result == b"abc", decoded_result
+
 def test_port_operations(session):
     result = get_random_port()
     assert result >= 49152 and result <= 65535, result
@@ -283,7 +295,8 @@ def test_port_operations(session):
 def test_unique_id_operations(session):
     id1 = get_unique_id()
     id2 = get_unique_id()
-    assert id1 != id2
+
+    assert id1 != id2, (id1, id2)
 
     result = get_unique_id(1)
     assert len(result) == 2
