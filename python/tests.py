@@ -167,6 +167,9 @@ def test_dir_operations(session):
         result = list_dir("some-dir")
         assert len(result), len(result)
 
+    with working_dir(quiet=True):
+        touch("a-file")
+
 def test_temp_operations(session):
     td = get_temp_dir()
 

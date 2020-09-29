@@ -408,10 +408,11 @@ class temp_file(object):
 
 # No args constructor gets a temp dir
 class working_dir(object):
-    def __init__(self, dir_=None, remove=False):
+    def __init__(self, dir_=None, remove=False, quiet=False):
         self._dir = dir_
         self._prev_dir = None
         self._remove = remove
+        self._quiet = quiet
 
         if self._dir is None:
             self._dir = make_temp_dir()
@@ -420,7 +421,8 @@ class working_dir(object):
     def __enter__(self):
         make_dir(self._dir, quiet=True)
 
-        notice("Entering directory '{0}'", get_absolute_path(self._dir))
+        if not self._quiet:
+            notice("Entering directory '{0}'", get_absolute_path(self._dir))
 
         self._prev_dir = change_dir(self._dir, quiet=True)
 
@@ -430,7 +432,8 @@ class working_dir(object):
         if self._dir is None or self._dir == ".":
             return
 
-        notice("Returning to directory '{0}'", get_absolute_path(self._prev_dir))
+        if not self._quiet:
+            notice("Returning to directory '{0}'", get_absolute_path(self._prev_dir))
 
         change_dir(self._prev_dir, quiet=True)
 
