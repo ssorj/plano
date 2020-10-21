@@ -18,6 +18,7 @@
 #
 
 import os as _os
+import pwd as _pwd
 
 from plano import *
 
@@ -189,7 +190,7 @@ def test_temp_operations(session):
         list_dir(d)
 
 def test_user_operations(session):
-    user = _os.getlogin()
+    user = _pwd.getpwuid(_os.getuid())[0]
     result = get_user()
     assert result == user, (result, user)
 
