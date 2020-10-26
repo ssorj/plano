@@ -127,6 +127,10 @@ def exit(arg=None, *args):
         error(arg, *args)
         _sys.exit(1)
 
+    if isinstance(arg, BaseException):
+        error(str(arg))
+        _sys.exit(1)
+
     if isinstance(arg, int):
         if arg > 0:
             error("Exiting with code {0}", arg)
@@ -1069,28 +1073,45 @@ def target(fn):
 class PlanoCommand(object):
     def __init__(self):
         self.parser = _argparse.ArgumentParser(prog="plano")
-        self.parser.add_argument("target", metavar="TARGET", nargs="*",
-                                  help="XXX")
+        self.parser.add_argument("target", metavar="TARGET",
+                                 help="invoke the target function TARGET from the planofile")
+        self.parser.add_argument("-f", "--file", default="Planofile",
+                                 help="read FILE as a planofile (default Planofile)")
+        self.parser.add_argument("--verbose", action="store_true",
+                                 help="print detailed logging to the console")
+        self.parser.add_argument("--quiet", action="store_true",
+                                 help="print no logging to the console")
+        self.parser.add_argument("--init-only", action="store_true",
+                                 help=_argparse.SUPPRESS)
 
     def main(self):
         args = self.parser.parse_args()
-        targets = args.target
 
-        with open("Planofile") as f:
-            exec(f.read(), globals()) # XXX globals is correct here?
+        if args.verbose:
+            enable_logging(level="debug")
+
+        if args.quiet:
+            disable_logging()
+
+        try:
+            with open(args.file) as f:
+                exec(f.read(), globals())
+        except FileNotFoundError as e:
+            exit(e)
 
         if not _targets:
             exit("No targets are defined")
 
-        if not targets:
+        if args.init_only:
+            return
+
+        if not args.target:
             next(iter(_targets.values()))()
 
-        for name in targets:
-            if name not in _targets:
-                exit("Target '{}' is unknown", name)
+        if args.target not in _targets:
+            exit("Target '{}' is unknown", args.target)
 
-        for name in targets:
-            _targets[name]()
+        _targets[args.target]()
 
 if __name__ == "__main__":
     command = PlanoCommand()
