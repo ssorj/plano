@@ -290,6 +290,10 @@ def test_string_operations(session):
     decoded_result = base64_decode(encoded_result)
     assert decoded_result == b"abc", decoded_result
 
+    encoded_result = url_encode("abc=123&yeah!")
+    decoded_result = url_decode(encoded_result)
+    assert decoded_result == "abc=123&yeah!", decoded_result
+
 def test_port_operations(session):
     result = get_random_port()
     assert result >= 49152 and result <= 65535, result

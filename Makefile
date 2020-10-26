@@ -21,7 +21,7 @@
 
 export PYTHONPATH := python:${PYTHONPATH}
 
-DESTDIR := ""
+DESTDIR := /
 PREFIX := ${HOME}/.local
 DOCKER_COMMAND := podman
 

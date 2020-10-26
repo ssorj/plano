@@ -18,13 +18,8 @@
 # under the License.
 #
 
-from distutils.core import setup
+from plano import PlanoCommand
 
-setup(name="plano",
-      version="1.0.0-SNAPSHOT",
-      url="http://www.ssorj.net/projects/plano.html",
-      author="Justin Ross",
-      author_email="justin.ross@gmail.com",
-      py_modules=["plano"],
-      package_dir={"": "python"},
-      scripts=["bin/plano"])
+if __name__ == "__main__":
+    command = PlanoCommand()
+    command.main()

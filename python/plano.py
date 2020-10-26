@@ -19,6 +19,7 @@
 
 from __future__ import print_function
 
+import argparse as _argparse
 import atexit as _atexit
 import base64 as _base64
 import binascii as _binascii
@@ -42,6 +43,11 @@ import time as _time
 import traceback as _traceback
 import types as _types
 import uuid as _uuid
+
+try:
+    import urllib.parse as _urlparse
+except ImportError:
+    import urllib as _urlparse
 
 LINE_SEP = _os.linesep
 PATH_SEP = _os.sep
@@ -118,7 +124,7 @@ def exit(arg=None, *args):
         _sys.exit()
 
     if _is_string(arg):
-        error(arg, args)
+        error(arg, *args)
         _sys.exit(1)
 
     if isinstance(arg, int):
@@ -455,6 +461,12 @@ def base64_encode(string):
 
 def base64_decode(string):
     return _base64.b64decode(string)
+
+def url_encode(string):
+    return _urlparse.quote_plus(string)
+
+def url_decode(string):
+    return _urlparse.unquote_plus(string)
 
 def copy(from_path, to_path, quiet=False):
     if not quiet:
@@ -1047,3 +1059,39 @@ def _is_string(obj):
         return isinstance(obj, basestring)
     except NameError:
         return isinstance(obj, str)
+
+_targets = _collections.OrderedDict()
+
+def target(fn):
+    _targets[fn.__name__] = fn
+    return fn
+
+class PlanoCommand(object):
+    def __init__(self):
+        self.parser = _argparse.ArgumentParser(prog="plano")
+        self.parser.add_argument("target", metavar="TARGET", nargs="*",
+                                  help="XXX")
+
+    def main(self):
+        args = self.parser.parse_args()
+        targets = args.target
+
+        with open("Planofile") as f:
+            exec(f.read(), globals()) # XXX globals is correct here?
+
+        if not _targets:
+            exit("No targets are defined")
+
+        if not targets:
+            next(iter(_targets.values()))()
+
+        for name in targets:
+            if name not in _targets:
+                exit("Target '{}' is unknown", name)
+
+        for name in targets:
+            _targets[name]()
+
+if __name__ == "__main__":
+    command = PlanoCommand()
+    command.main()
