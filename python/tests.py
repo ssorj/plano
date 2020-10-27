@@ -19,6 +19,7 @@
 
 import os as _os
 import pwd as _pwd
+import sys as _sys
 
 from plano import *
 
@@ -226,7 +227,7 @@ def test_process_operations(session):
     except PlanoProcessError:
         pass
 
-    result = call("echo hello")
+    result = call("echo {0}", "hello")
     assert result == "hello\n", result
 
     result = call("echo hello | cat", shell=True)
@@ -313,9 +314,12 @@ def test_unique_id_operations(session):
     assert len(result) == 32
 
 def test_plano_command(session):
-    run("plano -f scripts/test.planofile")
-    run("plano -f scripts/test.planofile --quiet")
-    run("plano -f scripts/test.planofile --verbose")
-    run("plano -f scripts/test.planofile build")
-    run("plano -f scripts/test.planofile clean")
-    run("plano -f scripts/test.planofile help")
+    if _sys.executable is None:
+        raise TestSkipped()
+
+    run("{0} -m plano -f scripts/test.planofile", _sys.executable)
+    run("{0} -m plano -f scripts/test.planofile --quiet", _sys.executable)
+    run("{0} -m plano -f scripts/test.planofile --verbose", _sys.executable)
+    run("{0} -m plano -f scripts/test.planofile build", _sys.executable)
+    run("{0} -m plano -f scripts/test.planofile clean", _sys.executable)
+    run("{0} -m plano -f scripts/test.planofile help", _sys.executable)

@@ -683,10 +683,12 @@ def sleep(seconds, quiet=False):
 # stdout=<file> - Send stdout to a file
 # stderr=<file> - Send stderr to a file
 def start(command, *args, **options):
+    command = _format_command(command, args, None)
+
     if options.pop("quiet", False):
-        debug("Starting '{0}'", _format_command(command, args, None))
+        debug("Starting '{0}'", command)
     else:
-        notice("Starting '{0}'", _format_command(command, args, None))
+        notice("Starting '{0}'", command)
 
     stdout = options.get("stdout", _sys.stdout)
     stderr = options.get("stderr", _sys.stderr)

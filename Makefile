@@ -20,7 +20,6 @@
 .NOTPARALLEL:
 
 export PYTHONPATH := python:${PYTHONPATH}
-export PATH := $(shell echo build/scripts-*):${PATH}
 
 DESTDIR := /
 PREFIX := ${HOME}/.local
@@ -52,7 +51,7 @@ clean:
 	rm -rf build dist MANIFEST
 
 .PHONY: test
-test:
+test: build
 	python2 scripts/test
 	python3 scripts/test
 
