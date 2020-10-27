@@ -47,8 +47,7 @@ install: build
 .PHONY: clean
 clean:
 	find python -type f -name \*.pyc -delete
-	rm -rf python/__pycache__
-	rm -rf build dist MANIFEST
+	rm -rf python/__pycache__ build dist MANIFEST htmlcov
 
 .PHONY: test
 test: build
