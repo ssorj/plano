@@ -27,4 +27,4 @@ RUN yum -y install make python36
 
 COPY . /root/plano
 WORKDIR /root/plano
-CMD ["make", "install", "test", "PREFIX=/usr/local"]
+CMD ["make", "test", "install", "PREFIX=/usr/local"]

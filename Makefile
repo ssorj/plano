@@ -20,6 +20,7 @@
 .NOTPARALLEL:
 
 export PYTHONPATH := python:${PYTHONPATH}
+export PATH := $(shell echo build/scripts-*):${PATH}
 
 DESTDIR := /
 PREFIX := ${HOME}/.local

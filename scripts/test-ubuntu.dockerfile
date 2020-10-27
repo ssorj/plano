@@ -25,4 +25,4 @@ RUN apt-get -y install make python python3 python3-distutils
 
 COPY . /root/plano
 WORKDIR /root/plano
-CMD ["make", "install", "test", "PREFIX=/usr/local"]
+CMD ["make", "test", "install", "PREFIX=/usr/local"]
