@@ -88,6 +88,6 @@ coverage:
 	coverage report
 	coverage html
 
-.PHONY: update-%
-update-%:
-	curl "https://raw.githubusercontent.com/ssorj/$*/master/python/$*.py" -o python/$*.py
+.PHONY: modules
+modules:
+	git submodule update --init --remote --recursive
