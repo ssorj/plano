@@ -311,3 +311,11 @@ def test_unique_id_operations(session):
 
     result = get_unique_id(16)
     assert len(result) == 32
+
+def test_plano_command(session):
+    run("plano -f scripts/test.planofile")
+    run("plano -f scripts/test.planofile --quiet")
+    run("plano -f scripts/test.planofile --verbose")
+    run("plano -f scripts/test.planofile build")
+    run("plano -f scripts/test.planofile clean")
+    run("plano -f scripts/test.planofile help")

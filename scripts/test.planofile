@@ -1,0 +1,11 @@
+@target
+def build():
+    clean()
+    do_build()
+
+@target
+def clean():
+    print("Cleaning")
+
+def do_build():
+    print("Building")

@@ -25,4 +25,4 @@ RUN dnf -y install make python2
 
 COPY . /root/plano
 WORKDIR /root/plano
-CMD ["make", "test"]
+CMD ["make", "install", "test", "PREFIX=/usr/local"]

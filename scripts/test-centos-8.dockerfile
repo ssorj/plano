@@ -17,11 +17,11 @@
 # under the License.
 #
 
-FROM ubuntu
+FROM centos:8
 
-RUN apt-get update -qq && apt-get upgrade -y -qq
+RUN dnf -qy update && dnf -q clean all
 
-RUN apt-get -y install make python python3 python3-distutils
+RUN dnf -y install make python2 python3
 
 COPY . /root/plano
 WORKDIR /root/plano

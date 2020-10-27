@@ -27,4 +27,4 @@ RUN yum -y install make python-argparse python34
 
 COPY . /root/plano
 WORKDIR /root/plano
-CMD ["make", "test"]
+CMD ["make", "install", "test", "PREFIX=/usr/local"]

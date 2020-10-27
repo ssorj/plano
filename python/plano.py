@@ -1070,13 +1070,18 @@ def target(fn):
     _targets[fn.__name__] = fn
     return fn
 
+@target
+def help():
+    print(", ".join(_targets.keys()))
+
 class PlanoCommand(object):
     def __init__(self):
         self.parser = _argparse.ArgumentParser(prog="plano")
-        self.parser.add_argument("target", metavar="TARGET",
+
+        self.parser.add_argument("target", metavar="TARGET", nargs="?",
                                  help="invoke the target function TARGET from the planofile")
         self.parser.add_argument("-f", "--file", default="Planofile",
-                                 help="read FILE as a planofile (default Planofile)")
+                                 help="read FILE as a planofile (default 'Planofile')")
         self.parser.add_argument("--verbose", action="store_true",
                                  help="print detailed logging to the console")
         self.parser.add_argument("--quiet", action="store_true",
@@ -1107,6 +1112,7 @@ class PlanoCommand(object):
 
         if not args.target:
             next(iter(_targets.values()))()
+            return
 
         if args.target not in _targets:
             exit("Target '{}' is unknown", args.target)

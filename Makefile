@@ -56,7 +56,12 @@ test:
 	python3 scripts/test
 
 .PHONY: big-test
-big-test: test test-centos-7 test-centos-6 test-fedora test-ubuntu
+big-test: test test-centos-8 test-centos-7 test-centos-6 test-fedora test-ubuntu
+
+.PHONY: test-centos-8
+test-centos-8:
+	${DOCKER_COMMAND} build -f scripts/test-centos-8.dockerfile -t plano-test-centos-8 .
+	${DOCKER_COMMAND} run --rm plano-test-centos-8
 
 .PHONY: test-centos-7
 test-centos-7:
