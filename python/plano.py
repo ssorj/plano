@@ -204,14 +204,16 @@ def get_parent_dir(path):
 
     return parent
 
-def get_file_name(file_):
-    file_ = normalize_path(file_)
-    dir_, name = split(file_)
+def get_base_name(path):
+    path = normalize_path(path)
+    parent, name = split(path)
 
     return name
 
+get_file_name = get_base_name
+
 def get_name_stem(file_):
-    name = get_file_name(file_)
+    name = get_base_name(file_)
 
     if name.endswith(".tar.gz"):
         name = name[:-3]
@@ -221,7 +223,7 @@ def get_name_stem(file_):
     return stem
 
 def get_name_extension(file_):
-    name = get_file_name(file_)
+    name = get_base_name(file_)
     stem, ext = split_extension(name)
 
     return ext
@@ -234,7 +236,7 @@ def get_program_name(command=None):
 
     for arg in args:
         if "=" not in arg:
-            return get_file_name(arg)
+            return get_base_name(arg)
 
 def which(program_name):
     assert "PATH" in ENV
@@ -477,7 +479,7 @@ def copy(from_path, to_path, quiet=False):
         notice("Copying '{0}' to '{1}'", from_path, to_path)
 
     if is_dir(to_path):
-        to_path = join(to_path, get_file_name(from_path))
+        to_path = join(to_path, get_base_name(from_path))
     else:
         make_parent_dir(to_path, quiet=True)
 
@@ -493,7 +495,7 @@ def move(from_path, to_path, quiet=False):
         notice("Moving '{0}' to '{1}'", from_path, to_path)
 
     if is_dir(to_path):
-        to_path = join(to_path, get_file_name(from_path))
+        to_path = join(to_path, get_base_name(from_path))
     else:
         make_parent_dir(to_path, quiet=True)
 
@@ -623,16 +625,19 @@ def change_dir(dir_, quiet=False):
     if not quiet:
         notice("Changing directory to '{0}'", dir_)
 
-    try:
-        cwd = get_current_dir()
-    except FileNotFoundError:
-        cwd = None
+    prev_dir = get_current_dir()
+
+    if not dir_:
+        return prev_dir
 
     _os.chdir(dir_)
 
-    return cwd
+    return prev_dir
 
-def list_dir(dir_, *patterns):
+def list_dir(dir_=None, *patterns):
+    if dir_ is None:
+        dir_ = get_current_dir()
+
     assert is_dir(dir_)
 
     names = _os.listdir(dir_)
@@ -683,12 +688,13 @@ def sleep(seconds, quiet=False):
 # stdout=<file> - Send stdout to a file
 # stderr=<file> - Send stderr to a file
 def start(command, *args, **options):
-    command = _format_command(command, args, None)
+    if args:
+        command = command.format(*args)
 
     if options.pop("quiet", False):
-        debug("Starting '{0}'", command)
+        debug("Starting '{0}'", _format_command(command, args, None))
     else:
-        notice("Starting '{0}'", command)
+        notice("Starting '{0}'", _format_command(command, args, None))
 
     stdout = options.get("stdout", _sys.stdout)
     stderr = options.get("stderr", _sys.stderr)
@@ -875,56 +881,45 @@ def _format_command(command, args, max=None):
 
     return shorten(command.replace("\n", "\\n"), max, ellipsis="...")
 
-def make_archive(input_dir, output_dir, archive_stem):
-    assert is_dir(input_dir), input_dir
-    assert is_dir(output_dir), output_dir
-    assert _is_string(archive_stem), archive_stem
+def make_archive(input_dir, output_file=None):
+    archive_stem = get_base_name(input_dir)
 
-    with temp_working_dir() as dir_:
-        temp_input_dir = join(dir_, archive_stem)
+    if output_file is None:
+        output_file = "{0}.tar.gz".format(join(get_current_dir(), archive_stem))
 
-        copy(input_dir, temp_input_dir)
-        make_dir(output_dir)
-
-        output_file = "{0}.tar.gz".format(join(output_dir, archive_stem))
-        output_file = get_absolute_path(output_file)
-
-        call("tar -czf {0} {1}", output_file, archive_stem)
+    with working_dir(get_parent_dir(input_dir)):
+        run("tar -czf {0} {1}", output_file, archive_stem)
 
     return output_file
 
-def extract_archive(archive_file, output_dir=None):
-    assert is_file(archive_file), archive_file
-    assert output_dir is None or is_dir(output_dir), output_dir
+def extract_archive(input_file, output_dir=None):
+    if output_dir is None:
+        output_dir = get_current_dir()
 
-    archive_file = get_absolute_path(archive_file)
+    input_file = get_absolute_path(input_file)
 
     with working_dir(output_dir):
-        call("tar -xf {0}", archive_file)
+        run("tar -xf {0}", input_file)
 
     return output_dir
 
-def rename_archive(archive_file, new_archive_stem):
-    assert is_file(archive_file), archive_file
-    assert _is_string(new_archive_stem), new_archive_stem
+def rename_archive(input_file, new_archive_stem):
+    output_dir = get_absolute_path(get_parent_dir(input_file))
+    output_file = "{0}.tar.gz".format(join(output_dir, new_archive_stem))
 
-    if name_stem(archive_file) == new_archive_stem:
-        return archive_file
+    input_file = get_absolute_path(input_file)
 
-    with temp_working_dir() as dir_:
-        extract_archive(archive_file, dir_)
+    with working_dir():
+        extract_archive(input_file)
 
-        input_name = list_dir(dir_)[0]
-        input_dir = join(dir_, input_name)
-        output_file = make_archive(input_dir, dir_, new_archive_stem)
-        output_name = get_file_name(output_file)
-        archive_dir = get_parent_dir(archive_file)
-        new_archive_file = join(archive_dir, output_name)
+        input_name = list_dir()[0]
+        input_dir = move(input_name, new_archive_stem)
 
-        move(output_file, new_archive_file)
-        remove(archive_file)
+        make_archive(input_dir, output_file=output_file)
 
-    return new_archive_file
+    remove(input_file)
+
+    return output_file
 
 def get_random_port(min=49152, max=65535):
     return _random.randint(min, max)

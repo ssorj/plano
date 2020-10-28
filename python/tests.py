@@ -26,8 +26,24 @@ from plano import *
 def open_test_session(session):
     enable_logging(level="warn")
 
-# XXX
-# def test_archive_operations(session):
+def test_archive_operations(session):
+    with working_dir():
+        make_dir("some-dir")
+        touch("some-dir/some-file")
+
+        make_archive("some-dir")
+        assert is_file("some-dir.tar.gz")
+
+        extract_archive("some-dir.tar.gz", output_dir="some-subdir")
+        assert is_dir("some-subdir/some-dir")
+        assert is_file("some-subdir/some-dir/some-file")
+
+        rename_archive("some-dir.tar.gz", "something-else")
+        assert is_file("something-else.tar.gz")
+
+        extract_archive("something-else.tar.gz")
+        assert is_dir("something-else")
+        assert is_file("something-else/some-file")
 
 def test_logging_operations(session):
     with temp_file() as f:
