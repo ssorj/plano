@@ -154,27 +154,39 @@ def test_path_operations(session):
 
 # XXX rename remove make_link read_link
 def test_file_operations(session):
-    temp = make_temp_dir()
+    with working_dir():
+        alpha_dir = make_dir("alpha-dir")
+        alpha_file = touch(join(alpha_dir, "alpha-file"))
 
-    alpha_dir = make_dir(join(temp, "alpha-dir"))
-    alpha_file = touch(join(alpha_dir, "alpha-file"))
+        beta_dir = make_dir("beta-dir")
+        beta_file = touch(join(beta_dir, "beta-file"))
 
-    beta_dir = make_dir(join(temp, "beta-dir"))
-    beta_file = touch(join(beta_dir, "beta-file"))
+        assert exists(beta_file)
 
-    assert exists(beta_file)
+        copied_file = copy(alpha_file, beta_dir)
+        assert copied_file == join(beta_dir, "alpha-file")
 
-    copied_file = copy(alpha_file, beta_dir)
-    assert copied_file == join(beta_dir, "alpha-file")
+        copied_dir = copy(alpha_dir, beta_dir)
+        assert copied_dir == join(beta_dir, "alpha-dir")
 
-    copied_dir = copy(alpha_dir, beta_dir)
-    assert copied_dir == join(beta_dir, "alpha-dir")
+        moved_file = move(beta_file, alpha_dir)
+        assert moved_file == join(alpha_dir, "beta-file")
 
-    moved_file = move(beta_file, alpha_dir)
-    assert moved_file == join(alpha_dir, "beta-file")
+        moved_dir = move(beta_dir, alpha_dir)
+        assert moved_dir == join(alpha_dir, "beta-dir")
 
-    moved_dir = move(beta_dir, alpha_dir)
-    assert moved_dir == join(alpha_dir, "beta-dir")
+        gamma_dir = make_dir("gamma-dir")
+        gamma_file = touch(join(gamma_dir, "gamma-file"))
+
+        delta_dir = make_dir("delta-dir")
+        delta_file = touch(join(delta_dir, "delta-file"))
+
+        copy(gamma_dir, delta_dir, inside=False)
+        assert is_file(join("delta-dir", "gamma-file"))
+
+        move(gamma_dir, delta_dir, inside=False)
+        assert is_file(join("delta-dir", "gamma-file"))
+        assert not exists(gamma_dir)
 
 # XXX make_dir, change_dir, list_dir, working_dir, find*
 def test_dir_operations(session):

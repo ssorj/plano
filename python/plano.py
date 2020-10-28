@@ -474,11 +474,12 @@ def url_encode(string):
 def url_decode(string):
     return _urlparse.unquote_plus(string)
 
-def copy(from_path, to_path, quiet=False):
+# inside=True - Place from_path inside to_path if it's a directory
+def copy(from_path, to_path, inside=True, quiet=False):
     if not quiet:
         notice("Copying '{0}' to '{1}'", from_path, to_path)
 
-    if is_dir(to_path):
+    if is_dir(to_path) and inside:
         to_path = join(to_path, get_base_name(from_path))
     else:
         make_parent_dir(to_path, quiet=True)
@@ -490,16 +491,13 @@ def copy(from_path, to_path, quiet=False):
 
     return to_path
 
-def move(from_path, to_path, quiet=False):
+# inside=True - Place from_path inside to_path if it's a directory
+def move(from_path, to_path, inside=True, quiet=False):
     if not quiet:
         notice("Moving '{0}' to '{1}'", from_path, to_path)
 
-    if is_dir(to_path):
-        to_path = join(to_path, get_base_name(from_path))
-    else:
-        make_parent_dir(to_path, quiet=True)
-
-    _shutil.move(from_path, to_path)
+    to_path = copy(from_path, to_path, inside=inside, quiet=True)
+    remove(from_path)
 
     return to_path
 
