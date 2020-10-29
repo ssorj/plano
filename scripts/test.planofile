@@ -1,11 +1,22 @@
 @target
 def build():
-    clean()
     do_build()
+
+def do_build():
+    print("Building")
+
+@target(requires=build)
+def test():
+    print("Testing")
+
+@target(requires=build, help="Install me!")
+def install():
+    print("Installing")
 
 @target
 def clean():
     print("Cleaning")
 
-def do_build():
-    print("Building")
+@target(name="run", requires=(clean, build), help="Run with it")
+def run_():
+    print("Running")

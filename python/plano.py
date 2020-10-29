@@ -947,8 +947,6 @@ def replace(string, expr, replacement, count=0):
     return _re.sub(expr, replacement, string, count)
 
 def nvl(value, substitution, template=None):
-    assert substitution is not None
-
     if value is None:
         return substitution
 
@@ -1060,27 +1058,75 @@ def _is_string(obj):
         return isinstance(obj, str)
 
 _targets = _collections.OrderedDict()
+_default_target = None
 
-def target(fn):
-    _targets[fn.__name__] = fn
-    return fn
+_target_help = {
+    "build": "Build artifacts from source",
+    "clean": "Clean up the source tree",
+    "dist": "Generate distribution artifacts",
+    "install": "Install the build on your system",
+    "test": "Run the tests",
+}
 
-@target
-def help():
-    print(", ".join(_targets.keys()))
+def target(_func=None, name=None, help=None, requires=None, default=False):
+    class decorator(object):
+        def __init__(self, func):
+            self.func = func
+            self.name = nvl(name, func.__name__)
+            self.help = nvl(help, _target_help.get(self.name))
+            self.requires = requires
+
+            self.called = False
+
+            if self.name in _targets:
+                raise PlanoException("Duplicate target: {0}".format(self.name))
+
+            _targets[self.name] = self
+
+            if default:
+                global _default_target
+                _default_target = self
+
+        def __call__(self, *args, **kwargs):
+            if self.called:
+                return
+
+            if self.requires is not None:
+                if callable(self.requires):
+                    self.requires()
+                else:
+                    for target in self.requires:
+                        target()
+
+            print("--> {0}".format(self.name))
+
+            self.func(*args, **kwargs)
+            self.called = True
+
+    if _func is None:
+        return decorator
+    else:
+        return decorator(_func)
+
+@target(name="help", help="Print this message", default=True)
+def help_():
+    print("Plano targets:")
+
+    for name, target in _targets.items():
+        print("  {0:16}  {1}".format(name, nvl(target.help, "-")))
 
 class PlanoCommand(object):
     def __init__(self):
         self.parser = _argparse.ArgumentParser(prog="plano")
 
         self.parser.add_argument("target", metavar="TARGET", nargs="?",
-                                 help="invoke the target function TARGET from the planofile")
+                                 help="Invoke TARGET from the planofile")
         self.parser.add_argument("-f", "--file", default="Planofile",
-                                 help="read FILE as a planofile (default 'Planofile')")
+                                 help="Read FILE as a planofile (default 'Planofile')")
         self.parser.add_argument("--verbose", action="store_true",
-                                 help="print detailed logging to the console")
+                                 help="Print detailed logging to the console")
         self.parser.add_argument("--quiet", action="store_true",
-                                 help="print no logging to the console")
+                                 help="Print no logging to the console")
         self.parser.add_argument("--init-only", action="store_true",
                                  help=_argparse.SUPPRESS)
 
@@ -1098,21 +1144,20 @@ class PlanoCommand(object):
                 exec(f.read(), globals())
         except FileNotFoundError as e:
             exit(e)
-
-        if not _targets:
-            exit("No targets are defined")
+        except PlanoException as e:
+            exit(e)
 
         if args.init_only:
             return
 
         if not args.target:
-            next(iter(_targets.values()))()
+            _default_target()
             return
 
-        if args.target not in _targets:
+        try:
+            _targets[args.target]()
+        except KeyError:
             exit("Target '{}' is unknown", args.target)
-
-        _targets[args.target]()
 
 if __name__ == "__main__":
     command = PlanoCommand()

@@ -342,6 +342,16 @@ def test_unique_id_operations(session):
     assert len(result) == 32
 
 def test_plano_command(session):
+    @target
+    def alpha():
+        print("A")
+
+    @target(requires=alpha)
+    def beta():
+        print("B")
+
+    beta()
+
     if _sys.executable is None:
         raise TestSkipped()
 
@@ -349,5 +359,7 @@ def test_plano_command(session):
     run("{0} -m plano -f scripts/test.planofile --quiet", _sys.executable)
     run("{0} -m plano -f scripts/test.planofile --verbose", _sys.executable)
     run("{0} -m plano -f scripts/test.planofile build", _sys.executable)
+    run("{0} -m plano -f scripts/test.planofile install", _sys.executable)
     run("{0} -m plano -f scripts/test.planofile clean", _sys.executable)
     run("{0} -m plano -f scripts/test.planofile help", _sys.executable)
+    run("{0} -m plano -f scripts/test.planofile run", _sys.executable)
