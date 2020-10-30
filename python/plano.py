@@ -489,9 +489,15 @@ def copy(from_path, to_path, inside=True, quiet=False):
         make_parent_dir(to_path, quiet=True)
 
     if is_dir(from_path):
-        _copytree(from_path, to_path)
+        for name in list_dir(from_path):
+            copy(join(from_path, name), join(to_path, name), inside=False, quiet=True)
+
+        _shutil.copystat(from_path, to_path)
+    elif is_link(from_path):
+        link_target = read_link(from_path)
+        make_link(link_target, to_path, quiet=True)
     else:
-        _shutil.copy(from_path, to_path)
+        _shutil.copy2(from_path, to_path)
 
     return to_path
 
@@ -529,19 +535,16 @@ def remove(path, quiet=False):
 
     return path
 
-def make_link(source_path, link_file, quiet=False):
-    _log(quiet, "Making link '{0}' to '{1}'", link_file, source_path)
+def make_link(link_target_path, link_file, quiet=False):
+    _log(quiet, "Making link '{0}' to '{1}'", link_file, link_target_path)
 
     if exists(link_file):
-        assert read_link(link_file) == source_path
+        assert read_link(link_file) == link_target_path
         return
 
-    link_dir = get_parent_dir(link_file)
+    make_dir(get_parent_dir(link_file), quiet=True)
 
-    if link_dir:
-        make_dir(link_dir)
-
-    _os.symlink(source_path, link_file)
+    _os.symlink(link_target_path, link_file)
 
     return link_file
 
@@ -977,70 +980,6 @@ def plural(noun, count=0):
         return "{0}ses".format(noun)
 
     return "{0}s".format(noun)
-
-# Modified copytree impl that allows for already existing destination
-# dirs
-def _copytree(src, dst):
-    """Recursively copy a directory tree using copy2().
-
-    If exception(s) occur, an Error is raised with a list of reasons.
-
-    If the optional symlinks flag is true, symbolic links in the
-    source tree result in symbolic links in the destination tree; if
-    it is false, the contents of the files pointed to by symbolic
-    links are copied.
-
-    The optional ignore argument is a callable. If given, it
-    is called with the `src` parameter, which is the directory
-    being visited by copytree(), and `names` which is the list of
-    `src` contents, as returned by os.listdir():
-
-        callable(src, names) -> ignored_names
-
-    Since copytree() is called recursively, the callable will be
-    called once for each directory that is copied. It returns a
-    list of names relative to the `src` directory that should
-    not be copied.
-
-    XXX Consider this example code rather than the ultimate tool.
-
-    """
-    names = _os.listdir(src)
-
-    if not exists(dst):
-        _os.makedirs(dst)
-
-    errors = []
-
-    for name in names:
-        srcname = _os.path.join(src, name)
-        dstname = _os.path.join(dst, name)
-
-        try:
-            if _os.path.islink(srcname):
-                linkto = _os.readlink(srcname)
-                _os.symlink(linkto, dstname)
-            elif _os.path.isdir(srcname):
-                _copytree(srcname, dstname)
-            else:
-                # Will raise a SpecialFileError for unsupported file types
-                _shutil.copy2(srcname, dstname)
-        except _shutil.Error as err:
-            errors.extend(err.args[0])
-        except EnvironmentError as why:
-            errors.append((srcname, dstname, str(why)))
-
-    try:
-        _shutil.copystat(src, dst)
-    except OSError as why:
-        if _shutil.WindowsError is not None and isinstance(why, _shutil.WindowsError):
-            # Copying file access times may fail on Windows
-            pass
-        else:
-            errors.append((src, dst, str(why)))
-
-    if errors:
-        raise _shutil.Error(errors)
 
 def _is_string(obj):
     try:
