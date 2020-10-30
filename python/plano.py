@@ -480,7 +480,7 @@ def url_decode(string):
     return _urlparse.unquote_plus(string)
 
 # inside=True - Place from_path inside to_path if to_path is a directory
-def copy(from_path, to_path, inside=True, quiet=False):
+def copy(from_path, to_path, symlinks=True, inside=True, quiet=False):
     _log(quiet, "Copying '{0}' to '{1}'", from_path, to_path)
 
     if is_dir(to_path) and inside:
@@ -490,12 +490,13 @@ def copy(from_path, to_path, inside=True, quiet=False):
 
     if is_dir(from_path):
         for name in list_dir(from_path):
-            copy(join(from_path, name), join(to_path, name), inside=False, quiet=True)
+            copy(join(from_path, name), join(to_path, name), symlinks=symlinks, inside=False, quiet=True)
 
         _shutil.copystat(from_path, to_path)
-    elif is_link(from_path):
+    elif is_link(from_path) and symlinks:
         link_target = read_link(from_path)
-        make_link(link_target, to_path, quiet=True)
+        absolute_path = get_absolute_path(link_target) # XXX Want a relative path instead
+        make_link(absolute_path, to_path, quiet=True)
     else:
         _shutil.copy2(from_path, to_path)
 
@@ -538,11 +539,12 @@ def remove(path, quiet=False):
 def make_link(link_target_path, link_file, quiet=False):
     _log(quiet, "Making link '{0}' to '{1}'", link_file, link_target_path)
 
-    if exists(link_file):
+    if is_link(link_file):
         assert read_link(link_file) == link_target_path
         return
 
     make_dir(get_parent_dir(link_file), quiet=True)
+    remove(link_file, quiet=True)
 
     _os.symlink(link_target_path, link_file)
 
