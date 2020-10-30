@@ -1071,6 +1071,8 @@ class PlanoCommand(object):
         if args.quiet:
             disable_logging()
 
+        debug("Loading '{0}'", args.file)
+
         try:
             with open(args.file) as f:
                 exec(f.read(), globals())
