@@ -119,6 +119,12 @@ def debug(message, *args):
     if _message_threshold <= _debug:
         _print_message("Debug", message, args)
 
+def _log(quiet, message, *args):
+    if quiet:
+        debug(message, *args)
+    else:
+        notice(message, *args)
+
 def exit(arg=None, *args):
     if arg in (0, None):
         _sys.exit()
@@ -209,8 +215,6 @@ def get_base_name(path):
     parent, name = split(path)
 
     return name
-
-get_file_name = get_base_name
 
 def get_name_stem(file_):
     name = get_base_name(file_)
@@ -360,9 +364,9 @@ def http_get(url, output_file=None, insecure=False):
         options.append("--insecure")
 
     if output_file is None:
-        return call_for_stdout("curl {0} {1}", " ".join(options), url)
+        return call("curl {0} {1}", " ".join(options), url)
 
-    call("curl {0} {1} -o {2}", " ".join(options), url, output_file)
+    run("curl {0} {1} -o {2}", " ".join(options), url, output_file)
 
 def http_put(url, input_file, output_file=None, insecure=False):
     options = [
@@ -375,9 +379,9 @@ def http_put(url, input_file, output_file=None, insecure=False):
         options.append("--insecure")
 
     if output_file is None:
-        return call_for_stdout("curl {0} {1} -d @{2}", " ".join(options), url, input_file)
+        return call("curl {0} {1} -d @{2}", " ".join(options), url, input_file)
 
-    call("curl {0} {1} -d @{2} -o {3}", " ".join(options), url, input_file, output_file)
+    run("curl {0} {1} -d @{2} -o {3}", " ".join(options), url, input_file, output_file)
 
 def http_get_json(url, insecure=False):
     return parse_json(http_get(url, insecure=insecure))
@@ -431,10 +435,12 @@ class working_dir(object):
             self._remove = True
 
     def __enter__(self):
-        make_dir(self._dir, quiet=True)
+        if self._dir is None or self._dir == ".":
+            return
 
-        if not self._quiet:
-            notice("Entering directory '{0}'", get_absolute_path(self._dir))
+        _log(self._quiet, "Entering directory '{0}'", get_absolute_path(self._dir))
+
+        make_dir(self._dir, quiet=True)
 
         self._prev_dir = change_dir(self._dir, quiet=True)
 
@@ -444,8 +450,7 @@ class working_dir(object):
         if self._dir is None or self._dir == ".":
             return
 
-        if not self._quiet:
-            notice("Returning to directory '{0}'", get_absolute_path(self._prev_dir))
+        _log(self._quiet, "Returning to directory '{0}'", get_absolute_path(self._prev_dir))
 
         change_dir(self._prev_dir, quiet=True)
 
@@ -474,10 +479,9 @@ def url_encode(string):
 def url_decode(string):
     return _urlparse.unquote_plus(string)
 
-# inside=True - Place from_path inside to_path if it's a directory
+# inside=True - Place from_path inside to_path if to_path is a directory
 def copy(from_path, to_path, inside=True, quiet=False):
-    if not quiet:
-        notice("Copying '{0}' to '{1}'", from_path, to_path)
+    _log(quiet, "Copying '{0}' to '{1}'", from_path, to_path)
 
     if is_dir(to_path) and inside:
         to_path = join(to_path, get_base_name(from_path))
@@ -485,37 +489,35 @@ def copy(from_path, to_path, inside=True, quiet=False):
         make_parent_dir(to_path, quiet=True)
 
     if is_dir(from_path):
-        _copytree(from_path, to_path, symlinks=True)
+        _copytree(from_path, to_path)
     else:
         _shutil.copy(from_path, to_path)
 
     return to_path
 
-# inside=True - Place from_path inside to_path if it's a directory
+# inside=True - Place from_path inside to_path if to_path is a directory
 def move(from_path, to_path, inside=True, quiet=False):
-    if not quiet:
-        notice("Moving '{0}' to '{1}'", from_path, to_path)
+    _log(quiet, "Moving '{0}' to '{1}'", from_path, to_path)
 
     to_path = copy(from_path, to_path, inside=inside, quiet=True)
     remove(from_path)
 
     return to_path
 
-def rename(path, expr, replacement):
+def rename(path, expr, replacement, quiet=False):
     path = normalize_path(path)
     parent_dir, name = split(path)
     to_name = replace(name, expr, replacement)
     to_path = join(parent_dir, to_name)
 
-    notice("Renaming '{0}' to '{1}'", path, to_path)
+    _log(quiet, "Renaming '{0}' to '{1}'", path, to_path)
 
     move(path, to_path)
 
     return to_path
 
 def remove(path, quiet=False):
-    if not quiet:
-        notice("Removing '{0}'", path)
+    _log(quiet, "Removing '{0}'", path)
 
     if not exists(path):
         return
@@ -527,8 +529,8 @@ def remove(path, quiet=False):
 
     return path
 
-def make_link(source_path, link_file):
-    notice("Making link '{0}' to '{1}'", link_file, source_path)
+def make_link(source_path, link_file, quiet=False):
+    _log(quiet, "Making link '{0}' to '{1}'", link_file, source_path)
 
     if exists(link_file):
         assert read_link(link_file) == source_path
@@ -543,8 +545,8 @@ def make_link(source_path, link_file):
 
     return link_file
 
-def read_link(file):
-    return _os.readlink(file)
+def read_link(link_file):
+    return _os.readlink(link_file)
 
 def find(dir, *patterns):
     matched_paths = set()
@@ -604,8 +606,7 @@ def configure_file(input_file, output_file, **substitutions):
     _shutil.copymode(input_file, output_file)
 
 def make_dir(dir_, quiet=False):
-    if not quiet:
-        notice("Making directory '{0}'", dir_)
+    _log(quiet, "Making directory '{0}'", dir_)
 
     if dir_ == "":
         return dir_
@@ -620,8 +621,7 @@ def make_parent_dir(path, quiet=False):
 
 # Returns the current working directory so you can change it back
 def change_dir(dir_, quiet=False):
-    if not quiet:
-        notice("Changing directory to '{0}'", dir_)
+    _log(quiet, "Changing directory to '{0}'", dir_)
 
     prev_dir = get_current_dir()
 
@@ -675,8 +675,7 @@ def get_process_id():
     return _os.getpid()
 
 def sleep(seconds, quiet=False):
-    if not quiet:
-        notice("Sleeping for {0} {1}", seconds, plural("second", seconds))
+    _log(quiet, "Sleeping for {0} {1}", seconds, plural("second", seconds))
 
     _time.sleep(seconds)
 
@@ -689,10 +688,8 @@ def start(command, *args, **options):
     if args:
         command = command.format(*args)
 
-    if options.pop("quiet", False):
-        debug("Starting '{0}'", _format_command(command, args, None))
-    else:
-        notice("Starting '{0}'", _format_command(command, args, None))
+    quiet = options.pop("quiet", False)
+    _log(quiet, "Starting '{0}'", _format_command(command, args, None))
 
     stdout = options.get("stdout", _sys.stdout)
     stderr = options.get("stderr", _sys.stderr)
@@ -732,10 +729,7 @@ def start(command, *args, **options):
     return proc
 
 def stop(proc, quiet=False):
-    if quiet:
-        debug("Stopping {0}", proc)
-    else:
-        notice("Stopping {0}", proc)
+    _log(quiet, "Stopping {0}", proc)
 
     if proc.poll() is not None:
         if proc.exit_code == 0:
@@ -754,10 +748,7 @@ def stop(proc, quiet=False):
     return wait(proc, quiet=True)
 
 def wait(proc, check=False, quiet=False):
-    if quiet:
-        debug("Waiting for {0} to exit", proc)
-    else:
-        notice("Waiting for {0} to exit", proc)
+    _log(quiet, "Waiting for {0} to exit", proc)
 
     proc.wait()
 
@@ -780,10 +771,8 @@ def wait(proc, check=False, quiet=False):
     return proc
 
 def run(command, *args, **options):
-    if options.get("quiet", False):
-        debug("Running '{0}'", _format_command(command, args))
-    else:
-        notice("Running '{0}'", _format_command(command, args))
+    quiet = options.pop("quiet", False)
+    _log(quiet, "Running '{0}'", _format_command(command, args))
 
     check = options.pop("check", True)
     options["quiet"] = True
@@ -793,10 +782,8 @@ def run(command, *args, **options):
     return wait(proc, check=check, quiet=True)
 
 def call(command, *args, **options):
-    if options.pop("quiet", False):
-        debug("Calling '{0}'", _format_command(command, args))
-    else:
-        notice("Calling '{0}'", _format_command(command, args))
+    quiet = options.pop("quiet", False)
+    _log(quiet, "Calling '{0}'", _format_command(command, args))
 
     if any([x in options for x in ("check", "stash", "output", "stdout", "stderr")]):
         raise PlanoException("Illegal options")
@@ -879,20 +866,24 @@ def _format_command(command, args, max=None):
 
     return shorten(command.replace("\n", "\\n"), max, ellipsis="...")
 
-def make_archive(input_dir, output_file=None):
+def make_archive(input_dir, output_file=None, quiet=False):
     archive_stem = get_base_name(input_dir)
 
     if output_file is None:
         output_file = "{0}.tar.gz".format(join(get_current_dir(), archive_stem))
+
+    _log(quiet, "Making archive '{0}' from dir '{1}'", output_file, input_dir)
 
     with working_dir(get_parent_dir(input_dir)):
         run("tar -czf {0} {1}", output_file, archive_stem)
 
     return output_file
 
-def extract_archive(input_file, output_dir=None):
+def extract_archive(input_file, output_dir=None, quiet=False):
     if output_dir is None:
         output_dir = get_current_dir()
+
+    _log(quiet, "Extracting archive '{0}' to dir '{1}'", input_file, output_dir)
 
     input_file = get_absolute_path(input_file)
 
@@ -901,7 +892,9 @@ def extract_archive(input_file, output_dir=None):
 
     return output_dir
 
-def rename_archive(input_file, new_archive_stem):
+def rename_archive(input_file, new_archive_stem, quiet=False):
+    _log(quiet, "Renaming archive '{0}' with stem '{1}'", input_file, new_archive_stem)
+
     output_dir = get_absolute_path(get_parent_dir(input_file))
     output_file = "{0}.tar.gz".format(join(output_dir, new_archive_stem))
 
@@ -922,7 +915,9 @@ def rename_archive(input_file, new_archive_stem):
 def get_random_port(min=49152, max=65535):
     return _random.randint(min, max)
 
-def wait_for_port(port, host="", timeout=30):
+def wait_for_port(port, host="", timeout=30, quiet=False):
+    _log(quiet, "Waiting for port {0}", port)
+
     if _is_string(port):
         port = int(port)
 
@@ -985,7 +980,7 @@ def plural(noun, count=0):
 
 # Modified copytree impl that allows for already existing destination
 # dirs
-def _copytree(src, dst, symlinks=False, ignore=None):
+def _copytree(src, dst):
     """Recursively copy a directory tree using copy2().
 
     If exception(s) occur, an Error is raised with a list of reasons.
@@ -1011,43 +1006,39 @@ def _copytree(src, dst, symlinks=False, ignore=None):
 
     """
     names = _os.listdir(src)
-    if ignore is not None:
-        ignored_names = ignore(src, names)
-    else:
-        ignored_names = set()
 
     if not exists(dst):
         _os.makedirs(dst)
+
     errors = []
+
     for name in names:
-        if name in ignored_names:
-            continue
         srcname = _os.path.join(src, name)
         dstname = _os.path.join(dst, name)
+
         try:
-            if symlinks and _os.path.islink(srcname):
+            if _os.path.islink(srcname):
                 linkto = _os.readlink(srcname)
                 _os.symlink(linkto, dstname)
             elif _os.path.isdir(srcname):
-                _copytree(srcname, dstname, symlinks, ignore)
+                _copytree(srcname, dstname)
             else:
                 # Will raise a SpecialFileError for unsupported file types
                 _shutil.copy2(srcname, dstname)
-        # catch the Error from the recursive copytree so that we can
-        # continue with other files
         except _shutil.Error as err:
             errors.extend(err.args[0])
         except EnvironmentError as why:
             errors.append((srcname, dstname, str(why)))
+
     try:
         _shutil.copystat(src, dst)
     except OSError as why:
-        if _shutil.WindowsError is not None and isinstance \
-               (why, _shutil.WindowsError):
+        if _shutil.WindowsError is not None and isinstance(why, _shutil.WindowsError):
             # Copying file access times may fail on Windows
             pass
         else:
             errors.append((src, dst, str(why)))
+
     if errors:
         raise _shutil.Error(errors)
 

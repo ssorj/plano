@@ -108,7 +108,6 @@ def test_logging_operations(session):
         finally:
             enable_logging(output=STDERR, level="warn")
 
-# XXX file_name, name_stem, name_extension, program_name
 def test_path_operations(session):
     result = get_home_dir()
     assert result == ENV["HOME"], result
@@ -139,6 +138,7 @@ def test_path_operations(session):
     path = "/alpha/beta.ext"
     path_split = "/alpha", "beta.ext"
     path_split_extension = "/alpha/beta", ".ext"
+    name_split_extension = "beta", ".ext"
 
     result = join(*path_split)
     assert result == path, result
@@ -149,14 +149,39 @@ def test_path_operations(session):
     result = split_extension(path)
     assert result == path_split_extension, result
 
-    result = get_parent_dir("/x/y/z")
-    assert result == "/x/y", result
+    result = get_parent_dir(path)
+    assert result == path_split[0], result
 
-# XXX rename remove make_link read_link
+    result = get_base_name(path)
+    assert result == path_split[1], result
+
+    result = get_name_stem(path)
+    assert result == name_split_extension[0], result
+
+    result = get_name_stem("alpha.tar.gz")
+    assert result == "alpha", result
+
+    result = get_name_extension(path)
+    assert result == name_split_extension[1], result
+
+    result = get_program_name()
+    assert result, result
+
+    result = get_program_name("alpha beta")
+    assert result == "alpha", result
+
+    result = get_program_name("X=Y alpha beta")
+    assert result == "alpha", result
+
+    result = which("echo")
+    assert result, result
+
+# XXX rename
 def test_file_operations(session):
     with working_dir():
         alpha_dir = make_dir("alpha-dir")
         alpha_file = touch(join(alpha_dir, "alpha-file"))
+        alpha_link = make_link(alpha_file, join(alpha_dir, "alpha-file-link"))
 
         beta_dir = make_dir("beta-dir")
         beta_file = touch(join(beta_dir, "beta-file"))
@@ -187,6 +212,32 @@ def test_file_operations(session):
         move(gamma_dir, delta_dir, inside=False)
         assert is_file(join("delta-dir", "gamma-file"))
         assert not exists(gamma_dir)
+
+        epsilon_dir = make_dir("epsilon-dir")
+        epsilon_file_1 = touch(join(epsilon_dir, "epsilon-file-1"))
+        epsilon_file_2 = touch(join(epsilon_dir, "epsilon-file-2"))
+
+        result = remove("not-there")
+        assert result is None, result
+
+        result = remove(epsilon_file_2)
+        assert result == epsilon_file_2, result
+        assert not exists(epsilon_file_2)
+
+        result = remove(epsilon_dir)
+        assert result == epsilon_dir, result
+        assert not exists(epsilon_file_1)
+        assert not exists(epsilon_dir)
+
+        zeta_dir = make_dir("zeta-dir")
+        zeta_file_1 = touch(join(zeta_dir, "zeta-file-1"))
+        zeta_file_2 = touch(join(zeta_dir, "zeta-file-2"))
+
+        result = rename(zeta_file_1, "1", "2")
+        assert result == zeta_file_2, result
+
+# XXX make_link read_link
+# def test_link_operations(session):
 
 # XXX make_dir, change_dir, list_dir, working_dir, find*
 def test_dir_operations(session):
@@ -323,11 +374,18 @@ def test_string_operations(session):
     decoded_result = url_decode(encoded_result)
     assert decoded_result == "abc=123&yeah!", decoded_result
 
+def test_host_operations(session):
+    result = get_hostname()
+    assert result, result
+
 def test_port_operations(session):
     result = get_random_port()
     assert result >= 49152 and result <= 65535, result
 
-    # XXX wait_for_port
+    try:
+        wait_for_port(get_random_port(), timeout=0.1)
+    except PlanoException:
+        pass
 
 def test_unique_id_operations(session):
     id1 = get_unique_id()
