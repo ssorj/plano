@@ -511,18 +511,6 @@ def move(from_path, to_path, inside=True, quiet=False):
 
     return to_path
 
-def rename(path, expr, replacement, quiet=False):
-    path = normalize_path(path)
-    parent_dir, name = split(path)
-    to_name = replace(name, expr, replacement)
-    to_path = join(parent_dir, to_name)
-
-    _log(quiet, "Renaming '{0}' to '{1}'", path, to_path)
-
-    move(path, to_path)
-
-    return to_path
-
 def remove(path, quiet=False):
     _log(quiet, "Removing '{0}'", path)
 

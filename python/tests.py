@@ -235,13 +235,6 @@ def test_file_operations(session):
         assert not exists(epsilon_file_1)
         assert not exists(epsilon_dir)
 
-        zeta_dir = make_dir("zeta-dir")
-        zeta_file_1 = touch(join(zeta_dir, "zeta-file-1"))
-        zeta_file_2 = touch(join(zeta_dir, "zeta-file-2"))
-
-        result = rename(zeta_file_1, "1", "2")
-        assert result == zeta_file_2, result
-
 # XXX make_link read_link
 # def test_link_operations(session):
 
