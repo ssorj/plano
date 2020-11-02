@@ -44,9 +44,9 @@ import traceback as _traceback
 import types as _types
 import uuid as _uuid
 
-try:
+try: # pragma: nocover
     import urllib.parse as _urlparse
-except ImportError:
+except ImportError: # pragma: nocover
     import urllib as _urlparse
 
 LINE_SEP = _os.linesep
@@ -1049,8 +1049,8 @@ class PlanoCommand(object):
         self.parser.add_argument("--init-only", action="store_true",
                                  help=_argparse.SUPPRESS)
 
-    def main(self):
-        args = self.parser.parse_args()
+    def main(self, args=None):
+        args = self.parser.parse_args(args)
 
         if args.verbose:
             enable_logging(level="debug")
@@ -1087,6 +1087,6 @@ class PlanoCommand(object):
         except KeyError:
             exit("Target '{}' is unknown", args.target)
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: nocover
     command = PlanoCommand()
     command.main()

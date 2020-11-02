@@ -78,27 +78,27 @@ def test_logging_operations(session):
 
             try:
                 exit()
-            except SystemExit as e:
+            except SystemExit:
                 pass
 
             try:
                 exit("abc")
-            except SystemExit as e:
+            except SystemExit:
                 pass
 
             try:
                 exit(Exception())
-            except SystemExit as e:
+            except SystemExit:
                 pass
 
             try:
                 exit(123)
-            except SystemExit as e:
+            except SystemExit:
                 pass
 
             try:
                 exit(-123)
-            except SystemExit as e:
+            except SystemExit:
                 pass
 
             try:
@@ -424,24 +424,56 @@ def test_unique_id_operations(session):
     assert len(result) == 32
 
 def test_plano_command(session):
+    command = PlanoCommand()
+
+    from plano import _targets, _default_target
+
+    def invoke(args):
+        command.main(args)
+        _targets.clear(); _default_target = None
+
+    invoke(["-f", "scripts/test.planofile"])
+    invoke(["-f", "scripts/test.planofile", "--quiet"])
+    invoke(["-f", "scripts/test.planofile", "--verbose"])
+    invoke(["-f", "scripts/test.planofile", "--init-only"])
+    invoke(["-f", "scripts/test.planofile", "build"])
+    invoke(["-f", "scripts/test.planofile", "install"])
+    invoke(["-f", "scripts/test.planofile", "clean"])
+    invoke(["-f", "scripts/test.planofile", "run"])
+    invoke(["-f", "scripts/test.planofile", "help"])
+
     @target
     def alpha():
         print("A")
+
+    try:
+        @target(name="alpha")
+        def another_alpha():
+            pass
+    except PlanoException:
+        pass
 
     @target(requires=alpha)
     def beta():
         print("B")
 
-    beta()
+    @target
+    def gamma(default=True):
+        print("G")
 
-    if _sys.executable is None:
-        raise TestSkipped()
+    @target(requires=(beta, gamma))
+    def delta():
+        print("D")
 
-    run("{0} -m plano -f scripts/test.planofile", _sys.executable)
-    run("{0} -m plano -f scripts/test.planofile --quiet", _sys.executable)
-    run("{0} -m plano -f scripts/test.planofile --verbose", _sys.executable)
-    run("{0} -m plano -f scripts/test.planofile build", _sys.executable)
-    run("{0} -m plano -f scripts/test.planofile install", _sys.executable)
-    run("{0} -m plano -f scripts/test.planofile clean", _sys.executable)
-    run("{0} -m plano -f scripts/test.planofile help", _sys.executable)
-    run("{0} -m plano -f scripts/test.planofile run", _sys.executable)
+    with temp_file() as f:
+        invoke(["-f", f, "delta"])
+
+        try:
+            invoke(["-f", f, "no-such-target"])
+        except SystemExit:
+            pass
+
+    try:
+        invoke(["-f" "not/there/at/all"])
+    except SystemExit:
+        pass
