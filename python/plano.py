@@ -1000,6 +1000,12 @@ _target_help = {
     "test": "Run the tests",
 }
 
+def _print_help():
+    print("Plano targets:")
+
+    for name, target in _targets.items():
+        print("  {0:16}  {1}".format(name, nvl(target.help, "-")))
+
 def target(_func=None, name=None, help=None, requires=None, default=False):
     class decorator(object):
         def __init__(self, func):
@@ -1007,6 +1013,8 @@ def target(_func=None, name=None, help=None, requires=None, default=False):
             self.name = nvl(name, func.__name__)
             self.help = nvl(help, _target_help.get(self.name))
             self.requires = requires
+
+            debug("Adding target '{0}'", self.name)
 
             self.called = False
 
@@ -1039,13 +1047,6 @@ def target(_func=None, name=None, help=None, requires=None, default=False):
         return decorator
     else:
         return decorator(_func)
-
-@target(name="help", help="Print this message", default=True)
-def help_():
-    print("Plano targets:")
-
-    for name, target in _targets.items():
-        print("  {0:16}  {1}".format(name, nvl(target.help, "-")))
 
 class PlanoCommand(object):
     def __init__(self):
@@ -1080,6 +1081,13 @@ class PlanoCommand(object):
             exit(e)
         except PlanoException as e:
             exit(e)
+
+        help_ = target(_print_help, name="help", help="Print this message")
+
+        global _default_target
+
+        if _default_target is None:
+            _default_target = help_
 
         if args.init_only:
             return
