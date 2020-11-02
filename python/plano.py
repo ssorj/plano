@@ -182,6 +182,7 @@ def flush():
 get_absolute_path = _os.path.abspath
 normalize_path = _os.path.normpath
 get_real_path = _os.path.realpath
+get_relative_path = _os.path.relpath
 exists = _os.path.lexists
 is_absolute = _os.path.isabs
 is_dir = _os.path.isdir
@@ -425,37 +426,37 @@ class temp_file(object):
 # No args constructor gets a temp dir
 class working_dir(object):
     def __init__(self, dir_=None, remove=False, quiet=False):
-        self._dir = dir_
-        self._prev_dir = None
-        self._remove = remove
-        self._quiet = quiet
+        self.dir_ = dir_
+        self.prev_dir = None
+        self.remove = remove
+        self.quiet = quiet
 
-        if self._dir is None:
-            self._dir = make_temp_dir()
-            self._remove = True
+        if self.dir_ is None:
+            self.dir_ = make_temp_dir()
+            self.remove = True
 
     def __enter__(self):
-        if self._dir is None or self._dir == ".":
+        if self.dir_ == ".":
             return
 
-        _log(self._quiet, "Entering directory '{0}'", get_absolute_path(self._dir))
+        _log(self.quiet, "Entering directory '{0}'", get_absolute_path(self.dir_))
 
-        make_dir(self._dir, quiet=True)
+        make_dir(self.dir_, quiet=True)
 
-        self._prev_dir = change_dir(self._dir, quiet=True)
+        self.prev_dir = change_dir(self.dir_, quiet=True)
 
-        return self._dir
+        return self.dir_
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self._dir is None or self._dir == ".":
+        if self.dir_ == ".":
             return
 
-        _log(self._quiet, "Returning to directory '{0}'", get_absolute_path(self._prev_dir))
+        _log(self.quiet, "Returning to directory '{0}'", get_absolute_path(self.prev_dir))
 
-        change_dir(self._prev_dir, quiet=True)
+        change_dir(self.prev_dir, quiet=True)
 
-        if self._remove:
-            remove(self._dir, quiet=True)
+        if self.remove:
+            remove(self.dir_, quiet=True)
 
 # Length in bytes, renders twice as long in hex
 def get_unique_id(length=16):
@@ -479,6 +480,7 @@ def url_encode(string):
 def url_decode(string):
     return _urlparse.unquote_plus(string)
 
+# symlinks=True - Preserve symlinks
 # inside=True - Place from_path inside to_path if to_path is a directory
 def copy(from_path, to_path, symlinks=True, inside=True, quiet=False):
     _log(quiet, "Copying '{0}' to '{1}'", from_path, to_path)
@@ -494,9 +496,9 @@ def copy(from_path, to_path, symlinks=True, inside=True, quiet=False):
 
         _shutil.copystat(from_path, to_path)
     elif is_link(from_path) and symlinks:
-        link_target = read_link(from_path)
-        absolute_path = get_absolute_path(link_target) # XXX Want a relative path instead
-        make_link(absolute_path, to_path, quiet=True)
+        linked_path = get_absolute_path(read_link(from_path))
+        new_link_target = get_relative_path(linked_path, get_absolute_path(to_path))
+        make_link(to_path, linked_path, quiet=True)
     else:
         _shutil.copy2(from_path, to_path)
 
@@ -524,22 +526,18 @@ def remove(path, quiet=False):
 
     return path
 
-def make_link(link_target_path, link_file, quiet=False):
-    _log(quiet, "Making link '{0}' to '{1}'", link_file, link_target_path)
+def make_link(path, linked_path, quiet=False):
+    _log(quiet, "Making link '{0}' to '{1}'", path, linked_path)
 
-    if is_link(link_file):
-        assert read_link(link_file) == link_target_path
-        return
+    make_dir(get_parent_dir(path), quiet=True)
+    remove(path, quiet=True)
 
-    make_dir(get_parent_dir(link_file), quiet=True)
-    remove(link_file, quiet=True)
+    _os.symlink(linked_path, path)
 
-    _os.symlink(link_target_path, link_file)
+    return path
 
-    return link_file
-
-def read_link(link_file):
-    return _os.readlink(link_file)
+def read_link(path):
+    return _os.readlink(path)
 
 def find(dir, *patterns):
     matched_paths = set()

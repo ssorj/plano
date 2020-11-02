@@ -87,6 +87,11 @@ def test_logging_operations(session):
                 pass
 
             try:
+                exit(Exception())
+            except SystemExit as e:
+                pass
+
+            try:
                 exit(123)
             except SystemExit as e:
                 pass
@@ -181,11 +186,11 @@ def test_file_operations(session):
     with working_dir():
         alpha_dir = make_dir("alpha-dir")
         alpha_file = touch(join(alpha_dir, "alpha-file"))
-        alpha_link = make_link(alpha_file, join(alpha_dir, "alpha-file-link"))
+        alpha_link = make_link(join(alpha_dir, "alpha-file-link"), alpha_file)
 
         beta_dir = make_dir("beta-dir")
         beta_file = touch(join(beta_dir, "beta-file"))
-        beta_link = make_link(beta_file, join(beta_dir, "beta-file-link"))
+        beta_link = make_link(join(beta_dir, "beta-file-link"), beta_file)
 
         assert exists(beta_file)
 
@@ -235,11 +240,23 @@ def test_file_operations(session):
         assert not exists(epsilon_file_1)
         assert not exists(epsilon_dir)
 
-# XXX make_link read_link
-# def test_link_operations(session):
+def test_link_operations(session):
+    with working_dir():
+        make_dir("some-dir")
+        path = get_absolute_path(touch("some-dir/some-file"))
+
+        with working_dir("another-dir"):
+            link = make_link("a-link", path)
+            linked_path = read_link(link)
+            assert linked_path == path, (linked_path, path)
 
 # XXX make_dir, change_dir, list_dir, working_dir, find*
 def test_dir_operations(session):
+    curr_dir = get_current_dir()
+
+    with working_dir("."):
+        assert get_current_dir() == curr_dir, (get_current_dir(), curr_dir)
+
     with working_dir():
         make_dir("some-dir")
         touch("some-dir/some-file")
@@ -251,22 +268,30 @@ def test_dir_operations(session):
         touch("a-file")
 
 def test_temp_operations(session):
-    td = get_temp_dir()
+    temp_dir = get_temp_dir()
 
     result = make_temp_file()
-    assert result.startswith(td), result
+    assert result.startswith(temp_dir), result
 
     result = make_temp_file(suffix=".txt")
     assert result.endswith(".txt"), result
 
     result = make_temp_dir()
-    assert result.startswith(td), result
+    assert result.startswith(temp_dir), result
 
     with temp_file() as f:
         write(f, "test")
 
     with working_dir() as d:
         list_dir(d)
+
+    user_temp_dir = get_user_temp_dir()
+    assert user_temp_dir, user_temp_dir
+
+    del ENV["XDG_RUNTIME_DIR"]
+
+    user_temp_dir = get_user_temp_dir()
+    assert user_temp_dir, user_temp_dir
 
 def test_user_operations(session):
     user = _pwd.getpwuid(_os.getuid())[0]
