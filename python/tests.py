@@ -19,6 +19,7 @@
 
 import os as _os
 import pwd as _pwd
+import socket as _socket
 import sys as _sys
 
 from plano import *
@@ -406,8 +407,19 @@ def test_port_operations(session):
     result = get_random_port()
     assert result >= 49152 and result <= 65535, result
 
+    server_port = get_random_port()
+    server_socket = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+
     try:
-        wait_for_port(get_random_port(), timeout=0.1)
+        server_socket.bind(("localhost", server_port))
+        server_socket.listen(5)
+
+        wait_for_port(server_port)
+    finally:
+        server_socket.close()
+
+    try:
+        wait_for_port(str(get_random_port()), timeout=0.1)
     except PlanoException:
         pass
 
@@ -457,8 +469,8 @@ def test_plano_command(session):
     def beta():
         print("B")
 
-    @target
-    def gamma(default=True):
+    @target(default=True)
+    def gamma():
         print("G")
 
     @target(requires=(beta, gamma))

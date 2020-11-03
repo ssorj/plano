@@ -1063,10 +1063,8 @@ class PlanoCommand(object):
         try:
             with open(args.file) as f:
                 exec(f.read(), globals())
-        except FileNotFoundError as e:
-            exit(e)
-        except PlanoException as e:
-            exit(e)
+        except Exception as e:
+            exit("Failed to load '{0}': {1}", args.file, str(e))
 
         help_ = target(_print_help, name="help", help="Print this message")
 
