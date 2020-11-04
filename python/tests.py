@@ -46,6 +46,179 @@ def test_archive_operations(session):
         assert is_dir("something-else")
         assert is_file("something-else/some-file")
 
+def test_dir_operations(session):
+    curr_dir = get_current_dir()
+
+    with working_dir("."):
+        assert get_current_dir() == curr_dir, (get_current_dir(), curr_dir)
+
+    with working_dir():
+        make_dir("some-dir")
+        touch("some-dir/some-file")
+
+        result = list_dir("some-dir")
+        assert len(result), len(result)
+
+        result = list_dir("some-dir", "*.not-there")
+        assert len(result) == 0, len(result)
+
+    with working_dir():
+        with working_dir("a-dir", quiet=True):
+            touch("a-file")
+
+        curr_dir = get_current_dir()
+        prev_dir = change_dir("a-dir")
+        new_curr_dir = get_current_dir()
+        new_prev_dir = change_dir(curr_dir)
+
+        assert curr_dir == prev_dir, (curr_dir, prev_dir)
+        assert new_curr_dir == new_prev_dir, (new_curr_dir, new_prev_dir)
+
+def test_env_operations(session):
+    with working_env(SOME_VAR=1):
+        assert ENV["SOME_VAR"] == "1", ENV.get("SOME_VAR")
+
+        with working_env(SOME_VAR=2):
+            assert ENV["SOME_VAR"] == "2", ENV.get("SOME_VAR")
+
+def test_file_operations(session):
+    with working_dir():
+        alpha_dir = make_dir("alpha-dir")
+        alpha_file = touch(join(alpha_dir, "alpha-file"))
+        alpha_link = make_link(join(alpha_dir, "alpha-file-link"), alpha_file)
+
+        beta_dir = make_dir("beta-dir")
+        beta_file = touch(join(beta_dir, "beta-file"))
+        beta_link = make_link(join(beta_dir, "beta-file-link"), beta_file)
+
+        assert exists(beta_file)
+
+        copied_file = copy(alpha_file, beta_dir)
+        assert copied_file == join(beta_dir, "alpha-file"), copied_file
+
+        assert exists(beta_link)
+        copied_link = copy(beta_link, join(beta_dir, "beta-file-link-copy"))
+        assert copied_link == join(beta_dir, "beta-file-link-copy"), copied_link
+
+        copied_dir = copy(alpha_dir, beta_dir)
+        assert copied_dir == join(beta_dir, "alpha-dir"), copied_dir
+        assert exists(join(copied_dir, "alpha-file-link"))
+
+        moved_file = move(beta_file, alpha_dir)
+        assert moved_file == join(alpha_dir, "beta-file"), moved_file
+
+        moved_dir = move(beta_dir, alpha_dir)
+        assert moved_dir == join(alpha_dir, "beta-dir"), moved_dir
+
+        gamma_dir = make_dir("gamma-dir")
+        gamma_file = touch(join(gamma_dir, "gamma-file"))
+
+        delta_dir = make_dir("delta-dir")
+        delta_file = touch(join(delta_dir, "delta-file"))
+
+        copy(gamma_dir, delta_dir, inside=False)
+        assert is_file(join("delta-dir", "gamma-file"))
+
+        move(gamma_dir, delta_dir, inside=False)
+        assert is_file(join("delta-dir", "gamma-file"))
+        assert not exists(gamma_dir)
+
+        epsilon_dir = make_dir("epsilon-dir")
+        epsilon_file_1 = touch(join(epsilon_dir, "epsilon-file-1"))
+        epsilon_file_2 = touch(join(epsilon_dir, "epsilon-file-2"))
+
+        result = remove("not-there")
+        assert result is None, result
+
+        result = remove(epsilon_file_2)
+        assert result == epsilon_file_2, result
+        assert not exists(epsilon_file_2)
+
+        result = remove(epsilon_dir)
+        assert result == epsilon_dir, result
+        assert not exists(epsilon_file_1)
+        assert not exists(epsilon_dir)
+
+def test_host_operations(session):
+    result = get_hostname()
+    assert result, result
+
+def test_io_operations(session):
+    with working_dir():
+        input_ = "some-text\n"
+        file_a = write("a", input_)
+        output = read(file_a)
+
+        assert input_ == output, (input_, output)
+
+        pre_input = "pre-some-text\n"
+        post_input = "post-some-text\n"
+
+        prepend(file_a, pre_input)
+        append(file_a, post_input)
+
+        output = tail(file_a, 100)
+        tailed = tail(file_a, 1)
+
+        assert output.startswith(pre_input), (output, pre_input)
+        assert output.endswith(post_input), (output, post_input)
+        assert tailed == post_input, (tailed, post_input)
+
+        input_lines = [
+            "alpha\n",
+            "beta\n",
+            "gamma\n",
+        ]
+
+        file_b = write_lines("b", input_lines)
+        output_lines = read_lines(file_b)
+
+        assert input_lines == output_lines, (input_lines, output_lines)
+
+        pre_lines = ["pre-alpha\n"]
+        post_lines = ["post-gamma\n"]
+
+        prepend_lines(file_b, pre_lines)
+        append_lines(file_b, post_lines)
+
+        output_lines = tail_lines(file_b, 100)
+        tailed_lines = tail_lines(file_b, 1)
+
+        assert output_lines[0] == pre_lines[0], (output_lines[0], pre_lines[0])
+        assert output_lines[4] == post_lines[0], (output_lines[4], post_lines[0])
+        assert tailed_lines[0] == post_lines[0], (tailed_lines[0], post_lines[0])
+
+        file_c = touch("c")
+        assert is_file(file_c), file_c
+
+def test_json_operations(session):
+    with working_dir():
+        input_data = {
+            "alpha": [1, 2, 3],
+        }
+
+        file_a = write_json("a", input_data)
+        output_data = read_json(file_a)
+
+        assert input_data == output_data, (input_data, output_data)
+
+        json = read(file_a)
+        parsed_data = parse_json(json)
+        emitted_json = emit_json(input_data)
+
+        assert input_data == parsed_data, (input_data, parsed_data)
+        assert json == emitted_json, (json, emitted_json)
+
+def test_link_operations(session):
+    with working_dir():
+        make_dir("some-dir")
+        path = get_absolute_path(touch("some-dir/some-file"))
+
+        with working_dir("another-dir"):
+            link = make_link("a-link", path)
+            linked_path = read_link(link)
+            assert linked_path == path, (linked_path, path)
+
 def test_logging_operations(session):
     with temp_file() as f:
         disable_logging()
@@ -112,7 +285,7 @@ def test_logging_operations(session):
             print(read(f))
             raise
         finally:
-            enable_logging(output=STDERR, level="warn")
+            enable_logging()
 
 def test_path_operations(session):
     result = get_home_dir()
@@ -182,126 +355,25 @@ def test_path_operations(session):
     result = which("echo")
     assert result, result
 
-# XXX rename
-def test_file_operations(session):
-    with working_dir():
-        alpha_dir = make_dir("alpha-dir")
-        alpha_file = touch(join(alpha_dir, "alpha-file"))
-        alpha_link = make_link(join(alpha_dir, "alpha-file-link"), alpha_file)
+def test_port_operations(session):
+    result = get_random_port()
+    assert result >= 49152 and result <= 65535, result
 
-        beta_dir = make_dir("beta-dir")
-        beta_file = touch(join(beta_dir, "beta-file"))
-        beta_link = make_link(join(beta_dir, "beta-file-link"), beta_file)
+    server_port = get_random_port()
+    server_socket = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
 
-        assert exists(beta_file)
+    try:
+        server_socket.bind(("localhost", server_port))
+        server_socket.listen(5)
 
-        copied_file = copy(alpha_file, beta_dir)
-        assert copied_file == join(beta_dir, "alpha-file"), copied_file
+        wait_for_port(server_port)
+    finally:
+        server_socket.close()
 
-        assert exists(beta_link)
-        copied_link = copy(beta_link, join(beta_dir, "beta-file-link-copy"))
-        assert copied_link == join(beta_dir, "beta-file-link-copy"), copied_link
-
-        copied_dir = copy(alpha_dir, beta_dir)
-        assert copied_dir == join(beta_dir, "alpha-dir"), copied_dir
-        assert exists(join(copied_dir, "alpha-file-link"))
-
-        moved_file = move(beta_file, alpha_dir)
-        assert moved_file == join(alpha_dir, "beta-file"), moved_file
-
-        moved_dir = move(beta_dir, alpha_dir)
-        assert moved_dir == join(alpha_dir, "beta-dir"), moved_dir
-
-        gamma_dir = make_dir("gamma-dir")
-        gamma_file = touch(join(gamma_dir, "gamma-file"))
-
-        delta_dir = make_dir("delta-dir")
-        delta_file = touch(join(delta_dir, "delta-file"))
-
-        copy(gamma_dir, delta_dir, inside=False)
-        assert is_file(join("delta-dir", "gamma-file"))
-
-        move(gamma_dir, delta_dir, inside=False)
-        assert is_file(join("delta-dir", "gamma-file"))
-        assert not exists(gamma_dir)
-
-        epsilon_dir = make_dir("epsilon-dir")
-        epsilon_file_1 = touch(join(epsilon_dir, "epsilon-file-1"))
-        epsilon_file_2 = touch(join(epsilon_dir, "epsilon-file-2"))
-
-        result = remove("not-there")
-        assert result is None, result
-
-        result = remove(epsilon_file_2)
-        assert result == epsilon_file_2, result
-        assert not exists(epsilon_file_2)
-
-        result = remove(epsilon_dir)
-        assert result == epsilon_dir, result
-        assert not exists(epsilon_file_1)
-        assert not exists(epsilon_dir)
-
-def test_link_operations(session):
-    with working_dir():
-        make_dir("some-dir")
-        path = get_absolute_path(touch("some-dir/some-file"))
-
-        with working_dir("another-dir"):
-            link = make_link("a-link", path)
-            linked_path = read_link(link)
-            assert linked_path == path, (linked_path, path)
-
-# XXX make_dir, change_dir, list_dir, working_dir, find*
-def test_dir_operations(session):
-    curr_dir = get_current_dir()
-
-    with working_dir("."):
-        assert get_current_dir() == curr_dir, (get_current_dir(), curr_dir)
-
-    with working_dir():
-        make_dir("some-dir")
-        touch("some-dir/some-file")
-
-        result = list_dir("some-dir")
-        assert len(result), len(result)
-
-    with working_dir(quiet=True):
-        touch("a-file")
-
-def test_temp_operations(session):
-    temp_dir = get_temp_dir()
-
-    result = make_temp_file()
-    assert result.startswith(temp_dir), result
-
-    result = make_temp_file(suffix=".txt")
-    assert result.endswith(".txt"), result
-
-    result = make_temp_dir()
-    assert result.startswith(temp_dir), result
-
-    with temp_file() as f:
-        write(f, "test")
-
-    with working_dir() as d:
-        list_dir(d)
-
-    user_temp_dir = get_user_temp_dir()
-    assert user_temp_dir, user_temp_dir
-
-    del ENV["XDG_RUNTIME_DIR"]
-
-    user_temp_dir = get_user_temp_dir()
-    assert user_temp_dir, user_temp_dir
-
-def test_user_operations(session):
-    user = _pwd.getpwuid(_os.getuid())[0]
-    result = get_user()
-    assert result == user, (result, user)
-
-# XXX read*, write*, append*, prepend*, touch, tail*
-def test_io_operations(session):
-    pass
+    try:
+        wait_for_port(str(get_random_port()), timeout=0.1)
+    except PlanoException:
+        pass
 
 def test_process_operations(session):
     result = get_process_id()
@@ -399,29 +471,31 @@ def test_string_operations(session):
     decoded_result = url_decode(encoded_result)
     assert decoded_result == "abc=123&yeah!", decoded_result
 
-def test_host_operations(session):
-    result = get_hostname()
-    assert result, result
+def test_temp_operations(session):
+    temp_dir = get_temp_dir()
 
-def test_port_operations(session):
-    result = get_random_port()
-    assert result >= 49152 and result <= 65535, result
+    result = make_temp_file()
+    assert result.startswith(temp_dir), result
 
-    server_port = get_random_port()
-    server_socket = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+    result = make_temp_file(suffix=".txt")
+    assert result.endswith(".txt"), result
 
-    try:
-        server_socket.bind(("localhost", server_port))
-        server_socket.listen(5)
+    result = make_temp_dir()
+    assert result.startswith(temp_dir), result
 
-        wait_for_port(server_port)
-    finally:
-        server_socket.close()
+    with temp_file() as f:
+        write(f, "test")
 
-    try:
-        wait_for_port(str(get_random_port()), timeout=0.1)
-    except PlanoException:
-        pass
+    with working_dir() as d:
+        list_dir(d)
+
+    user_temp_dir = get_user_temp_dir()
+    assert user_temp_dir, user_temp_dir
+
+    ENV.pop("XDG_RUNTIME_DIR", None)
+
+    user_temp_dir = get_user_temp_dir()
+    assert user_temp_dir, user_temp_dir
 
 def test_unique_id_operations(session):
     id1 = get_unique_id()
@@ -435,14 +509,19 @@ def test_unique_id_operations(session):
     result = get_unique_id(16)
     assert len(result) == 32
 
-def test_plano_command(session):
-    command = PlanoCommand()
+def test_user_operations(session):
+    user = _pwd.getpwuid(_os.getuid())[0]
+    result = get_user()
+    assert result == user, (result, user)
 
+def test_plano_command(session):
     from plano import _targets, _default_target
 
     def invoke(args):
-        command.main(args)
         _targets.clear(); _default_target = None
+
+        command = PlanoCommand()
+        command.main(args)
 
     invoke(["-f", "scripts/test.planofile"])
     invoke(["-f", "scripts/test.planofile", "--quiet"])
@@ -453,6 +532,18 @@ def test_plano_command(session):
     invoke(["-f", "scripts/test.planofile", "clean"])
     invoke(["-f", "scripts/test.planofile", "run"])
     invoke(["-f", "scripts/test.planofile", "help"])
+
+    try:
+        invoke(["-f", "scripts/test.planofile", "no-such-target"])
+    except SystemExit:
+        pass
+
+    try:
+        invoke(["-f", "not/there/at/all"])
+    except SystemExit:
+        pass
+
+    _targets.clear(); _default_target = None
 
     @target
     def alpha():
@@ -477,13 +568,10 @@ def test_plano_command(session):
     def delta():
         print("D")
 
-    with temp_file() as f:
-        invoke(["-f", f, "delta"])
+    command = PlanoCommand()
 
-        try:
-            invoke(["-f", f, "no-such-target"])
-        except SystemExit:
-            pass
+    with temp_file() as f:
+        command.main(["-f", f, "delta"])
 
     try:
         invoke(["-f" "not/there/at/all"])

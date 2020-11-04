@@ -60,41 +60,39 @@ STDOUT = _sys.stdout
 STDERR = _sys.stderr
 DEVNULL = _os.devnull
 
-_message_levels = (
+_logging_levels = (
     "debug",
     "notice",
     "warn",
     "error",
 )
 
-_debug = _message_levels.index("debug")
-_notice = _message_levels.index("notice")
-_warn = _message_levels.index("warn")
-_error = _message_levels.index("error")
+_debug = _logging_levels.index("debug")
+_notice = _logging_levels.index("notice")
+_warn = _logging_levels.index("warn")
+_error = _logging_levels.index("error")
 
-_message_output = STDERR
-_message_threshold = _notice
+_logging_output = None
+_logging_threshold = _notice
 
-def enable_logging(level=None, output=None):
-    if level is not None:
-        if level == "warning":
-            level = "warn"
+def enable_logging(level="warn", output=None):
+    if level == "warning":
+        level = "warn"
 
-        assert level in _message_levels
+    assert level in _logging_levels
 
-        global _message_threshold
-        _message_threshold = _message_levels.index(level)
+    global _logging_threshold
+    _logging_threshold = _logging_levels.index(level)
 
-    if output is not None:
-        if _is_string(output):
-            output = open(output, "w")
+    if _is_string(output):
+        output = open(output, "w")
 
-        global _message_output
-        _message_output = output
+    global _logging_output
+    _logging_output = output
 
 def disable_logging():
-    global _message_threshold
-    _message_threshold = 4
+    global _logging_threshold
+    _logging_threshold = 4
 
 def fail(message, *args):
     error(message, *args)
@@ -108,22 +106,16 @@ def error(message, *args):
     _print_message("Error", message, args)
 
 def warn(message, *args):
-    if _message_threshold <= _warn:
+    if _logging_threshold <= _warn:
         _print_message("Warning", message, args)
 
 def notice(message, *args):
-    if _message_threshold <= _notice:
+    if _logging_threshold <= _notice:
         _print_message(None, message, args)
 
 def debug(message, *args):
-    if _message_threshold <= _debug:
+    if _logging_threshold <= _debug:
         _print_message("Debug", message, args)
-
-def _log(quiet, message, *args):
-    if quiet:
-        debug(message, *args)
-    else:
-        notice(message, *args)
 
 def exit(arg=None, *args):
     if arg in (0, None):
@@ -147,12 +139,20 @@ def exit(arg=None, *args):
 
     raise PlanoException("Illegal argument")
 
+def _log(quiet, message, *args):
+    if quiet:
+        debug(message, *args)
+    else:
+        notice(message, *args)
+
 def _print_message(category, message, args):
     message = _format_message(category, message, args)
 
-    print(message, file=_message_output)
-
-    _message_output.flush()
+    if _logging_output is None:
+        print(message, file=_sys.stderr)
+    else:
+        print(message, file=_logging_output)
+        _logging_output.flush()
 
 def _format_message(category, message, args):
     if not _is_string(message):
@@ -294,7 +294,7 @@ def read_lines(file_):
 def write_lines(file_, lines):
     make_parent_dir(file_, quiet=True)
 
-    with _codecs.open(file_, encoding="utf-8", mode="r") as f:
+    with _codecs.open(file_, encoding="utf-8", mode="w") as f:
         f.writelines(lines)
 
     return file_
@@ -303,7 +303,7 @@ def append_lines(file_, lines):
     make_parent_dir(file_, quiet=True)
 
     with _codecs.open(file_, encoding="utf-8", mode="a") as f:
-        f.writelines(string)
+        f.writelines(lines)
 
     return file_
 
@@ -318,7 +318,6 @@ def prepend_lines(file_, lines):
 
     return file_
 
-# Derived from http://stackoverflow.com/questions/136168/get-last-n-lines-of-a-file-with-python-similar-to-tail
 def tail_lines(file_, n):
     assert n >= 0
 
@@ -327,15 +326,15 @@ def tail_lines(file_, n):
         lines = list()
 
         while len(lines) <= n:
-                try:
-                    f.seek(-pos, 2)
-                except IOError:
-                    f.seek(0)
-                    break
-                finally:
-                    lines = f.readlines()
+            try:
+                f.seek(-pos, 2)
+            except IOError:
+                f.seek(0)
+                break
+            finally:
+                lines = f.readlines()
 
-                pos *= 2
+            pos *= 2
 
         return lines[-n:]
 
@@ -347,13 +346,15 @@ def write_json(file_, obj):
     make_parent_dir(file_, quiet=True)
 
     with _codecs.open(file_, encoding="utf-8", mode="w") as f:
-        return _json.dump(obj, f, indent=4, separators=(",", ": "), sort_keys=True)
+        _json.dump(obj, f, indent=4, separators=(",", ": "), sort_keys=True)
+
+    return file_
 
 def parse_json(json):
     return _json.loads(json)
 
 def emit_json(obj):
-    return _json.dumps(obj, f, indent=4, separators=(",", ": "), sort_keys=True)
+    return _json.dumps(obj, indent=4, separators=(",", ": "), sort_keys=True)
 
 def http_get(url, output_file=None, insecure=False):
     options = [
@@ -554,35 +555,6 @@ def find(dir, *patterns):
             matched_paths.update([join(root, x) for x in matched_files])
 
     return sorted(matched_paths)
-
-def find_any_one(dir, *patterns):
-    paths = find(dir, *patterns)
-
-    if len(paths) == 0:
-        return
-
-    return paths[0]
-
-def find_only_one(dir, *patterns):
-    paths = find(dir, *patterns)
-
-    if len(paths) == 0:
-        return
-
-    if len(paths) > 1:
-        fail("Found multiple files: {0}", ", ".join(paths))
-
-    assert len(paths) == 1
-
-    return paths[0]
-
-def find_exactly_one(dir, *patterns):
-    path = find_only_one(dir, *patterns)
-
-    if path is None:
-        fail("Found no matching files")
-
-    return path
 
 def configure_file(input_file, output_file, **substitutions):
     notice("Configuring '{0}' for output '{1}'", input_file, output_file)
@@ -1054,6 +1026,7 @@ class PlanoCommand(object):
 
         if args.verbose:
             enable_logging(level="debug")
+            assert _logging_output is None, _logging_output
 
         if args.quiet:
             disable_logging()
@@ -1083,7 +1056,7 @@ class PlanoCommand(object):
         try:
             _targets[args.target]()
         except KeyError:
-            exit("Target '{}' is unknown", args.target)
+            exit("Target '{0}' is unknown", args.target)
 
 if __name__ == "__main__": # pragma: nocover
     command = PlanoCommand()
