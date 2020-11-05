@@ -19,8 +19,15 @@
 
 import os as _os
 import pwd as _pwd
+import signal as _signal
 import socket as _socket
 import sys as _sys
+import threading as _threading
+
+try:
+    import http.server as _http
+except ImportError:
+    import BaseHTTPServer as _http
 
 from plano import *
 
@@ -53,14 +60,17 @@ def test_dir_operations(session):
         assert get_current_dir() == curr_dir, (get_current_dir(), curr_dir)
 
     with working_dir():
-        make_dir("some-dir")
-        touch("some-dir/some-file")
+        test_dir = make_dir("some-dir")
+        test_file = touch(join(test_dir, "some-file"))
 
-        result = list_dir("some-dir")
-        assert len(result), len(result)
+        result = list_dir(test_dir)
+        assert join(test_dir, result[0]) == test_file, (join(test_dir, result[0]), test_file)
 
         result = list_dir("some-dir", "*.not-there")
-        assert len(result) == 0, len(result)
+        assert result == [], result
+
+        result = find(test_dir)
+        assert result == [test_file], (result, [test_file])
 
     with working_dir():
         with working_dir("a-dir", quiet=True):
@@ -139,9 +149,98 @@ def test_file_operations(session):
         assert not exists(epsilon_file_1)
         assert not exists(epsilon_dir)
 
+        input_file = write("zeta-file", "X@replace-me@X")
+        output_file = configure_file(input_file, "zeta-file", {"replace-me": "Y"})
+        output = read(output_file)
+        assert output == "XYX", output
+
 def test_host_operations(session):
     result = get_hostname()
     assert result, result
+
+def test_http_operations(session):
+    class Handler(_http.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"[1]")
+
+        def do_POST(self):
+            length = int(self.headers["content-length"])
+            content = self.rfile.read(length)
+
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(content)
+
+        def do_PUT(self):
+            length = int(self.headers["content-length"])
+            content = self.rfile.read(length)
+
+            self.send_response(200)
+            self.end_headers()
+
+    class ServerThread(_threading.Thread):
+        def __init__(self, server):
+            _threading.Thread.__init__(self)
+            self.server = server
+
+        def run(self):
+            self.server.serve_forever()
+
+    host, port = "localhost", get_random_port()
+    url = "http://{0}:{1}".format(host, port)
+    server = _http.HTTPServer((host, port), Handler)
+    server_thread = ServerThread(server)
+
+    server_thread.start()
+
+    try:
+        with working_dir():
+            result = http_get(url)
+            assert result == "[1]", result
+
+            result = http_get(url, insecure=True)
+            assert result == "[1]", result
+
+            result = http_get(url, output_file="a")
+            output = read("a")
+            assert result is None, result
+            assert output == "[1]", output
+
+            result = http_get_json(url)
+            assert result == [1], result
+
+            file_b = write("b", "[2]")
+
+            result = http_post(url, read(file_b), insecure=True)
+            assert result == "[2]", result
+
+            result = http_post(url, read(file_b), output_file="x")
+            output = read("x")
+            assert result is None, result
+            assert output == "[2]", output
+
+            result = http_post_file(url, file_b)
+            assert result == "[2]", result
+
+            result = http_post_json(url, parse_json(read(file_b)))
+            assert result == [2], result
+
+            file_c = write("c", "[3]")
+
+            result = http_put(url, read(file_c), insecure=True)
+            assert result is None, result
+
+            result = http_put_file(url, file_c)
+            assert result is None, result
+
+            result = http_put_json(url, parse_json(read(file_c)))
+            assert result is None, result
+    finally:
+        server.shutdown()
+        server.server_close()
+        server_thread.join()
 
 def test_io_operations(session):
     with working_dir():
@@ -470,6 +569,14 @@ def test_string_operations(session):
     encoded_result = url_encode("abc=123&yeah!")
     decoded_result = url_decode(encoded_result)
     assert decoded_result == "abc=123&yeah!", decoded_result
+
+    try:
+        proc = start("sleep 1")
+        default_sigterm_handler(_signal.SIGTERM, None)
+    except SystemExit:
+        pass
+    finally:
+        stop(proc)
 
 def test_temp_operations(session):
     temp_dir = get_temp_dir()

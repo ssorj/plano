@@ -21,7 +21,7 @@ FROM ubuntu
 
 RUN apt-get update -qq && apt-get upgrade -y -qq
 
-RUN apt-get -y install make python python3 python3-distutils
+RUN apt-get -y install curl make python python3 python3-distutils
 
 COPY . /root/plano
 WORKDIR /root/plano

@@ -252,6 +252,10 @@ def which(program_name):
         if _os.access(program, _os.X_OK):
             return program
 
+def check_program(program_name):
+    if which(program_name) is None:
+        raise PlanoException("Program '{0}' is unavailable".format(program_name))
+
 def read(file_):
     with _codecs.open(file_, encoding="utf-8", mode="r") as f:
         return f.read()
@@ -357,6 +361,8 @@ def emit_json(obj):
     return _json.dumps(obj, indent=4, separators=(",", ": "), sort_keys=True)
 
 def http_get(url, output_file=None, insecure=False):
+    check_program("curl")
+
     options = [
         "-sf",
         "-H", "'Expect:'",
@@ -368,14 +374,54 @@ def http_get(url, output_file=None, insecure=False):
     if output_file is None:
         return call("curl {0} {1}", " ".join(options), url)
 
+    make_parent_dir(output_file, quiet=True)
+
     run("curl {0} {1} -o {2}", " ".join(options), url, output_file)
 
-def http_put(url, input_file, output_file=None, insecure=False):
+def http_get_json(url, insecure=False):
+    return parse_json(http_get(url, insecure=insecure))
+
+def http_put(url, input_, content_type=None, insecure=False):
+    with temp_file() as t:
+        write(t, input_)
+        http_put_file(url, t, content_type=content_type, insecure=insecure)
+
+def http_put_file(url, input_file, content_type=None, insecure=False):
+    check_program("curl")
+
     options = [
         "-sf",
         "-X", "PUT",
         "-H", "'Expect:'",
     ]
+
+    if content_type is not None:
+        options.extend(("-H", "Content-Type: {0}".format(content_type)))
+
+    if insecure:
+        options.append("--insecure")
+
+    run("curl {0} {1} -d @{2}", " ".join(options), url, input_file)
+
+def http_put_json(url, data, insecure=False):
+    http_put(url, emit_json(data), content_type="application/json", insecure=insecure)
+
+def http_post(url, input_, output_file=None, content_type=None, insecure=False):
+    with temp_file() as t:
+        write(t, input_)
+        return http_post_file(url, t, output_file=output_file, content_type=content_type, insecure=insecure)
+
+def http_post_file(url, input_file, output_file=None, content_type=None, insecure=False):
+    check_program("curl")
+
+    options = [
+        "-sf",
+        "-X", "POST",
+        "-H", "'Expect:'",
+    ]
+
+    if content_type is not None:
+        options.extend(("-H", "Content-Type: {0}".format(content_type)))
 
     if insecure:
         options.append("--insecure")
@@ -383,15 +429,12 @@ def http_put(url, input_file, output_file=None, insecure=False):
     if output_file is None:
         return call("curl {0} {1} -d @{2}", " ".join(options), url, input_file)
 
+    make_parent_dir(output_file, quiet=True)
+
     run("curl {0} {1} -d @{2} -o {3}", " ".join(options), url, input_file, output_file)
 
-def http_get_json(url, insecure=False):
-    return parse_json(http_get(url, insecure=insecure))
-
-def http_put_json(url, data, insecure=False):
-    with temp_file() as f:
-        write_json(f, data)
-        http_put(url, f, insecure=insecure)
+def http_post_json(url, data, insecure=False):
+    return parse_json(http_post(url, emit_json(data), content_type="application/json", insecure=insecure))
 
 def get_temp_dir():
     return _tempfile.gettempdir()
@@ -556,8 +599,8 @@ def find(dir, *patterns):
 
     return sorted(matched_paths)
 
-def configure_file(input_file, output_file, **substitutions):
-    notice("Configuring '{0}' for output '{1}'", input_file, output_file)
+def configure_file(input_file, output_file, substitutions, quiet=False):
+    _log(quiet, "Configuring '{0}' for output '{1}'", input_file, output_file)
 
     content = read(input_file)
 
@@ -567,6 +610,8 @@ def configure_file(input_file, output_file, **substitutions):
     write(output_file, content)
 
     _shutil.copymode(input_file, output_file)
+
+    return output_file
 
 def make_dir(dir_, quiet=False):
     _log(quiet, "Making directory '{0}'", dir_)
@@ -755,7 +800,14 @@ def call(command, *args, **options):
     options["stdout"] = _subprocess.PIPE
     options["stderr"] = _subprocess.PIPE
 
-    proc = start(command, *args, **options)
+    try:
+        proc = start(command, *args, **options)
+    except OSError as e:
+        if e.errno == 2:
+            e.strerror = "{0} (command '{1}')".format(e.strerror, _format_command(command, args), e.strerror)
+
+        raise e
+
     out, err = proc.communicate()
 
     if proc.exit_code > 0:
@@ -830,6 +882,8 @@ def _format_command(command, args, max=None):
     return shorten(command.replace("\n", "\\n"), max, ellipsis="...")
 
 def make_archive(input_dir, output_file=None, quiet=False):
+    check_program("tar")
+
     archive_stem = get_base_name(input_dir)
 
     if output_file is None:
@@ -843,6 +897,8 @@ def make_archive(input_dir, output_file=None, quiet=False):
     return output_file
 
 def extract_archive(input_file, output_dir=None, quiet=False):
+    check_program("tar")
+
     if output_dir is None:
         output_dir = get_current_dir()
 
