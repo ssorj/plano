@@ -32,7 +32,10 @@ except ImportError:
 from plano import *
 
 def open_test_session(session):
-    enable_logging(level="warn")
+    if session.module.command.verbose:
+        enable_logging(level="debug")
+    else:
+        enable_logging()
 
 def test_archive_operations(session):
     with working_dir():
@@ -103,13 +106,17 @@ def test_file_operations(session):
     with working_dir():
         alpha_dir = make_dir("alpha-dir")
         alpha_file = touch(join(alpha_dir, "alpha-file"))
-        alpha_link = make_link(join(alpha_dir, "alpha-file-link"), alpha_file)
+        alpha_link = make_link(join(alpha_dir, "alpha-file-link"), "alpha-file")
 
         beta_dir = make_dir("beta-dir")
         beta_file = touch(join(beta_dir, "beta-file"))
-        beta_link = make_link(join(beta_dir, "beta-file-link"), beta_file)
+        beta_link = make_link(join(beta_dir, "beta-file-link"), "beta-file")
 
+        assert exists(beta_link)
         assert exists(beta_file)
+
+        with working_dir("beta-dir"):
+            assert exists(read_link("beta-file-link"))
 
         copied_file = copy(alpha_file, beta_dir)
         assert copied_file == join(beta_dir, "alpha-file"), copied_file

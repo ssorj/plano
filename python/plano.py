@@ -139,12 +139,6 @@ def exit(arg=None, *args):
 
     raise PlanoException("Illegal argument")
 
-def _log(quiet, message, *args):
-    if quiet:
-        debug(message, *args)
-    else:
-        notice(message, *args)
-
 def _print_message(category, message, args):
     message = _format_message(category, message, args)
 
@@ -171,6 +165,12 @@ def _format_message(category, message, args):
     message = "{0}: {1}".format(program, message)
 
     return message
+
+def _log(quiet, message, *args):
+    if quiet:
+        debug(message, *args)
+    else:
+        notice(message, *args)
 
 def eprint(*args, **kwargs):
     print(*args, file=_sys.stderr, **kwargs)
@@ -217,8 +217,8 @@ def get_base_name(path):
 
     return name
 
-def get_name_stem(file_):
-    name = get_base_name(file_)
+def get_name_stem(file):
+    name = get_base_name(file)
 
     if name.endswith(".tar.gz"):
         name = name[:-3]
@@ -227,8 +227,8 @@ def get_name_stem(file_):
 
     return stem
 
-def get_name_extension(file_):
-    name = get_base_name(file_)
+def get_name_extension(file):
+    name = get_base_name(file)
     stem, ext = split_extension(name)
 
     return ext
@@ -256,76 +256,76 @@ def check_program(program_name):
     if which(program_name) is None:
         raise PlanoException("Program '{0}' is unavailable".format(program_name))
 
-def read(file_):
-    with _codecs.open(file_, encoding="utf-8", mode="r") as f:
+def read(file):
+    with _codecs.open(file, encoding="utf-8", mode="r") as f:
         return f.read()
 
-def write(file_, string):
-    make_parent_dir(file_, quiet=True)
+def write(file, string):
+    make_parent_dir(file, quiet=True)
 
-    with _codecs.open(file_, encoding="utf-8", mode="w") as f:
+    with _codecs.open(file, encoding="utf-8", mode="w") as f:
         f.write(string)
 
-    return file_
+    return file
 
-def append(file_, string):
-    make_parent_dir(file_, quiet=True)
+def append(file, string):
+    make_parent_dir(file, quiet=True)
 
-    with _codecs.open(file_, encoding="utf-8", mode="a") as f:
+    with _codecs.open(file, encoding="utf-8", mode="a") as f:
         f.write(string)
 
-    return file_
+    return file
 
-def prepend(file_, string):
-    orig = read(file_)
-    return write(file_, string + orig)
+def prepend(file, string):
+    orig = read(file)
+    return write(file, string + orig)
 
-def touch(file_):
+def touch(file):
     try:
-        _os.utime(file_, None)
+        _os.utime(file, None)
     except OSError:
-        append(file_, "")
+        append(file, "")
 
-    return file_
+    return file
 
-def tail(file_, n):
-    return "".join(tail_lines(file_, n))
+def tail(file, n):
+    return "".join(tail_lines(file, n))
 
-def read_lines(file_):
-    with _codecs.open(file_, encoding="utf-8", mode="r") as f:
+def read_lines(file):
+    with _codecs.open(file, encoding="utf-8", mode="r") as f:
         return f.readlines()
 
-def write_lines(file_, lines):
-    make_parent_dir(file_, quiet=True)
+def write_lines(file, lines):
+    make_parent_dir(file, quiet=True)
 
-    with _codecs.open(file_, encoding="utf-8", mode="w") as f:
+    with _codecs.open(file, encoding="utf-8", mode="w") as f:
         f.writelines(lines)
 
-    return file_
+    return file
 
-def append_lines(file_, lines):
-    make_parent_dir(file_, quiet=True)
+def append_lines(file, lines):
+    make_parent_dir(file, quiet=True)
 
-    with _codecs.open(file_, encoding="utf-8", mode="a") as f:
+    with _codecs.open(file, encoding="utf-8", mode="a") as f:
         f.writelines(lines)
 
-    return file_
+    return file
 
-def prepend_lines(file_, lines):
-    orig_lines = read_lines(file_)
+def prepend_lines(file, lines):
+    orig_lines = read_lines(file)
 
-    make_parent_dir(file_, quiet=True)
+    make_parent_dir(file, quiet=True)
 
-    with _codecs.open(file_, encoding="utf-8", mode="w") as f:
+    with _codecs.open(file, encoding="utf-8", mode="w") as f:
         f.writelines(lines)
         f.writelines(orig_lines)
 
-    return file_
+    return file
 
-def tail_lines(file_, n):
+def tail_lines(file, n):
     assert n >= 0
 
-    with _codecs.open(file_, encoding="utf-8", mode="r") as f:
+    with _codecs.open(file, encoding="utf-8", mode="r") as f:
         pos = n + 1
         lines = list()
 
@@ -342,17 +342,17 @@ def tail_lines(file_, n):
 
         return lines[-n:]
 
-def read_json(file_):
-    with _codecs.open(file_, encoding="utf-8", mode="r") as f:
+def read_json(file):
+    with _codecs.open(file, encoding="utf-8", mode="r") as f:
         return _json.load(f)
 
-def write_json(file_, obj):
-    make_parent_dir(file_, quiet=True)
+def write_json(file, obj):
+    make_parent_dir(file, quiet=True)
 
-    with _codecs.open(file_, encoding="utf-8", mode="w") as f:
+    with _codecs.open(file, encoding="utf-8", mode="w") as f:
         _json.dump(obj, f, indent=4, separators=(",", ": "), sort_keys=True)
 
-    return file_
+    return file
 
 def parse_json(json):
     return _json.loads(json)
@@ -442,40 +442,40 @@ def make_temp_dir(suffix="", dir=None):
 
 class temp_file(object):
     def __init__(self, suffix="", dir=None):
-        self._file = make_temp_file(suffix=suffix, dir=dir)
+        self.file = make_temp_file(suffix=suffix, dir=dir)
 
     def __enter__(self):
-        return self._file
+        return self.file
 
     def __exit__(self, exc_type, exc_value, traceback):
-        remove(self._file, quiet=True)
+        remove(self.file, quiet=True)
 
 # No args constructor gets a temp dir
 class working_dir(object):
-    def __init__(self, dir_=None, remove=False, quiet=False):
-        self.dir_ = dir_
+    def __init__(self, dir=None, remove=False, quiet=False):
+        self.dir = dir
         self.prev_dir = None
         self.remove = remove
         self.quiet = quiet
 
-        if self.dir_ is None:
-            self.dir_ = make_temp_dir()
+        if self.dir is None:
+            self.dir = make_temp_dir()
             self.remove = True
 
     def __enter__(self):
-        if self.dir_ == ".":
+        if self.dir == ".":
             return
 
-        _log(self.quiet, "Entering directory '{0}'", get_absolute_path(self.dir_))
+        _log(self.quiet, "Entering directory '{0}'", get_absolute_path(self.dir))
 
-        make_dir(self.dir_, quiet=True)
+        make_dir(self.dir, quiet=True)
 
-        self.prev_dir = change_dir(self.dir_, quiet=True)
+        self.prev_dir = change_dir(self.dir, quiet=True)
 
-        return self.dir_
+        return self.dir
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.dir_ == ".":
+        if self.dir == ".":
             return
 
         _log(self.quiet, "Returning to directory '{0}'", get_absolute_path(self.prev_dir))
@@ -483,7 +483,7 @@ class working_dir(object):
         change_dir(self.prev_dir, quiet=True)
 
         if self.remove:
-            remove(self.dir_, quiet=True)
+            remove(self.dir, quiet=True)
 
 # Length in bytes, renders twice as long in hex
 def get_unique_id(length=16):
@@ -523,9 +523,7 @@ def copy(from_path, to_path, symlinks=True, inside=True, quiet=False):
 
         _shutil.copystat(from_path, to_path)
     elif is_link(from_path) and symlinks:
-        linked_path = get_absolute_path(read_link(from_path))
-        new_link_target = get_relative_path(linked_path, get_absolute_path(to_path))
-        make_link(to_path, linked_path, quiet=True)
+        make_link(to_path, read_link(from_path), quiet=True)
     else:
         _shutil.copy2(from_path, to_path)
 
@@ -556,7 +554,7 @@ def remove(path, quiet=False):
 def make_link(path, linked_path, quiet=False):
     _log(quiet, "Making link '{0}' to '{1}'", path, linked_path)
 
-    make_dir(get_parent_dir(path), quiet=True)
+    make_parent_dir(path, quiet=True)
     remove(path, quiet=True)
 
     _os.symlink(linked_path, path)
@@ -596,16 +594,16 @@ def configure_file(input_file, output_file, substitutions, quiet=False):
 
     return output_file
 
-def make_dir(dir_, quiet=False):
-    _log(quiet, "Making directory '{0}'", dir_)
+def make_dir(dir, quiet=False):
+    _log(quiet, "Making directory '{0}'", dir)
 
-    if dir_ == "":
-        return dir_
+    if dir == "":
+        return dir
 
-    if not exists(dir_):
-        _os.makedirs(dir_)
+    if not exists(dir):
+        _os.makedirs(dir)
 
-    return dir_
+    return dir
 
 def make_parent_dir(path, quiet=False):
     return make_dir(get_parent_dir(path), quiet=quiet)
