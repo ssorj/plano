@@ -483,7 +483,11 @@ def test_process_operations(session):
     result = get_process_id()
     assert result, result
 
-    run("date")
+    proc = run("date")
+    assert proc is not None, proc
+
+    print(repr(proc))
+
     run("date", stash=True)
 
     proc = run("echo hello", check=False)
@@ -496,11 +500,17 @@ def test_process_operations(session):
         run("date", output=temp)
 
     run("date", output=DEVNULL)
+    run("date", stdin=DEVNULL)
     run("date", stdout=DEVNULL)
     run("date", stderr=DEVNULL)
 
     run("echo hello", quiet=True)
     run("echo hello | cat", shell=True)
+
+    try:
+        run("/not/there")
+    except PlanoException:
+        pass
 
     try:
         run("cat /whoa/not/really", stash=True)
@@ -518,8 +528,28 @@ def test_process_operations(session):
     except PlanoProcessError:
         pass
 
+    proc = start("echo hello")
+    sleep(0.1)
+    stop(proc)
+
+    proc = start("sleep 10")
+    sleep(0.1)
+    kill(proc)
+    sleep(0.1)
+    stop(proc)
+
+    proc = start("date --not-there")
+    sleep(0.1)
+    stop(proc)
+
     with start("sleep 10"):
-        sleep(0.5)
+        sleep(0.1)
+
+    with working_dir():
+        touch("i")
+
+        with start("date", stdin="i", stdout="o", stderr="e"):
+            pass
 
 def test_string_operations(session):
     result = replace("ab", "a", "b")

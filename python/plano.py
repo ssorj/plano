@@ -706,12 +706,9 @@ def start(command, stdin=None, stdout=None, stderr=None, output=None, shell=Fals
         args = _shlex.split(command)
 
     try:
-        proc = PlanoProcess(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell, stash_file=stash_file)
+        proc = PlanoProcess(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell, close_fds=True, stash_file=stash_file)
     except OSError as e:
-        if e.errno == 2:
-            e.strerror = "{0} (command '{1}')".format(e.strerror, command)
-
-        raise
+        raise PlanoException("Command '{0}': {1}".format(command, str(e)))
 
     debug("{0} started", proc)
 
@@ -730,11 +727,16 @@ def stop(proc, quiet=False):
 
         return proc
 
-    proc.terminate()
+    kill(proc, quiet=True)
 
-    # XXX kill after timeout
+    # XXX Timeout
 
     return wait(proc, quiet=True)
+
+def kill(proc, quiet=False):
+    _log(quiet, "Killing {0}", proc)
+
+    proc.terminate()
 
 def wait(proc, check=False, quiet=False):
     _log(quiet, "Waiting for {0} to exit", proc)
@@ -764,15 +766,14 @@ def run(command, stdin=None, stdout=None, stderr=None, input=None, output=None,
         stash=False, shell=False, check=True, quiet=False):
     _log(quiet, "Running '{0}'", command)
 
-    if stash:
-        pass
-
     if input is not None:
+        assert stdin in (None, _subprocess.PIPE), stdin
+
         input = input.encode("utf-8")
         stdin = _subprocess.PIPE
 
     proc = start(command, stdin=stdin, stdout=stdout, stderr=stderr, output=output,
-                 shell=shell, quiet=True)
+                 stash=stash, shell=shell, quiet=True)
 
     proc.stdout_result, proc.stderr_result = proc.communicate(input=input)
 
@@ -815,18 +816,10 @@ class PlanoProcess(_subprocess.Popen):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.stdout:
-            self.stdout.close()
-        if self.stderr:
-            self.stderr.close()
-        try:
-            if self.stdin:
-                self.stdin.close()
-        finally:
-            stop(self)
+        kill(self)
 
     def __repr__(self):
-        return "process {0} ('{1}')".format(self.pid, _format_command(self.command, None, 40))
+        return "process {0} ('{1}')".format(self.pid, self.args)
 
 class PlanoException(Exception):
     pass
@@ -843,12 +836,6 @@ def default_sigterm_handler(signum, frame):
     exit(-(_signal.SIGTERM))
 
 _signal.signal(_signal.SIGTERM, default_sigterm_handler)
-
-def _format_command(command, args, max=None):
-    if args:
-        command = command.format(*args)
-
-    return shorten(command.replace("\n", "\\n"), max, ellipsis="...")
 
 def make_archive(input_dir, output_file=None, quiet=False):
     check_program("tar")
