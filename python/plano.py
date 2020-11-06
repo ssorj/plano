@@ -360,102 +360,61 @@ def parse_json(json):
 def emit_json(obj):
     return _json.dumps(obj, indent=4, separators=(",", ": "), sort_keys=True)
 
-def http_get(url, output_file=None, insecure=False):
+def _run_curl(method, url, content=None, content_file=None, content_type=None, output_file=None, insecure=False):
     check_program("curl")
 
     options = [
         "-sf",
+        "-X", method,
         "-H", "'Expect:'",
     ]
+
+    if content is not None:
+        assert content_file is None
+        options.extend(("-d", "@-"))
+
+    if content_file is not None:
+        assert content is None, content
+        options.extend(("-d", "@{0}".format(content_file)))
+
+    if content_type is not None:
+        options.extend(("-H", "'Content-Type: {0}'".format(content_type)))
+
+    if output_file is not None:
+        options.extend(("-o", output_file))
 
     if insecure:
         options.append("--insecure")
 
+    options = " ".join(options)
+    command = "curl {0} {1}".format(options, url)
+
     if output_file is None:
-        return call("curl {0} {1}".format(" ".join(options), url))
+        return call(command, input=content)
+    else:
+        make_parent_dir(output_file, quiet=True)
+        run(command, input=content)
 
-    make_parent_dir(output_file, quiet=True)
-
-    run("curl {0} {1} -o {2}".format(" ".join(options), url, output_file))
+def http_get(url, output_file=None, insecure=False):
+    return _run_curl("GET", url, output_file=output_file, insecure=insecure)
 
 def http_get_json(url, insecure=False):
     return parse_json(http_get(url, insecure=insecure))
 
-def http_put(url, input_, content_type=None, insecure=False):
-    with temp_file() as t:
-        write(t, input_)
-        http_put_file(url, t, content_type=content_type, insecure=insecure)
+def http_put(url, content, content_type=None, insecure=False):
+    _run_curl("PUT", url, content=content, content_type=content_type, insecure=insecure)
 
-def http_put_file(url, input_file, content_type=None, insecure=False):
-    check_program("curl")
-
-    options = [
-        "-sf",
-        "-X", "PUT",
-        "-H", "'Expect:'",
-    ]
-
-    if content_type is not None:
-        options.extend(("-H", "Content-Type: {0}".format(content_type)))
-
-    if insecure:
-        options.append("--insecure")
-
-    run("curl {0} {1} -d @{2}".format(" ".join(options), url, input_file))
+def http_put_file(url, content_file, content_type=None, insecure=False):
+    _run_curl("PUT", url, content_file=content_file, content_type=content_type, insecure=insecure)
 
 def http_put_json(url, data, insecure=False):
     http_put(url, emit_json(data), content_type="application/json", insecure=insecure)
 
-def http_post(url, input_, output_file=None, content_type=None, insecure=False):
-    check_program("curl")
+def http_post(url, content, content_type=None, output_file=None, insecure=False):
+    return _run_curl("POST", url, content=content, content_type=content_type, output_file=output_file, insecure=insecure)
 
-    options = [
-        "-sf",
-        "-X", "POST",
-        "-H", "'Expect:'",
-    ]
-
-    if content_type is not None:
-        options.extend(("-H", "Content-Type: {0}".format(content_type)))
-
-    if insecure:
-        options.append("--insecure")
-
-    eprint(100, input_)
-
-    if output_file is None:
-        return call("curl {0} {1} -d @-".format(" ".join(options), url), input=input_)
-
-    make_parent_dir(output_file, quiet=True)
-
-    run("curl {0} {1} -d @- -o {2}".format(" ".join(options), url, output_file), input=input_)
-
-# def http_post(url, input_, output_file=None, content_type=None, insecure=False):
-#     with temp_file() as t:
-#         write(t, input_)
-#         return http_post_file(url, t, output_file=output_file, content_type=content_type, insecure=insecure)
-
-def http_post_file(url, input_file, output_file=None, content_type=None, insecure=False):
-    check_program("curl")
-
-    options = [
-        "-sf",
-        "-X", "POST",
-        "-H", "'Expect:'",
-    ]
-
-    if content_type is not None:
-        options.extend(("-H", "Content-Type: {0}".format(content_type)))
-
-    if insecure:
-        options.append("--insecure")
-
-    if output_file is None:
-        return call("curl {0} {1} -d @{2}".format(" ".join(options), url, input_file))
-
-    make_parent_dir(output_file, quiet=True)
-
-    run("curl {0} {1} -d @{2} -o {3}".format(" ".join(options), url, input_file, output_file))
+def http_post_file(url, content_file, content_type=None, output_file=None, insecure=False):
+    return _run_curl("POST", url, content_file=content_file, content_type=content_type, output_file=output_file, insecure=insecure)
 
 def http_post_json(url, data, insecure=False):
     return parse_json(http_post(url, emit_json(data), content_type="application/json", insecure=insecure))
@@ -718,7 +677,7 @@ def sleep(seconds, quiet=False):
 # stdout=<file> - Send stdout to a file
 # stderr=<file> - Send stderr to a file
 # shell=False - XXX
-def start(command, stdin=None, stdout=None, stderr=None, output=None, shell=False, quiet=False):
+def start(command, stdin=None, stdout=None, stderr=None, output=None, shell=False, stash=False, quiet=False):
     _log(quiet, "Starting '{0}'", command)
 
     if output is not None:
@@ -733,20 +692,13 @@ def start(command, stdin=None, stdout=None, stderr=None, output=None, shell=Fals
     if _is_string(stderr):
         stderr = open(stderr, "w")
 
-    options = dict()
-    options["stdin"] = stdin
-    options["stdout"] = stdout
-    options["stderr"] = stderr
-    options["shell"] = shell
+    stash_file = None
 
-    # temp_output_file = None
-
-    # if stash:
-    #     temp_output_file = make_temp_file()
-    #     temp_output = open(temp_output_file, "w")
-
-    #     options["stdout"] = temp_output
-    #     options["stderr"] = temp_output
+    if stash:
+        stash_file = make_temp_file()
+        out = open(stash_file, "w")
+        stdout = out
+        stderr = out
 
     if shell:
         args = command
@@ -754,7 +706,7 @@ def start(command, stdin=None, stdout=None, stderr=None, output=None, shell=Fals
         args = _shlex.split(command)
 
     try:
-        proc = PlanoProcess(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell)
+        proc = PlanoProcess(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell, stash_file=stash_file)
     except OSError as e:
         if e.errno == 2:
             e.strerror = "{0} (command '{1}')".format(e.strerror, command)
@@ -796,12 +748,11 @@ def wait(proc, check=False, quiet=False):
     else:
         debug("{0} exited with code {1}", proc, proc.exit_code)
 
-    # XXX
-    # if proc.temp_output_file is not None:
-    #     if proc.exit_code > 0:
-    #         eprint(read(proc.temp_output_file), end="")
+    if proc.stash_file is not None:
+        if proc.exit_code > 0:
+            eprint(read(proc.stash_file), end="")
 
-    #     remove(proc.temp_output_file, quiet=True)
+        remove(proc.stash_file, quiet=True)
 
     if check and proc.exit_code > 0:
         raise PlanoProcessError(proc)
@@ -813,14 +764,15 @@ def run(command, stdin=None, stdout=None, stderr=None, input=None, output=None,
         stash=False, shell=False, check=True, quiet=False):
     _log(quiet, "Running '{0}'", command)
 
+    if stash:
+        pass
+
     if input is not None:
         input = input.encode("utf-8")
         stdin = _subprocess.PIPE
 
     proc = start(command, stdin=stdin, stdout=stdout, stderr=stderr, output=output,
                  shell=shell, quiet=True)
-
-    eprint(110, input)
 
     proc.stdout_result, proc.stderr_result = proc.communicate(input=input)
 
@@ -829,8 +781,6 @@ def run(command, stdin=None, stdout=None, stderr=None, input=None, output=None,
 
     if proc.stderr_result is not None:
         proc.stderr_result = proc.stderr_result.decode("utf-8")
-
-    eprint(111, proc.stdout_result)
 
     return wait(proc, check=check, quiet=True)
 
@@ -847,6 +797,8 @@ _child_processes = list()
 
 class PlanoProcess(_subprocess.Popen):
     def __init__(self, args, **options):
+        self.stash_file = options.pop("stash_file", None)
+
         super(PlanoProcess, self).__init__(args, **options)
 
         self.args = args

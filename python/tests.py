@@ -85,6 +85,14 @@ def test_dir_operations(session):
         assert new_curr_dir == new_prev_dir, (new_curr_dir, new_prev_dir)
 
 def test_env_operations(session):
+    result = which("echo")
+    assert result, result
+
+    try:
+        check_program("not-there")
+    except PlanoException:
+        pass
+
     with working_env(SOME_VAR=1):
         assert ENV["SOME_VAR"] == "1", ENV.get("SOME_VAR")
 
@@ -450,9 +458,6 @@ def test_path_operations(session):
 
     result = get_program_name("X=Y alpha beta")
     assert result == "alpha", result
-
-    result = which("echo")
-    assert result, result
 
 def test_port_operations(session):
     result = get_random_port()
