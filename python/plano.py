@@ -372,11 +372,11 @@ def http_get(url, output_file=None, insecure=False):
         options.append("--insecure")
 
     if output_file is None:
-        return call("curl {0} {1}", " ".join(options), url)
+        return call("curl {0} {1}".format(" ".join(options), url))
 
     make_parent_dir(output_file, quiet=True)
 
-    run("curl {0} {1} -o {2}", " ".join(options), url, output_file)
+    run("curl {0} {1} -o {2}".format(" ".join(options), url, output_file))
 
 def http_get_json(url, insecure=False):
     return parse_json(http_get(url, insecure=insecure))
@@ -401,15 +401,39 @@ def http_put_file(url, input_file, content_type=None, insecure=False):
     if insecure:
         options.append("--insecure")
 
-    run("curl {0} {1} -d @{2}", " ".join(options), url, input_file)
+    run("curl {0} {1} -d @{2}".format(" ".join(options), url, input_file))
 
 def http_put_json(url, data, insecure=False):
     http_put(url, emit_json(data), content_type="application/json", insecure=insecure)
 
 def http_post(url, input_, output_file=None, content_type=None, insecure=False):
-    with temp_file() as t:
-        write(t, input_)
-        return http_post_file(url, t, output_file=output_file, content_type=content_type, insecure=insecure)
+    check_program("curl")
+
+    options = [
+        "-sf",
+        "-X", "POST",
+        "-H", "'Expect:'",
+    ]
+
+    if content_type is not None:
+        options.extend(("-H", "Content-Type: {0}".format(content_type)))
+
+    if insecure:
+        options.append("--insecure")
+
+    eprint(100, input_)
+
+    if output_file is None:
+        return call("curl {0} {1} -d @-".format(" ".join(options), url), input=input_)
+
+    make_parent_dir(output_file, quiet=True)
+
+    run("curl {0} {1} -d @- -o {2}".format(" ".join(options), url, output_file), input=input_)
+
+# def http_post(url, input_, output_file=None, content_type=None, insecure=False):
+#     with temp_file() as t:
+#         write(t, input_)
+#         return http_post_file(url, t, output_file=output_file, content_type=content_type, insecure=insecure)
 
 def http_post_file(url, input_file, output_file=None, content_type=None, insecure=False):
     check_program("curl")
@@ -427,11 +451,11 @@ def http_post_file(url, input_file, output_file=None, content_type=None, insecur
         options.append("--insecure")
 
     if output_file is None:
-        return call("curl {0} {1} -d @{2}", " ".join(options), url, input_file)
+        return call("curl {0} {1} -d @{2}".format(" ".join(options), url, input_file))
 
     make_parent_dir(output_file, quiet=True)
 
-    run("curl {0} {1} -d @{2} -o {3}", " ".join(options), url, input_file, output_file)
+    run("curl {0} {1} -d @{2} -o {3}".format(" ".join(options), url, input_file, output_file))
 
 def http_post_json(url, data, insecure=False):
     return parse_json(http_post(url, emit_json(data), content_type="application/json", insecure=insecure))
@@ -690,21 +714,18 @@ def sleep(seconds, quiet=False):
 # quiet=False - Don't log at notice level
 # stash=False - No output unless there is an error
 # output=<file> - Send stdout and stderr to a file
+# stdin=<file> - XXX
 # stdout=<file> - Send stdout to a file
 # stderr=<file> - Send stderr to a file
-def start(command, *args, **options):
-    if args:
-        command = command.format(*args)
+# shell=False - XXX
+def start(command, stdin=None, stdout=None, stderr=None, output=None, shell=False, quiet=False):
+    _log(quiet, "Starting '{0}'", command)
 
-    quiet = options.pop("quiet", False)
-    _log(quiet, "Starting '{0}'", _format_command(command, args, None))
+    if output is not None:
+        stdout, stderr = output, output
 
-    stdout = options.get("stdout", _sys.stdout)
-    stderr = options.get("stderr", _sys.stderr)
-
-    if "output" in options:
-        out = options.pop("output")
-        stdout, stderr = out, out
+    if _is_string(stdin):
+        stdin = open(stdin, "r")
 
     if _is_string(stdout):
         stdout = open(stdout, "w")
@@ -712,23 +733,31 @@ def start(command, *args, **options):
     if _is_string(stderr):
         stderr = open(stderr, "w")
 
+    options = dict()
+    options["stdin"] = stdin
     options["stdout"] = stdout
     options["stderr"] = stderr
+    options["shell"] = shell
 
-    temp_output_file = None
+    # temp_output_file = None
 
-    if options.pop("stash", False) is True:
-        temp_output_file = make_temp_file()
-        temp_output = open(temp_output_file, "w")
+    # if stash:
+    #     temp_output_file = make_temp_file()
+    #     temp_output = open(temp_output_file, "w")
 
-        options["stdout"] = temp_output
-        options["stderr"] = temp_output
+    #     options["stdout"] = temp_output
+    #     options["stderr"] = temp_output
+
+    if shell:
+        args = command
+    else:
+        args = _shlex.split(command)
 
     try:
-        proc = PlanoProcess(command, options, temp_output_file)
+        proc = PlanoProcess(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell)
     except OSError as e:
         if e.errno == 2:
-            fail(e)
+            e.strerror = "{0} (command '{1}')".format(e.strerror, command)
 
         raise
 
@@ -767,74 +796,62 @@ def wait(proc, check=False, quiet=False):
     else:
         debug("{0} exited with code {1}", proc, proc.exit_code)
 
-    if proc.temp_output_file is not None:
-        if proc.exit_code > 0:
-            eprint(read(proc.temp_output_file), end="")
+    # XXX
+    # if proc.temp_output_file is not None:
+    #     if proc.exit_code > 0:
+    #         eprint(read(proc.temp_output_file), end="")
 
-        remove(proc.temp_output_file, quiet=True)
+    #     remove(proc.temp_output_file, quiet=True)
 
     if check and proc.exit_code > 0:
         raise PlanoProcessError(proc)
 
     return proc
 
-def run(command, *args, **options):
-    quiet = options.pop("quiet", False)
-    _log(quiet, "Running '{0}'", _format_command(command, args))
+# input=<string> - Pipe <string> to the process
+def run(command, stdin=None, stdout=None, stderr=None, input=None, output=None,
+        stash=False, shell=False, check=True, quiet=False):
+    _log(quiet, "Running '{0}'", command)
 
-    check = options.pop("check", True)
-    options["quiet"] = True
+    if input is not None:
+        input = input.encode("utf-8")
+        stdin = _subprocess.PIPE
 
-    proc = start(command, *args, **options)
+    proc = start(command, stdin=stdin, stdout=stdout, stderr=stderr, output=output,
+                 shell=shell, quiet=True)
+
+    eprint(110, input)
+
+    proc.stdout_result, proc.stderr_result = proc.communicate(input=input)
+
+    if proc.stdout_result is not None:
+        proc.stdout_result = proc.stdout_result.decode("utf-8")
+
+    if proc.stderr_result is not None:
+        proc.stderr_result = proc.stderr_result.decode("utf-8")
+
+    eprint(111, proc.stdout_result)
 
     return wait(proc, check=check, quiet=True)
 
-def call(command, *args, **options):
-    quiet = options.pop("quiet", False)
-    _log(quiet, "Calling '{0}'", _format_command(command, args))
+# input=<string> - Pipe the given input into the process
+def call(command, input=None, shell=False, quiet=False):
+    _log(quiet, "Calling '{0}'", command)
 
-    if any([x in options for x in ("check", "stash", "output", "stdout", "stderr")]):
-        raise PlanoException("Illegal options")
+    proc = run(command, stdin=_subprocess.PIPE, stdout=_subprocess.PIPE, stderr=_subprocess.PIPE,
+               input=input, shell=shell, check=True, quiet=True)
 
-    options["quiet"] = True
-    options["stdout"] = _subprocess.PIPE
-    options["stderr"] = _subprocess.PIPE
-
-    try:
-        proc = start(command, *args, **options)
-    except OSError as e:
-        if e.errno == 2:
-            e.strerror = "{0} (command '{1}')".format(e.strerror, _format_command(command, args), e.strerror)
-
-        raise e
-
-    out, err = proc.communicate()
-
-    if proc.exit_code > 0:
-        error = PlanoProcessError(proc)
-        error.stdout, error.stderr = out, err
-        raise error
-
-    if out is None:
-        out = b""
-
-    return out.decode("utf-8")
+    return proc.stdout_result
 
 _child_processes = list()
 
 class PlanoProcess(_subprocess.Popen):
-    def __init__(self, command, options, temp_output_file):
-        assert _is_string(command), command
-
-        if options.get("shell", False):
-            args = command
-        else:
-            args = _shlex.split(command)
-
+    def __init__(self, args, **options):
         super(PlanoProcess, self).__init__(args, **options)
 
-        self.command = command
-        self.temp_output_file = temp_output_file
+        self.args = args
+        self.stdout_result = None
+        self.stderr_result = None
 
         _child_processes.append(self)
 
@@ -864,7 +881,7 @@ class PlanoException(Exception):
 
 class PlanoProcessError(_subprocess.CalledProcessError, PlanoException):
     def __init__(self, proc):
-        super(PlanoProcessError, self).__init__(proc.exit_code, proc.command)
+        super(PlanoProcessError, self).__init__(proc.exit_code, proc.args)
 
 def default_sigterm_handler(signum, frame):
     for proc in _child_processes:
@@ -892,7 +909,7 @@ def make_archive(input_dir, output_file=None, quiet=False):
     _log(quiet, "Making archive '{0}' from dir '{1}'", output_file, input_dir)
 
     with working_dir(get_parent_dir(input_dir)):
-        run("tar -czf {0} {1}", output_file, archive_stem)
+        run("tar -czf {0} {1}".format(output_file, archive_stem))
 
     return output_file
 
@@ -907,7 +924,7 @@ def extract_archive(input_file, output_dir=None, quiet=False):
     input_file = get_absolute_path(input_file)
 
     with working_dir(output_dir):
-        run("tar -xf {0}", input_file)
+        run("tar -xf {0}".format(input_file))
 
     return output_dir
 

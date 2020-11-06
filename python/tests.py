@@ -502,7 +502,7 @@ def test_process_operations(session):
     except PlanoProcessError:
         pass
 
-    result = call("echo {0}", "hello")
+    result = call("echo hello")
     assert result == "hello\n", result
 
     result = call("echo hello | cat", shell=True)
