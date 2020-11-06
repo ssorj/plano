@@ -692,6 +692,15 @@ def start(command, stdin=None, stdout=None, stderr=None, output=None, shell=Fals
     if _is_string(stderr):
         stderr = open(stderr, "w")
 
+    if stdin is None:
+        stdin = _sys.stdin
+
+    if stdout is None:
+        stdout = _sys.stdout
+
+    if stderr is None:
+        stderr = _sys.stderr
+
     stash_file = None
 
     if stash:
