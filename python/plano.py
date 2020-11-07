@@ -20,7 +20,6 @@
 from __future__ import print_function
 
 import argparse as _argparse
-import atexit as _atexit
 import base64 as _base64
 import binascii as _binascii
 import codecs as _codecs
@@ -37,11 +36,8 @@ import signal as _signal
 import socket as _socket
 import subprocess as _subprocess
 import sys as _sys
-import tarfile as _tarfile
 import tempfile as _tempfile
 import time as _time
-import traceback as _traceback
-import types as _types
 import uuid as _uuid
 
 try: # pragma: nocover
@@ -977,7 +973,7 @@ _target_help = {
     "test": "Run the tests",
 }
 
-def _print_help():
+def _help():
     print("Plano targets:")
 
     for name, target in _targets.items():
@@ -1045,7 +1041,6 @@ class PlanoCommand(object):
 
         if args.verbose:
             enable_logging(level="debug")
-            assert _logging_output is None, _logging_output
 
         if args.quiet:
             disable_logging()
@@ -1058,12 +1053,12 @@ class PlanoCommand(object):
         except Exception as e:
             exit("Failed to load '{0}': {1}", args.file, str(e))
 
-        help_ = target(_print_help, name="help", help="Print this message")
+        help = target(_help, name="help", help="Print this message")
 
         global _default_target
 
         if _default_target is None:
-            _default_target = help_
+            _default_target = help
 
         if args.init_only:
             return

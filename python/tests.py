@@ -34,8 +34,6 @@ from plano import *
 def open_test_session(session):
     if session.module.command.verbose:
         enable_logging(level="debug")
-    else:
-        enable_logging()
 
 def test_archive_operations(session):
     with working_dir():
