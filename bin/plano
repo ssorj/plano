@@ -22,4 +22,8 @@ from plano import PlanoCommand
 
 if __name__ == "__main__":
     command = PlanoCommand()
-    command.main()
+
+    try:
+        command.main()
+    except KeyboardInterrupt:
+        pass

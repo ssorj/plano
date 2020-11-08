@@ -1045,6 +1045,8 @@ class PlanoCommand(object):
         if args.quiet:
             disable_logging()
 
+        _sys.path.insert(0, join(get_parent_dir(args.file), "python"))
+
         debug("Loading '{0}'", args.file)
 
         try:
