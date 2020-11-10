@@ -979,20 +979,34 @@ def _help():
     for name, target in _targets.items():
         print("  {0:16}  {1}".format(name, nvl(target.help, "-")))
 
-def target(_func=None, name=None, help=None, requires=None, default=False):
+def _call_target(target):
+    _targets[target.name]()
+
+def target(_func=None, extends=None, name=None, help=None, requires=None, default=False):
     class decorator(object):
         def __init__(self, func):
             self.func = func
-            self.name = nvl(name, func.__name__)
-            self.help = nvl(help, _target_help.get(self.name))
-            self.requires = requires
+            self.extends = extends
+
+            if self.extends is None:
+                self.name = nvl(name, func.__name__)
+                self.help = nvl(help, _target_help.get(self.name))
+                self.requires = requires
+            else:
+                assert name is None
+                self.name = self.extends.name
+                self.help = nvl(help, self.extends.help)
+                self.requires = nvl(requires, self.extends.requires)
+
+            if self.requires is not None:
+                if callable(self.requires):
+                    if self.requires.name == self.name:
+                        fail("Target '{0}' depends on itself", self.name)
+                else:
+                    if self.name in [x.name for x in self.requires]:
+                        fail("Target '{0}' depends on itself", self.name)
 
             debug("Adding target '{0}'", self.name)
-
-            self.called = False
-
-            if self.name in _targets:
-                raise PlanoException("Duplicate target: {0}".format(self.name))
 
             _targets[self.name] = self
 
@@ -1001,20 +1015,19 @@ def target(_func=None, name=None, help=None, requires=None, default=False):
                 _default_target = self
 
         def __call__(self, *args, **kwargs):
-            if self.called:
-                return
-
             if self.requires is not None:
                 if callable(self.requires):
-                    self.requires()
+                    _call_target(self.requires)
                 else:
                     for target in self.requires:
-                        target()
+                        _call_target(target)
 
             print("--> {0}".format(self.name))
 
+            if self.extends is not None:
+                self.extends.func(*args, **kwargs)
+
             self.func(*args, **kwargs)
-            self.called = True
 
     if _func is None:
         return decorator
@@ -1053,7 +1066,7 @@ class PlanoCommand(object):
             with open(args.file) as f:
                 exec(f.read(), globals())
         except Exception as e:
-            exit("Failed to load '{0}': {1}", args.file, str(e))
+            exit("Failed loading '{0}': {1}", args.file, str(e))
 
         help = target(_help, name="help", help="Print this message")
 
