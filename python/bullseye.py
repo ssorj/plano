@@ -85,7 +85,7 @@ def clean():
 def modules():
     run("git submodule update --init --remote --recursive")
 
-@target(help="Generate environment variables for the developer's shell")
+@target(help="Generate shell settings for the project environment")
 def env():
     assert project.name
 
@@ -98,3 +98,12 @@ def env():
         print(f"export PYTHONPATH=${home_var}/python:$PWD/python:{ENV['PYTHONPATH']}")
     else:
         print(f"export PYTHONPATH=${home_var}/python:$PWD/python:{':'.join(_sys.path)}")
+
+class project_env(working_env):
+    def __init__(self):
+        assert project.name
+
+        bin_path = get_absolute_path("build/bin") + ":" + ENV["PATH"]
+        python_path = get_absolute_path(f"build/{project.name}/python")
+
+        super().__init__(PATH=bin_path, PYTHONPATH=python_path)
