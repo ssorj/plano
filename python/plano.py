@@ -1022,7 +1022,7 @@ def target(_func=None, extends=None, name=None, help=None, requires=None, defaul
                     for target in self.requires:
                         _call_target(target)
 
-            print("--> {0}".format(self.name))
+            eprint("\u001b[35m--> {0}\u001b[0m".format(self.name))
 
             if self.extends is not None:
                 self.extends.func(*args, **kwargs)
