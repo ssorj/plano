@@ -25,8 +25,8 @@ class _Project:
     def __init__(self):
         self.name = None
         self.build_dir = "build"
-        self.prefix = join(get_home_dir(), ".local")
         self.extra_dirs = []
+        self.default_prefix = join(get_home_dir(), ".local")
 
 project = _Project()
 
@@ -34,9 +34,13 @@ project = _Project()
 def build():
     assert project.name
 
-    default_home = join(project.prefix, "share", project.name)
+    # XXX Make these settable
+    dest_dir = ""
+    prefix = project.default_prefix
 
-    write(join(project.build_dir, "prefix.txt"), project.prefix)
+    write_json(join(project.build_dir, "build.json"), {"prefix": prefix, "dest_dir": dest_dir})
+
+    default_home = join(project.default_prefix, "lib", project.name)
 
     for path in find("bin", "*.in"):
         configure_file(path, join(project.build_dir, path[:-3]), {"default_home": default_home})
@@ -48,28 +52,24 @@ def build():
         copy(path, join(project.build_dir, path), inside=False, symlinks=False)
 
     for path in find("python", "*.py"):
-        copy(path, join(project.build_dir, path), inside=False, symlinks=False)
+        copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
     for dir_name in project.extra_dirs:
         for path in find(dir_name):
-            copy(path, join(project.build_dir, path), inside=False, symlinks=False)
+            copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
 @target(requires=build)
 def install():
+    assert project.name
     assert is_dir(project.build_dir)
 
-    dest_dir = "" # XXX
-    prefix = read(join(project.build_dir, "prefix.txt"))
+    build = read_json(join(project.build_dir, "build.json"))
 
     for path in find(join(project.build_dir, "bin")):
-        copy(path, join(f"{dest_dir}{prefix}", path[6:]), inside=False, symlinks=False)
+        copy(path, join(f"{build['dest_dir']}{build['prefix']}", path[6:]), inside=False, symlinks=False)
 
-    for path in find(join(project.build_dir, "python")):
-        copy(path, join(f"{dest_dir}{prefix}", "share", project.name, path[6:]), inside=False, symlinks=False)
-
-    for dir_name in project.extra_dirs:
-        for path in find(project.build_dir, dir_name):
-            copy(path, join(f"{dest_dir}{self.prefix}", "share", project.name, path[6:]), inside=False, symlinks=False)
+    for path in find(join(project.build_dir, project.name)):
+        copy(path, join(f"{build['dest_dir']}{build['prefix']}", "lib", path[6:]), inside=False, symlinks=False)
 
 @target
 def clean():
@@ -81,7 +81,7 @@ def clean():
     for path in find(".", "*.pyc"):
         remove(path)
 
-@target
+@target(help="Initialize and update Git submodules")
 def modules():
     run("git submodule update --init --remote --recursive")
 
