@@ -85,7 +85,7 @@ def clean():
 def modules():
     run("git submodule update --init --remote --recursive")
 
-@target
+@target(help="Generate environment variables for the developer's shell")
 def env():
     assert project.name
 

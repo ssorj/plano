@@ -969,7 +969,7 @@ _target_help = {
     "build": "Build artifacts from source",
     "clean": "Clean up the source tree",
     "dist": "Generate distribution artifacts",
-    "install": "Install the build on your system",
+    "install": "Install the built artifacts on your system",
     "test": "Run the tests",
 }
 
