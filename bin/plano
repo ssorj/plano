@@ -18,6 +18,12 @@
 # under the License.
 #
 
+import os
+import sys
+
+if os.path.isdir("python"):
+    sys.path.insert(0, "python")
+
 from plano import PlanoCommand
 
 if __name__ == "__main__":
