@@ -19,10 +19,9 @@
 #
 
 from commandant import TestCommand
-from plano import *
 
-import tests
+import plano_tests
 
 if __name__ == "__main__":
-    command = TestCommand(tests)
+    command = TestCommand(plano_tests)
     command.main()
