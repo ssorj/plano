@@ -1049,7 +1049,7 @@ class PlanoCommand(object):
         self.parser.add_argument("--init-only", action="store_true",
                                  help=_argparse.SUPPRESS)
 
-    def main(self, args=None):
+    def init(self, args):
         args = self.parser.parse_args(args)
 
         if args.verbose:
@@ -1057,6 +1057,8 @@ class PlanoCommand(object):
 
         if args.quiet:
             disable_logging()
+
+        self.init_only = args.init_only
 
         _sys.path.insert(0, join(get_parent_dir(args.file), "python"))
 
@@ -1075,17 +1077,24 @@ class PlanoCommand(object):
         if _default_target is None:
             _default_target = help
 
-        if args.init_only:
-            return
+        if args.target:
+            try:
+                self.target = _targets[args.target]
+            except KeyError:
+                exit("Target '{0}' is unknown", args.target)
+        else:
+            self.target = _default_target
 
-        if not args.target:
-            _default_target()
+    def main(self, args=None):
+        self.init(args)
+
+        if self.init_only:
             return
 
         try:
-            _targets[args.target]()
-        except KeyError:
-            exit("Target '{0}' is unknown", args.target)
+            self.target()
+        except KeyboardInterrupt:
+            pass
 
 if __name__ == "__main__": # pragma: nocover
     command = PlanoCommand()
