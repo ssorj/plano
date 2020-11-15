@@ -103,7 +103,10 @@ class project_env(working_env):
     def __init__(self):
         assert project.name
 
-        bin_path = get_absolute_path("build/bin") + ":" + ENV["PATH"]
-        python_path = get_absolute_path(f"build/{project.name}/python")
+        env = {
+            f"{project.name.upper()}_HOME": get_absolute_path(f"build/{project.name}"),
+            "PATH": get_absolute_path("build/bin") + ":" + ENV["PATH"],
+            "PYTHONPATH": get_absolute_path(f"build/{project.name}/python"),
+        }
 
-        super().__init__(PATH=bin_path, PYTHONPATH=python_path)
+        super().__init__(**env)

@@ -829,7 +829,7 @@ class PlanoException(Exception):
 
 class PlanoProcessError(_subprocess.CalledProcessError, PlanoException):
     def __init__(self, proc):
-        super(PlanoProcessError, self).__init__(proc.exit_code, proc.args)
+        super(PlanoProcessError, self).__init__(proc.exit_code, " ".join(proc.args))
 
 def default_sigterm_handler(signum, frame):
     for proc in _child_processes:
