@@ -987,6 +987,7 @@ def target(_func=None, extends=None, name=None, help=None, requires=None, defaul
         def __init__(self, func):
             self.func = func
             self.extends = extends
+            self.called = False
 
             if self.extends is None:
                 self.name = nvl(name, func.__name__.replace("_", "-"))
@@ -1015,6 +1016,11 @@ def target(_func=None, extends=None, name=None, help=None, requires=None, defaul
                 _default_target = self
 
         def __call__(self, *args, **kwargs):
+            if self.called:
+                return
+
+            self.called = True
+
             if self.requires is not None:
                 if callable(self.requires):
                     _call_target(self.requires)
@@ -1038,7 +1044,7 @@ class PlanoCommand(object):
     def __init__(self):
         self.parser = _argparse.ArgumentParser(prog="plano")
 
-        self.parser.add_argument("target", metavar="TARGET", nargs="?",
+        self.parser.add_argument("targets", metavar="TARGET", nargs="*",
                                  help="Invoke TARGET from the planofile")
         self.parser.add_argument("-f", "--file", default="Planofile",
                                  help="Read FILE as a planofile (default 'Planofile')")
@@ -1077,13 +1083,13 @@ class PlanoCommand(object):
         if _default_target is None:
             _default_target = help
 
-        if args.target:
-            try:
-                self.target = _targets[args.target]
-            except KeyError:
-                exit("Target '{0}' is unknown", args.target)
-        else:
-            self.target = _default_target
+        try:
+            self.targets = [_targets[x] for x in args.targets]
+        except KeyError as e:
+            exit("Target '{0}' is unknown", e.args[0])
+
+        if not self.targets:
+            self.targets = [_default_target]
 
     def main(self, args=None):
         self.init(args)
@@ -1092,7 +1098,8 @@ class PlanoCommand(object):
             return
 
         try:
-            self.target()
+            for target in self.targets:
+                target()
         except KeyboardInterrupt:
             pass
 
