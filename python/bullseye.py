@@ -81,7 +81,7 @@ def clean():
     for path in find(".", "*.pyc"):
         remove(path)
 
-@target(help="Initialize and update Git submodules")
+@target(help="Update Git submodules")
 def modules():
     run("git submodule update --init --remote --recursive")
 

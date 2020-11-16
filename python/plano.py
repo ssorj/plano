@@ -822,7 +822,7 @@ class PlanoProcess(_subprocess.Popen):
         kill(self)
 
     def __repr__(self):
-        return "process {0} ('{1}')".format(self.pid, self.args)
+        return "process {0} ('{1}')".format(self.pid, " ".join(self.args))
 
 class PlanoException(Exception):
     pass
