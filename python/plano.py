@@ -989,7 +989,7 @@ def target(_func=None, extends=None, name=None, help=None, requires=None, defaul
             self.extends = extends
 
             if self.extends is None:
-                self.name = nvl(name, func.__name__)
+                self.name = nvl(name, func.__name__.replace("_", "-"))
                 self.help = nvl(help, _target_help.get(self.name))
                 self.requires = requires
             else:
