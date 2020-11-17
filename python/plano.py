@@ -980,9 +980,6 @@ def _help():
     for name, target in _targets.items():
         print("  {0:16}  {1}".format(name, nvl(target.help, "-")))
 
-def _call_target(target):
-    _targets[target.name]()
-
 def target(_func=None, extends=None, name=None, help=None, requires=None, default=False):
     class decorator(object):
         def __init__(self, func):
@@ -1028,10 +1025,10 @@ def target(_func=None, extends=None, name=None, help=None, requires=None, defaul
 
             if self.requires is not None:
                 if callable(self.requires):
-                    _call_target(self.requires)
+                    _targets[self.requires.name]()
                 else:
                     for target in self.requires:
-                        _call_target(target)
+                        _targets[target.name]()
 
             if hasattr(STDERR, "isatty") and STDERR.isatty():
                 eprint("\u001b[35m--> {0}\u001b[0m".format(self.name))
