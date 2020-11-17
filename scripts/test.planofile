@@ -1,4 +1,4 @@
-@target
+@target(default=True)
 def build():
     do_build()
 

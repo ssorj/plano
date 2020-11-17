@@ -994,8 +994,12 @@ def target(_func=None, extends=None, name=None, help=None, requires=None, defaul
                 self.name = nvl(name, func.__name__.replace("_", "-"))
                 self.help = nvl(help, _target_help.get(self.name))
                 self.requires = requires
+
+                if self.name in _targets:
+                    warn("Target '{0}' is already defined", self.name)
             else:
                 assert name is None
+
                 self.name = self.extends.name
                 self.help = nvl(help, self.extends.help)
                 self.requires = nvl(requires, self.extends.requires)
@@ -1029,17 +1033,15 @@ def target(_func=None, extends=None, name=None, help=None, requires=None, defaul
                     for target in self.requires:
                         _call_target(target)
 
-            func = self.func
-
-            if self.extends is not None:
-                func = self.extends.func
-
-            if _os.isatty(STDERR.fileno()):
+            if hasattr(STDERR, "isatty") and STDERR.isatty():
                 eprint("\u001b[35m--> {0}\u001b[0m".format(self.name))
-            else:
+            else: # pragma: nocover
                 eprint("--> {0}".format(self.name))
 
-            func(*[kwargs[x] for x in _inspect.getargspec(func).args if x in kwargs])
+            if self.extends is not None:
+                self.extends.func(*[kwargs[x] for x in _inspect.getargspec(self.extends.func).args if x in kwargs])
+
+            self.func(*[kwargs[x] for x in _inspect.getargspec(self.func).args if x in kwargs])
 
     if _func is None:
         return decorator
@@ -1098,7 +1100,7 @@ class PlanoCommand(object):
             try:
                 self.targets.append(_targets[target_name])
             except KeyError as e:
-                exit("Target '{0}' is unknown", target_name)
+                exit("Target '{0}' is not defined", target_name)
 
         for target_arg in args.arg:
             try:
@@ -1120,7 +1122,7 @@ class PlanoCommand(object):
         try:
             for target in self.targets:
                 target(**self.target_args)
-        except KeyboardInterrupt:
+        except KeyboardInterrupt: # pragma nocover
             pass
 
 if __name__ == "__main__": # pragma: nocover

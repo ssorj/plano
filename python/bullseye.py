@@ -31,12 +31,11 @@ class _Project:
 project = _Project()
 
 @target
-def build():
+def build(dest_dir="", prefix=None):
     assert project.name
 
-    # XXX Make these settable
-    dest_dir = ""
-    prefix = project.default_prefix
+    if prefix is None:
+        prefix = project.default_prefix
 
     write_json(join(project.build_dir, "build.json"), {"prefix": prefix, "dest_dir": dest_dir})
 
@@ -64,12 +63,13 @@ def install():
     assert is_dir(project.build_dir)
 
     build = read_json(join(project.build_dir, "build.json"))
+    prefix = build["dest_dir"] + build["prefix"]
 
     for path in find(join(project.build_dir, "bin")):
-        copy(path, join(f"{build['dest_dir']}{build['prefix']}", path[6:]), inside=False, symlinks=False)
+        copy(path, join(prefix, path[6:]), inside=False, symlinks=False)
 
     for path in find(join(project.build_dir, project.name)):
-        copy(path, join(f"{build['dest_dir']}{build['prefix']}", "lib", path[6:]), inside=False, symlinks=False)
+        copy(path, join(prefix, "lib", path[6:]), inside=False, symlinks=False)
 
 @target
 def clean():
@@ -82,31 +82,42 @@ def clean():
         remove(path)
 
 @target(help="Update Git submodules")
-def modules():
+def modules(): # pragma: nocover
     run("git submodule update --init --remote --recursive")
 
 @target(help="Generate shell settings for the project environment")
 def env():
     assert project.name
 
-    home_var = f"{project.name.upper()}_HOME"
+    home_var = "{0}_HOME".format(project.name.upper().replace("-", "_"))
 
-    print(f"export {home_var}=$PWD/build/{project.name}")
+    print("export {0}=$PWD/build/{1}".format(home_var, project.name))
     print("export PATH=$PWD/build/bin:$PWD/scripts:$PATH")
 
-    if "PYTHONPATH" in ENV:
-        print(f"export PYTHONPATH=${home_var}/python:$PWD/python:{ENV['PYTHONPATH']}")
-    else:
-        print(f"export PYTHONPATH=${home_var}/python:$PWD/python:{':'.join(_sys.path)}")
+    python_path = [
+        "${0}/python".format(home_var),
+        "$PWD/python",
+    ]
+
+    try:
+        python_path.append(ENV["PYTHONPATH"])
+    except KeyError: # pragma: nocover
+        pass
+
+    python_path.extend(_sys.path)
+
+    print("export PYTHONPATH={0}".format(":".join(python_path)))
 
 class project_env(working_env):
     def __init__(self):
         assert project.name
 
+        home_var = "{0}_HOME".format(project.name.upper().replace("-", "_"))
+
         env = {
-            f"{project.name.upper()}_HOME": get_absolute_path(f"build/{project.name}"),
+            home_var: get_absolute_path("build/{0}".format(project.name)),
             "PATH": get_absolute_path("build/bin") + ":" + ENV["PATH"],
-            "PYTHONPATH": get_absolute_path(f"build/{project.name}/python"),
+            "PYTHONPATH": get_absolute_path("build/{0}/python".format(project.name)),
         }
 
-        super().__init__(**env)
+        super(project_env, self).__init__(**env)

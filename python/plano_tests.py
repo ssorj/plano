@@ -662,65 +662,52 @@ def test_user_operations(session):
     assert result == user, (result, user)
 
 def test_plano_command(session):
-    from plano import _targets, _default_target
-
-    def invoke(args):
-        _targets.clear(); _default_target = None
-
-        command = PlanoCommand()
-        command.main(args)
-
-    invoke(["-f", "scripts/test.planofile"])
-    invoke(["-f", "scripts/test.planofile", "--quiet"])
-    invoke(["-f", "scripts/test.planofile", "--verbose"])
-    invoke(["-f", "scripts/test.planofile", "--init-only"])
-    invoke(["-f", "scripts/test.planofile", "build"])
-    invoke(["-f", "scripts/test.planofile", "install"])
-    invoke(["-f", "scripts/test.planofile", "clean"])
-    invoke(["-f", "scripts/test.planofile", "run"])
-    invoke(["-f", "scripts/test.planofile", "help"])
-
-    try:
-        invoke(["-f", "scripts/test.planofile", "no-such-target"])
-    except SystemExit:
-        pass
-
-    try:
-        invoke(["-f", "not/there/at/all"])
-    except SystemExit:
-        pass
-
-    _targets.clear(); _default_target = None
-
-    @target
-    def alpha():
-        print("A")
-
-    try:
-        @target(name="alpha")
-        def another_alpha():
-            pass
-    except PlanoException:
-        pass
-
-    @target(requires=alpha)
-    def beta():
-        print("B")
-
-    @target(default=True)
-    def gamma():
-        print("G")
-
-    @target(requires=(beta, gamma))
-    def delta():
-        print("D")
-
     command = PlanoCommand()
 
-    with temp_file() as f:
-        command.main(["-f", f, "delta"])
+    def invoke(*args):
+        command.main(["--verbose", "-f", "scripts/test.planofile"] + list(args))
+
+    invoke()
+    invoke("--quiet")
+    invoke("--init-only")
+    invoke("build", "build")
+    invoke("install")
+    invoke("clean")
+    invoke("run")
+    invoke("help")
 
     try:
-        invoke(["-f" "not/there/at/all"])
+        invoke("no-such-target")
     except SystemExit:
         pass
+
+    try:
+        command.main(["-f", "no-such-file"])
+    except SystemExit:
+        pass
+
+def test_bullseye_targets(session):
+    command = PlanoCommand()
+    planofile = get_absolute_path("scripts/bullseye.planofile")
+
+    def invoke(*args):
+        command.main(["--verbose", "-f", planofile] + list(args))
+
+    with working_dir():
+        touch("bin/command1.in")
+        touch("bin/command2")
+        touch("python/lib.py")
+        touch("python/lib.pyc")
+        touch("python/__pycache__")
+        touch("files/yellow.txt")
+
+        invoke("build", "-a", "dest-dir=/what")
+        invoke("build", "-a", "not-there=uhuh")
+        invoke("install")
+        invoke("clean")
+        invoke("env")
+
+        try:
+            invoke("build", "-a", "not-there:uhuh")
+        except SystemExit:
+            pass

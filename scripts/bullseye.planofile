@@ -1,0 +1,9 @@
+from bullseye import *
+
+project.name = "test-project"
+project.extra_dirs = ["files"]
+
+@target(extends=build)
+def build(dest_dir="", prefix=None):
+    with project_env():
+        eprint("Building!")
