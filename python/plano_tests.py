@@ -701,13 +701,13 @@ def test_bullseye_targets(session):
         touch("python/__pycache__")
         touch("files/yellow.txt")
 
-        invoke("build", "-a", "dest-dir=/what")
-        invoke("build", "-a", "not-there=uhuh")
+        invoke("build", "-p", "dest-dir=/what")
+        invoke("build", "-p", "not-there=uhuh")
         invoke("install")
         invoke("clean")
         invoke("env")
 
         try:
-            invoke("build", "-a", "not-there:uhuh")
+            invoke("build", "-p", "not-there:uhuh")
         except SystemExit:
             pass

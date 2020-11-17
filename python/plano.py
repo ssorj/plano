@@ -1054,7 +1054,7 @@ class PlanoCommand(object):
 
         self.parser.add_argument("targets", metavar="TARGET", nargs="*", default=[],
                                  help="Call function TARGET from the planofile")
-        self.parser.add_argument("-a", "--arg", metavar="NAME=VALUE", action="append", default=[],
+        self.parser.add_argument("-p", "--param", metavar="NAME=VALUE", action="append", default=[],
                                  help="Pass NAME=VALUE to the target functions")
         self.parser.add_argument("-f", "--file", default="Planofile",
                                  help="Read FILE as a planofile (default 'Planofile')")
@@ -1094,7 +1094,7 @@ class PlanoCommand(object):
             _default_target = help
 
         self.targets = list()
-        self.target_args = dict()
+        self.target_params = dict()
 
         for target_name in args.targets:
             try:
@@ -1102,13 +1102,13 @@ class PlanoCommand(object):
             except KeyError as e:
                 exit("Target '{0}' is not defined", target_name)
 
-        for target_arg in args.arg:
+        for target_param in args.param:
             try:
-                name, value = target_arg.split("=", 1)
+                name, value = target_param.split("=", 1)
             except ValueError:
-                exit("Failed parsing argument '{0}'", target_arg)
+                exit("Failed parsing parameter '{0}'", target_param)
 
-            self.target_args[name.replace("-", "_")] = value
+            self.target_params[name.replace("-", "_")] = value
 
         if not self.targets:
             self.targets = [_default_target]
@@ -1121,7 +1121,7 @@ class PlanoCommand(object):
 
         try:
             for target in self.targets:
-                target(**self.target_args)
+                target(**self.target_params)
         except KeyboardInterrupt: # pragma nocover
             pass
 
