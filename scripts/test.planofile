@@ -10,8 +10,8 @@ def test():
     print("Testing")
 
 @target(requires=build, help="Install me!")
-def install():
-    print("Installing")
+def install(dest_dir="/"):
+    print("Installing with dest_dir {0}".format(dest_dir))
 
 @target
 def clean():

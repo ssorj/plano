@@ -26,6 +26,7 @@ import codecs as _codecs
 import collections as _collections
 import fnmatch as _fnmatch
 import getpass as _getpass
+import inspect as _inspect
 import json as _json
 import os as _os
 import random as _random
@@ -1015,7 +1016,7 @@ def target(_func=None, extends=None, name=None, help=None, requires=None, defaul
                 global _default_target
                 _default_target = self
 
-        def __call__(self, *args, **kwargs):
+        def __call__(self, **kwargs):
             if self.called:
                 return
 
@@ -1028,12 +1029,17 @@ def target(_func=None, extends=None, name=None, help=None, requires=None, defaul
                     for target in self.requires:
                         _call_target(target)
 
-            eprint("\u001b[35m--> {0}\u001b[0m".format(self.name))
+            func = self.func
 
             if self.extends is not None:
-                self.extends.func(*args, **kwargs)
+                func = self.extends.func
 
-            self.func(*args, **kwargs)
+            if _os.isatty(STDERR.fileno()):
+                eprint("\u001b[35m--> {0}\u001b[0m".format(self.name))
+            else:
+                eprint("--> {0}".format(self.name))
+
+            func(*[kwargs[x] for x in _inspect.getargspec(func).args if x in kwargs])
 
     if _func is None:
         return decorator
@@ -1044,8 +1050,10 @@ class PlanoCommand(object):
     def __init__(self):
         self.parser = _argparse.ArgumentParser(prog="plano")
 
-        self.parser.add_argument("targets", metavar="TARGET", nargs="*",
-                                 help="Invoke TARGET from the planofile")
+        self.parser.add_argument("targets", metavar="TARGET", nargs="*", default=[],
+                                 help="Call function TARGET from the planofile")
+        self.parser.add_argument("-a", "--arg", metavar="NAME=VALUE", action="append", default=[],
+                                 help="Pass NAME=VALUE to the target functions")
         self.parser.add_argument("-f", "--file", default="Planofile",
                                  help="Read FILE as a planofile (default 'Planofile')")
         self.parser.add_argument("--verbose", action="store_true",
@@ -1083,10 +1091,22 @@ class PlanoCommand(object):
         if _default_target is None:
             _default_target = help
 
-        try:
-            self.targets = [_targets[x] for x in args.targets]
-        except KeyError as e:
-            exit("Target '{0}' is unknown", e.args[0])
+        self.targets = list()
+        self.target_args = dict()
+
+        for target_name in args.targets:
+            try:
+                self.targets.append(_targets[target_name])
+            except KeyError as e:
+                exit("Target '{0}' is unknown", target_name)
+
+        for target_arg in args.arg:
+            try:
+                name, value = target_arg.split("=", 1)
+            except ValueError:
+                exit("Failed parsing argument '{0}'", target_arg)
+
+            self.target_args[name.replace("-", "_")] = value
 
         if not self.targets:
             self.targets = [_default_target]
@@ -1099,7 +1119,7 @@ class PlanoCommand(object):
 
         try:
             for target in self.targets:
-                target()
+                target(**self.target_args)
         except KeyboardInterrupt:
             pass
 
