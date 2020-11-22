@@ -967,11 +967,11 @@ _targets = _collections.OrderedDict()
 _default_target = None
 
 _target_help = {
-    "build": "Build artifacts from source",
-    "clean": "Clean up the source tree",
-    "dist": "Generate distribution artifacts",
-    "install": "Install the built artifacts on your system",
-    "test": "Run the tests",
+    "build":    "Build artifacts from source",
+    "clean":    "Clean up the source tree",
+    "dist":     "Generate distribution artifacts",
+    "install":  "Install the built artifacts on your system",
+    "test":     "Run the tests",
 }
 
 def _help():
