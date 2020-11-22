@@ -87,6 +87,7 @@ coverage:
 	coverage run scripts/test
 	coverage report
 	coverage html
+	@echo file:${CURDIR}/htmlcov/index.html
 
 .PHONY: modules
 modules:
