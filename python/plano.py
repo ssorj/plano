@@ -964,7 +964,6 @@ def _is_string(obj):
         return isinstance(obj, str)
 
 _targets = _collections.OrderedDict()
-_default_target = None
 
 _target_help = {
     "build":    "Build artifacts from source",
@@ -974,18 +973,13 @@ _target_help = {
     "test":     "Run the tests",
 }
 
-def _help():
-    print("Plano targets:")
-
-    for name, target in _targets.items():
-        print("  {0:16}  {1}".format(name, nvl(target.help, "-")))
-
 def target(_func=None, extends=None, name=None, help=None, requires=None, default=False):
     class decorator(object):
         def __init__(self, func):
             self.func = func
             self.extends = extends
             self.called = False
+            self.default = default
 
             if self.extends is None:
                 self.name = nvl(name, func.__name__.replace("_", "-"))
@@ -1012,10 +1006,6 @@ def target(_func=None, extends=None, name=None, help=None, requires=None, defaul
             debug("Adding target '{0}'", self.name)
 
             _targets[self.name] = self
-
-            if default:
-                global _default_target
-                _default_target = self
 
         def __call__(self, **kwargs):
             if self.called:
@@ -1047,13 +1037,9 @@ def target(_func=None, extends=None, name=None, help=None, requires=None, defaul
 
 class PlanoCommand(object):
     def __init__(self):
-        self.parser = _argparse.ArgumentParser(prog="plano")
+        self.parser = _argparse.ArgumentParser(prog="plano", add_help=False)
 
-        self.parser.add_argument("targets", metavar="TARGET", nargs="*", default=[],
-                                 help="Call function TARGET from the planofile")
-        self.parser.add_argument("-p", "--param", metavar="NAME=VALUE", action="append", default=[],
-                                 help="Pass NAME=VALUE to the target functions")
-        self.parser.add_argument("-f", "--file", default="Planofile",
+        self.parser.add_argument("-f", "--file",
                                  help="Read FILE as a planofile (default 'Planofile')")
         self.parser.add_argument("--verbose", action="store_true",
                                  help="Print detailed logging to the console")
@@ -1061,54 +1047,80 @@ class PlanoCommand(object):
                                  help="Print no logging to the console")
         self.parser.add_argument("--init-only", action="store_true",
                                  help=_argparse.SUPPRESS)
+        self.parser.add_argument("-h", "--help", action="store_true",
+                                 help="Show this help message and exit")
 
     def init(self, args):
-        args = self.parser.parse_args(args)
+        starting_args, remaining_args = self.parser.parse_known_args(args)
 
-        if args.verbose:
+        if starting_args.verbose:
             enable_logging(level="debug")
 
-        if args.quiet:
+        if starting_args.quiet:
             disable_logging()
 
-        self.init_only = args.init_only
+        if starting_args.help and starting_args.file is None:
+            self.parser.print_help()
+            exit()
 
-        _sys.path.insert(0, join(get_parent_dir(args.file), "python"))
+        self.init_only = starting_args.init_only
 
-        debug("Loading '{0}'", args.file)
+        planofile = "Planofile"
+
+        if starting_args.file:
+            planofile = starting_args.file
+
+        _sys.path.insert(0, join(get_parent_dir(planofile), "python"))
+
+        debug("Loading '{0}'", planofile)
 
         try:
-            with open(args.file) as f:
+            with open(planofile) as f:
                 exec(f.read(), globals())
         except Exception as e:
-            exit("Failed loading '{0}': {1}", args.file, str(e))
+            exit("Failed loading '{0}': {1}", planofile, str(e))
 
-        help = target(_help, name="help", help="Print this message")
+        help = target(self.parser.print_help, name="help", help="Show this help message and exit", default=True)
 
-        global _default_target
+        if not remaining_args:
+            self.target = [x for x in _targets.values() if x.default][0]
+            return
 
-        if _default_target is None:
-            _default_target = help
+        subparser_action = self.parser.add_subparsers(dest="target_name")
+        subparsers = dict()
 
-        self.targets = list()
-        self.target_params = dict()
+        for target_ in _targets.values():
+            subparser = subparser_action.add_parser(target_.name, help=target_.help, add_help=False)
+            subparsers[target_.name] = subparser
 
-        for target_name in args.targets:
-            try:
-                self.targets.append(_targets[target_name])
-            except KeyError as e:
-                exit("Target '{0}' is not defined", target_name)
+            if target_ is not help:
+                for arg in _inspect.getargspec(target_.func).args:
+                    print(111, target_.name, arg)
+                    subparser.add_argument("--{0}".format(arg))
 
-        for target_param in args.param:
-            try:
-                name, value = target_param.split("=", 1)
-            except ValueError:
-                exit("Failed parsing parameter '{0}'", target_param)
+            subparser.add_argument("-h", "--help", action="store_true",
+                                   help="Show this help message and exit")
 
-            self.target_params[name.replace("-", "_")] = value
+        args = self.parser.parse_args(args)
 
-        if not self.targets:
-            self.targets = [_default_target]
+        try:
+            self.target = _targets[args.target_name]
+        except KeyError:
+            exit("Target '{0}' is not defined", target_name)
+
+        if args.help:
+            subparsers[args.target_name].print_help()
+            exit()
+
+        # self.target_params = dict()
+
+        # for target_param in args.param:
+        #     try:
+        #         name, value = target_param.split("=", 1)
+        #     except ValueError:
+        #         exit("Failed parsing parameter '{0}'", target_param)
+
+        #     self.target_params[name.replace("-", "_")] = value
 
     def main(self, args=None):
         self.init(args)
@@ -1116,11 +1128,8 @@ class PlanoCommand(object):
         if self.init_only:
             return
 
-        try:
-            for target in self.targets:
-                target(**self.target_params)
-        except KeyboardInterrupt: # pragma nocover
-            pass
+        self.target()
+        # XXX self.target(**self.target_params)
 
 if __name__ == "__main__": # pragma: nocover
     command = PlanoCommand()
