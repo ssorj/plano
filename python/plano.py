@@ -987,7 +987,7 @@ def target(_func=None, extends=None, name=None, help=None, requires=None, defaul
                 self.requires = requires
 
                 if self.name in _targets:
-                    warn("Target '{0}' is already defined", self.name)
+                    notice("Target '{0}' is already defined", self.name)
             else:
                 assert name is None
 

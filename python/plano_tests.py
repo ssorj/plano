@@ -755,7 +755,6 @@ def test_bullseye_targets(session):
         touch("files/yellow.txt")
 
         invoke("build", "--dest-dir", "/what")
-        # invoke("build", "-p", "not-there=uhuh")
         invoke("install")
         invoke("clean")
         invoke("env")
