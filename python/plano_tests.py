@@ -675,14 +675,54 @@ def test_plano_command(session):
     invoke("run")
     invoke("help")
 
+
     try:
-        invoke("no-such-target")
+        invoke("--help")
+        assert False
     except SystemExit:
         pass
 
     try:
+        invoke("build", "--help")
+        assert False
+    except SystemExit:
+        pass
+
+    try:
+        invoke("no-such-target")
+        assert False
+    except SystemExit:
+        pass
+
+    try:
+        invoke("no-such-target", "--help")
+        assert False
+    except SystemExit:
+        pass
+
+    try:
+        invoke("--help", "no-such-target")
+        assert False
+    except SystemExit:
+        pass
+
+    with working_dir():
+        command = PlanoCommand()
+        command.main([])
+
+    with working_dir():
+        try:
+            write("Planofile", "garbage")
+            command = PlanoCommand()
+            command.main([])
+            assert False
+        except SystemExit:
+            pass
+
+    try:
         command = PlanoCommand()
         command.main(["-f", "no-such-file"])
+        assert False
     except SystemExit:
         pass
 
@@ -701,15 +741,8 @@ def test_bullseye_targets(session):
         touch("python/__pycache__")
         touch("files/yellow.txt")
 
-        invoke("build")
-        # XXX
-        # invoke("build", "-p", "dest-dir=/what")
+        invoke("build", "--dest-dir", "/what")
         # invoke("build", "-p", "not-there=uhuh")
         invoke("install")
         invoke("clean")
         invoke("env")
-
-        # try:
-        #     invoke("build", "-p", "not-there:uhuh")
-        # except SystemExit:
-        #     pass
