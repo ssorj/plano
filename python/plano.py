@@ -1078,15 +1078,17 @@ class PlanoCommand(object):
 
             if target_ is not help:
                 for arg in _inspect.getargspec(target_.func).args:
-                    print(111, target_.name, arg)
-                    subparser.add_argument("--{0}".format(arg))
+                    name = arg.replace("_", "-")
+                    metavar = arg.upper().replace("_", "-")
+
+                    subparser.add_argument("--{0}".format(name), metavar=metavar)
 
             subparser.add_argument("-h", "--help", action="store_true",
                                    help="Print this help message and exit")
 
         args = self.parser.parse_args(args)
 
-        if starting_args.help or args.help:
+        if args.help:
             try:
                 subparsers[args.target].print_help()
             except KeyError:
