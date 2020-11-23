@@ -1079,11 +1079,19 @@ class PlanoCommand(object):
             subparser = subparsers.add_parser(target_.name, help=target_.help, add_help=False)
             subparser.set_defaults(subparser=subparser)
 
-            for arg in _inspect.getargspec(target_.func).args:
-                name = arg.replace("_", "-")
-                metavar = arg.upper().replace("_", "-")
+            names, _, _, defaults = _inspect.getargspec(target_.func)
 
-                subparser.add_argument("--{0}".format(name), metavar=metavar)
+            if len(names) != len(nvl(defaults, [])):
+                fail("Illegal target arguments")
+
+            for name, default in zip(names, nvl(defaults, [])):
+                name = name.replace("_", "-")
+                metavar = name.upper().replace("_", "-")
+
+                if default is False:
+                    subparser.add_argument("--{0}".format(name), default=default, action="store_true")
+                else:
+                    subparser.add_argument("--{0}".format(name), default=default, metavar=metavar, type=type(default))
 
             subparser.add_argument("-h", "--help", action="store_true",
                                    help="Print this help message and exit")
@@ -1102,9 +1110,7 @@ class PlanoCommand(object):
 
         names, _, _, defaults = _inspect.getargspec(self.target.func)
 
-        assert len(names) == len(nvl(defaults, [])), (names, defaults)
-
-        self.target_args = [nvl(getattr(args, n), d) for n, d in zip(names, nvl(defaults, []))]
+        self.target_args = [nvl(getattr(args, name), default) for name, default in zip(names, nvl(defaults, []))]
 
     def load_config(self, planofile):
         if planofile is not None and not exists(planofile):

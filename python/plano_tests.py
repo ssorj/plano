@@ -662,6 +662,26 @@ def test_user_operations(session):
     assert result == user, (result, user)
 
 def test_plano_command(session):
+    with working_dir():
+        command = PlanoCommand()
+        command.main([])
+
+    with working_dir():
+        try:
+            write("Planofile", "garbage")
+            command = PlanoCommand()
+            command.main([])
+            assert False
+        except SystemExit:
+            pass
+
+    try:
+        command = PlanoCommand()
+        command.main(["-f", "no-such-file"])
+        assert False
+    except SystemExit:
+        pass
+
     def invoke(*args):
         command = PlanoCommand()
         command.main(["--verbose", "-f", "scripts/test.planofile"] + list(args))
@@ -674,7 +694,6 @@ def test_plano_command(session):
     invoke("clean")
     invoke("run")
     invoke("help")
-
 
     try:
         invoke("--help")
@@ -706,22 +725,16 @@ def test_plano_command(session):
     except SystemExit:
         pass
 
-    with working_dir():
-        command = PlanoCommand()
-        command.main([])
+    try:
+        invoke("run", "--trouble")
+        assert False
+    except Exception as e:
+        assert str(e) == "Trouble", str(e)
 
-    with working_dir():
-        try:
-            write("Planofile", "garbage")
-            command = PlanoCommand()
-            command.main([])
-            assert False
-        except SystemExit:
-            pass
+    invoke("hello", "--count", "5")
 
     try:
-        command = PlanoCommand()
-        command.main(["-f", "no-such-file"])
+        invoke("hello", "--count", "not-an-int")
         assert False
     except SystemExit:
         pass

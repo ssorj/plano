@@ -1,22 +1,29 @@
 @target(default=True)
-def build():
-    do_build()
-
-def do_build():
-    print("Building")
+def build(dest_dir="/"):
+    print("Bulding (dest_dir={0})".format(dest_dir))
 
 @target(requires=build)
 def test():
     print("Testing")
 
 @target(requires=build, help="Install me!")
-def install(dest_dir="/"):
-    print("Installing with dest_dir {0}".format(dest_dir))
+def install():
+    print("Installing")
 
 @target
 def clean():
     print("Cleaning")
 
-@target(name="run", requires=(clean, build), help="Run with it")
-def run_():
-    print("Running")
+@target(name="run", requires=(clean, build, clean), help="Run with it")
+def run_(trouble=False):
+    print("Running (trouble={0})".format(trouble))
+
+    if trouble:
+        raise Exception("Trouble")
+
+@target
+def hello(count=1):
+    print("Greeting (count={0})".format(count))
+
+    for i in range(count):
+       print("Hello!")
