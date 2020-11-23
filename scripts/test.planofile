@@ -22,8 +22,8 @@ def run_(trouble=False):
         raise Exception("Trouble")
 
 @target
-def hello(count=1):
-    print("Greeting (count={0})".format(count))
+def greet(greeting, count=1):
+    print("Greeting (greeting={0}, count={1})".format(greeting, count))
 
     for i in range(count):
-       print("Hello!")
+       print(greeting)

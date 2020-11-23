@@ -731,10 +731,10 @@ def test_plano_command(session):
     except Exception as e:
         assert str(e) == "Trouble", str(e)
 
-    invoke("hello", "--count", "5")
+    invoke("greet", "Hello", "--count", "5")
 
     try:
-        invoke("hello", "--count", "not-an-int")
+        invoke("greet", "Hello", "--count", "not-an-int")
         assert False
     except SystemExit:
         pass

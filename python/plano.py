@@ -1080,18 +1080,24 @@ class PlanoCommand(object):
             subparser.set_defaults(subparser=subparser)
 
             names, _, _, defaults = _inspect.getargspec(target_.func)
+            defaults = _collections.OrderedDict(zip(reversed(names), reversed(nvl(defaults, []))))
 
-            if len(names) != len(nvl(defaults, [])):
-                fail("Illegal target arguments")
+            for name in names:
+                if name in defaults:
+                    default = defaults[name]
 
-            for name, default in zip(names, nvl(defaults, [])):
-                name = name.replace("_", "-")
-                metavar = name.upper().replace("_", "-")
+                    name = name.replace("_", "-")
+                    metavar = name.upper().replace("_", "-")
 
-                if default is False:
-                    subparser.add_argument("--{0}".format(name), default=default, action="store_true")
+                    if default is False:
+                        subparser.add_argument("--{0}".format(name), default=default, action="store_true")
+                    else:
+                        subparser.add_argument("--{0}".format(name), default=default, metavar=metavar, type=type(default))
                 else:
-                    subparser.add_argument("--{0}".format(name), default=default, metavar=metavar, type=type(default))
+                    name = name.replace("_", "-")
+                    metavar = name.upper().replace("_", "-")
+
+                    subparser.add_argument(name, metavar=metavar)
 
             subparser.add_argument("-h", "--help", action="store_true",
                                    help="Print this help message and exit")
@@ -1109,8 +1115,9 @@ class PlanoCommand(object):
         self.target = _targets[args.target]
 
         names, _, _, defaults = _inspect.getargspec(self.target.func)
+        defaults = _collections.OrderedDict(zip(reversed(names), reversed(nvl(defaults, []))))
 
-        self.target_args = [nvl(getattr(args, name), default) for name, default in zip(names, nvl(defaults, []))]
+        self.target_args = [nvl(getattr(args, name), defaults.get(name)) for name in names]
 
     def load_config(self, planofile):
         if planofile is not None and not exists(planofile):
