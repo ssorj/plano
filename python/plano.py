@@ -1048,7 +1048,7 @@ class PlanoCommand(object):
         self.parser.add_argument("--init-only", action="store_true",
                                  help=_argparse.SUPPRESS)
         self.parser.add_argument("-h", "--help", action="store_true",
-                                 help="Show this help message and exit")
+                                 help="Print this help message and exit")
 
     def init(self, args):
         starting_args, remaining_args = self.parser.parse_known_args(args)
@@ -1059,34 +1059,17 @@ class PlanoCommand(object):
         if starting_args.quiet:
             disable_logging()
 
-        if starting_args.help and starting_args.file is None:
-            self.parser.print_help()
-            exit()
-
         self.init_only = starting_args.init_only
 
-        planofile = "Planofile"
+        self.load_config(starting_args.file)
 
-        if starting_args.file:
-            planofile = starting_args.file
+        help = target(self.parser.print_help, name="help", help="Print this help message and exit", default=True)
 
-        _sys.path.insert(0, join(get_parent_dir(planofile), "python"))
-
-        debug("Loading '{0}'", planofile)
-
-        try:
-            with open(planofile) as f:
-                exec(f.read(), globals())
-        except Exception as e:
-            exit("Failed loading '{0}': {1}", planofile, str(e))
-
-        help = target(self.parser.print_help, name="help", help="Show this help message and exit", default=True)
-
-        if not remaining_args:
+        if not remaining_args and not starting_args.help:
             self.target = [x for x in _targets.values() if x.default][0]
             return
 
-        subparser_action = self.parser.add_subparsers(dest="target_name")
+        subparser_action = self.parser.add_subparsers(dest="target")
         subparsers = dict()
 
         for target_ in _targets.values():
@@ -1099,18 +1082,22 @@ class PlanoCommand(object):
                     subparser.add_argument("--{0}".format(arg))
 
             subparser.add_argument("-h", "--help", action="store_true",
-                                   help="Show this help message and exit")
+                                   help="Print this help message and exit")
 
         args = self.parser.parse_args(args)
 
-        try:
-            self.target = _targets[args.target_name]
-        except KeyError:
-            exit("Target '{0}' is not defined", target_name)
+        if starting_args.help or args.help:
+            try:
+                subparsers[args.target].print_help()
+            except KeyError:
+                self.parser.print_help()
 
-        if args.help:
-            subparsers[args.target_name].print_help()
             exit()
+
+        try:
+            self.target = _targets[args.target]
+        except KeyError:
+            exit("Target '{0}' is not defined", args.target)
 
         # self.target_params = dict()
 
@@ -1121,6 +1108,25 @@ class PlanoCommand(object):
         #         exit("Failed parsing parameter '{0}'", target_param)
 
         #     self.target_params[name.replace("-", "_")] = value
+
+    def load_config(self, planofile):
+        if planofile is not None and not exists(planofile):
+            exit("File '{0}' not found", planofile)
+
+        planofile = nvl(planofile, "Planofile")
+
+        if not exists(planofile):
+            return
+
+        debug("Loading '{0}'", planofile)
+
+        _sys.path.insert(0, join(get_parent_dir(planofile), "python"))
+
+        try:
+            with open(planofile) as f:
+                exec(f.read(), globals())
+        except Exception as e:
+            warn("Failure loading '{0}': {1}", planofile, str(e))
 
     def main(self, args=None):
         self.init(args)
