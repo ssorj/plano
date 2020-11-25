@@ -1066,12 +1066,7 @@ class PlanoCommand(object):
         def help_func():
             self.parser.print_help()
 
-        target(help_func, name="help", help="Print this help message and exit", default=True)
-
-        if not remaining_args and not starting_args.help:
-            self.target = [x for x in _targets.values() if x.default][0]
-            self.target_args = []
-            return
+        help_target = target(help_func, name="help", help="Print this help message and exit", default=True)
 
         subparsers = self.parser.add_subparsers(dest="target")
 
@@ -1080,7 +1075,7 @@ class PlanoCommand(object):
             subparser.set_defaults(subparser=subparser)
 
             names, _, _, defaults = _inspect.getargspec(target_.func)
-            defaults = _collections.OrderedDict(zip(reversed(names), reversed(nvl(defaults, []))))
+            defaults = dict(zip(reversed(names), reversed(nvl(defaults, []))))
 
             for name in names:
                 metavar = name.replace("_", "-").upper()
@@ -1104,16 +1099,15 @@ class PlanoCommand(object):
             self.parser.print_help()
             exit()
 
-        self.target = _targets[args.target]
-        self.target_args = list()
+        if args.target is None:
+            self.target = help_target
+        else:
+            self.target = _targets[args.target]
 
         names, _, _, defaults = _inspect.getargspec(self.target.func)
         defaults = dict(zip(reversed(names), reversed(nvl(defaults, []))))
 
-        for name in names:
-            value = nvl(getattr(args, name), defaults.get(name))
-
-            self.target_args.append(value)
+        self.target_args = [nvl(getattr(args, name), defaults.get(name)) for name in names]
 
     def load_config(self, planofile):
         if planofile is not None and not exists(planofile):

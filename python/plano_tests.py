@@ -662,9 +662,10 @@ def test_user_operations(session):
     assert result == user, (result, user)
 
 def test_plano_command(session):
-    with working_dir():
-        command = PlanoCommand()
-        command.main([])
+    if _sys.version_info.major >= 3:
+        with working_dir():
+            command = PlanoCommand()
+            command.main([])
 
     with working_dir():
         try:
@@ -686,9 +687,11 @@ def test_plano_command(session):
         command = PlanoCommand()
         command.main(["--verbose", "-f", "scripts/test.planofile"] + list(args))
 
-    invoke()
-    invoke("--quiet")
-    invoke("--init-only")
+    if _sys.version_info.major >= 3:
+        invoke()
+        invoke("--quiet")
+        invoke("--init-only")
+
     invoke("build")
     invoke("install")
     invoke("clean")
