@@ -761,3 +761,9 @@ def test_bullseye_targets(session):
         invoke("install")
         invoke("clean")
         invoke("env")
+
+        try:
+            invoke("modules", "--remote", "--recursive")
+            assert False
+        except PlanoProcessError:
+            pass

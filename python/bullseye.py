@@ -82,8 +82,16 @@ def clean():
         remove(path)
 
 @target(help="Update Git submodules")
-def modules(): # pragma: nocover
-    run("git submodule update --init --remote --recursive")
+def modules(remote=False, recursive=False):
+    command = "git submodule update --init".split()
+
+    if remote:
+        command.append("--remote")
+
+    if recursive:
+        command.append("--recursive")
+
+    run(" ".join(command))
 
 @target(help="Generate shell settings for the project environment")
 def env():

@@ -995,14 +995,6 @@ def target(_func=None, extends=None, name=None, help=None, requires=None, defaul
                 self.help = nvl(help, self.extends.help)
                 self.requires = nvl(requires, self.extends.requires)
 
-            if self.requires is not None:
-                if callable(self.requires):
-                    if self.requires.name == self.name:
-                        fail("Target '{0}' depends on itself", self.name)
-                else:
-                    if self.name in [x.name for x in self.requires]:
-                        fail("Target '{0}' depends on itself", self.name)
-
             debug("Adding target '{0}'", self.name)
 
             _targets[self.name] = self
@@ -1042,7 +1034,7 @@ class PlanoCommand(object):
         self.parser = _argparse.ArgumentParser(prog="plano", description=description, add_help=False)
 
         self.parser.add_argument("-f", "--file",
-                                 help="Load targets from FILE (default 'Planofile')")
+                                 help="Load targets from FILE (default 'Planofile' or '.planofile')")
         self.parser.add_argument("--verbose", action="store_true",
                                  help="Print detailed logging to the console")
         self.parser.add_argument("--quiet", action="store_true",
@@ -1074,7 +1066,6 @@ class PlanoCommand(object):
 
         for target_ in _targets.values():
             subparser = subparsers.add_parser(target_.name, help=target_.help, description=target_.help)
-            subparser.set_defaults(subparser=subparser)
 
             names, _, _, defaults = _inspect.getargspec(target_.func)
             defaults = dict(zip(reversed(names), reversed(nvl(defaults, []))))
@@ -1116,6 +1107,9 @@ class PlanoCommand(object):
             exit("File '{0}' not found", planofile)
 
         planofile = nvl(planofile, "Planofile")
+
+        if not exists(planofile):
+            planofile = ".planofile"
 
         if not exists(planofile):
             return

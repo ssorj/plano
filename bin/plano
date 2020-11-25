@@ -24,7 +24,12 @@ import sys
 if os.path.isdir("python"):
     sys.path.insert(0, "python")
 
-from plano import PlanoCommand
+try:
+    from plano import PlanoCommand
+except ImportError:
+    if os.path.exists("Planofile") or os.path.exists(".planofile"):
+        if os.path.isdir(os.path.join("modules", "plano")):
+            sys.exit("The Plano library is missing.  Run 'git submodule update --init' to check out project submodules.")
 
 if __name__ == "__main__":
     command = PlanoCommand()
