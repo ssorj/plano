@@ -1037,10 +1037,12 @@ def target(_func=None, extends=None, name=None, help=None, requires=None, defaul
 
 class PlanoCommand(object):
     def __init__(self):
-        self.parser = _argparse.ArgumentParser(prog="plano", add_help=False)
+        description = "Run targets defined as Python functions"
+
+        self.parser = _argparse.ArgumentParser(prog="plano", description=description, add_help=False)
 
         self.parser.add_argument("-f", "--file",
-                                 help="Read FILE as a planofile (default 'Planofile')")
+                                 help="Load targets from FILE (default 'Planofile')")
         self.parser.add_argument("--verbose", action="store_true",
                                  help="Print detailed logging to the console")
         self.parser.add_argument("--quiet", action="store_true",
@@ -1068,10 +1070,10 @@ class PlanoCommand(object):
 
         help_target = target(help_func, name="help", help="Print this help message and exit", default=True)
 
-        subparsers = self.parser.add_subparsers(dest="target")
+        subparsers = self.parser.add_subparsers(title="targets", dest="target")
 
         for target_ in _targets.values():
-            subparser = subparsers.add_parser(target_.name, help=target_.help)
+            subparser = subparsers.add_parser(target_.name, help=target_.help, description=target_.help)
             subparser.set_defaults(subparser=subparser)
 
             names, _, _, defaults = _inspect.getargspec(target_.func)
