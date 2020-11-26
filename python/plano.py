@@ -985,39 +985,51 @@ def target(_func=None, extends=None, name=None, default=False, help=None, requir
             self.default = default
             self.called = False
 
-            input_args = {}
-
-            if args is not None:
-                input_args = dict(zip([x.name for x in args], args))
-
-            target_args = _collections.OrderedDict()
-            arg_names, _, _, arg_defaults = _inspect.getargspec(self.func)
-
-            for arg_name in arg_names:
-                try:
-                    target_args[arg_name] = input_args[arg_name]
-                except KeyError:
-                    target_args[arg_name] = Argument(arg_name)
-
             if self.extends is None:
                 self.name = nvl(name, func.__name__.replace("_", "-"))
                 self.help = nvl(help, _target_help.get(self.name))
                 self.requires = requires
-                self.args = target_args
+                self.args = self.process_args(args)
 
                 if self.name in _targets:
                     notice("Target '{0}' is already defined", self.name)
             else:
                 assert name is None
+                assert args is None # For now, no override
 
                 self.name = self.extends.name
                 self.help = nvl(help, self.extends.help)
                 self.requires = nvl(requires, self.extends.requires)
-                self.args = self.extends.args # XXX No override?
+                self.args = self.extends.args
 
             debug("Adding target '{0}'", self.name)
 
             _targets[self.name] = self
+
+        def process_args(self, args):
+            input_args = {}
+
+            if args is not None:
+                input_args = dict(zip([x.name for x in args], args))
+
+            target_args = list()
+            arg_names, _, _, arg_defaults = _inspect.getargspec(self.func)
+            arg_defaults = dict(zip(reversed(arg_names), reversed(nvl(arg_defaults, []))))
+
+            for arg_name in arg_names:
+                try:
+                    target_arg = input_args[arg_name]
+                except KeyError:
+                    target_arg = Argument(arg_name)
+
+                target_arg.has_default = arg_name in arg_defaults
+
+                if target_arg.has_default and target_arg.default is None:
+                    target_arg.default = arg_defaults[arg_name]
+
+                target_args.append(target_arg)
+
+            return target_args
 
         def __call__(self, *args):
             if self.called:
@@ -1051,6 +1063,8 @@ class Argument(object):
     def __init__(self, name, help=None):
         self.name = name
         self.help = help
+        self.has_default = False
+        self.default = None
 
     @property
     def option_name(self):
@@ -1100,27 +1114,19 @@ class PlanoCommand(object):
         for target_ in _targets.values():
             subparser = subparsers.add_parser(target_.name, help=target_.help, description=target_.help)
 
-            names, _, _, defaults = _inspect.getargspec(target_.func)
-            defaults = dict(zip(reversed(names), reversed(nvl(defaults, []))))
-
-            for name in names:
-                metavar = name.replace("_", "-").upper()
-                target_arg = target_.args[name]
-
-                if name in defaults:
-                    default = defaults.get(name)
-
-                    if default is False:
-                        subparser.add_argument(target_arg.option_name, default=default, action="store_true",
-                                               help=target_arg.help)
-                    elif default is None:
-                        subparser.add_argument(target_arg.option_name, default=default, metavar=target_arg.metavar,
-                                               help=target_arg.help)
+            for arg in target_.args:
+                if arg.has_default:
+                    if arg.default is False:
+                        subparser.add_argument(arg.option_name, default=arg.default, action="store_true",
+                                               help=arg.help)
+                    elif arg.default is None:
+                            subparser.add_argument(arg.option_name, default=arg.default, metavar=arg.metavar,
+                                                   help=arg.help)
                     else:
-                        subparser.add_argument(target_arg.option_name, default=default, metavar=target_arg.metavar,
-                                               type=type(default), help=target_arg.help)
+                        subparser.add_argument(arg.option_name, default=arg.default, metavar=arg.metavar,
+                                                   type=type(arg.default), help=arg.help)
                 else:
-                    subparser.add_argument(name, metavar=target_arg.metavar, help=target_arg.help)
+                    subparser.add_argument(arg.name, metavar=arg.metavar, help=arg.help)
 
         args = self.parser.parse_args(args)
 
