@@ -39,6 +39,7 @@ import subprocess as _subprocess
 import sys as _sys
 import tempfile as _tempfile
 import time as _time
+import traceback as _traceback
 import uuid as _uuid
 
 try: # pragma: nocover
@@ -137,13 +138,16 @@ def exit(arg=None, *args):
     raise PlanoException("Illegal argument")
 
 def _print_message(category, message, args):
-    message = _format_message(category, message, args)
+    out = nvl(_logging_output, _sys.stderr)
 
-    if _logging_output is None:
-        print(message, file=_sys.stderr)
+    if isinstance(message, BaseException) and hasattr(message, "__traceback__"):
+        print(_format_message(category, "Exception:", []), file=out)
+        _traceback.print_exception(type(message), message, message.__traceback__, file=out)
     else:
-        print(message, file=_logging_output)
-        _logging_output.flush()
+        message = _format_message(category, message, args)
+        print(message, file=out)
+
+    out.flush()
 
 def _format_message(category, message, args):
     if not _is_string(message):
@@ -973,18 +977,33 @@ _target_help = {
     "test":     "Run the tests",
 }
 
-def target(_func=None, extends=None, name=None, help=None, requires=None, default=False):
+def target(_func=None, extends=None, name=None, default=False, help=None, requires=None, args=None):
     class decorator(object):
         def __init__(self, func):
             self.func = func
             self.extends = extends
-            self.called = False
             self.default = default
+            self.called = False
+
+            input_args = {}
+
+            if args is not None:
+                input_args = dict(zip([x.name for x in args], args))
+
+            target_args = _collections.OrderedDict()
+            arg_names, _, _, arg_defaults = _inspect.getargspec(self.func)
+
+            for arg_name in arg_names:
+                try:
+                    target_args[arg_name] = input_args[arg_name]
+                except KeyError:
+                    target_args[arg_name] = Argument(arg_name)
 
             if self.extends is None:
                 self.name = nvl(name, func.__name__.replace("_", "-"))
                 self.help = nvl(help, _target_help.get(self.name))
                 self.requires = requires
+                self.args = target_args
 
                 if self.name in _targets:
                     notice("Target '{0}' is already defined", self.name)
@@ -994,6 +1013,7 @@ def target(_func=None, extends=None, name=None, help=None, requires=None, defaul
                 self.name = self.extends.name
                 self.help = nvl(help, self.extends.help)
                 self.requires = nvl(requires, self.extends.requires)
+                self.args = self.extends.args # XXX No override?
 
             debug("Adding target '{0}'", self.name)
 
@@ -1026,6 +1046,19 @@ def target(_func=None, extends=None, name=None, help=None, requires=None, defaul
         return decorator
     else:
         return decorator(_func)
+
+class Argument(object):
+    def __init__(self, name, help=None):
+        self.name = name
+        self.help = help
+
+    @property
+    def option_name(self):
+        return "--{0}".format(self.name.replace("_", "-"))
+
+    @property
+    def metavar(self):
+        return self.name.replace("_", "-").upper()
 
 class PlanoCommand(object):
     def __init__(self):
@@ -1072,19 +1105,22 @@ class PlanoCommand(object):
 
             for name in names:
                 metavar = name.replace("_", "-").upper()
+                target_arg = target_.args[name]
 
                 if name in defaults:
-                    name = name.replace("_", "-")
                     default = defaults.get(name)
 
                     if default is False:
-                        subparser.add_argument("--{0}".format(name), default=default, action="store_true")
+                        subparser.add_argument(target_arg.option_name, default=default, action="store_true",
+                                               help=target_arg.help)
                     elif default is None:
-                        subparser.add_argument("--{0}".format(name), default=default, metavar=metavar)
+                        subparser.add_argument(target_arg.option_name, default=default, metavar=target_arg.metavar,
+                                               help=target_arg.help)
                     else:
-                        subparser.add_argument("--{0}".format(name), default=default, metavar=metavar, type=type(default))
+                        subparser.add_argument(target_arg.option_name, default=default, metavar=target_arg.metavar,
+                                               type=type(default), help=target_arg.help)
                 else:
-                    subparser.add_argument(name, metavar=metavar)
+                    subparser.add_argument(name, metavar=target_arg.metavar, help=target_arg.help)
 
         args = self.parser.parse_args(args)
 
@@ -1122,6 +1158,7 @@ class PlanoCommand(object):
             with open(planofile) as f:
                 exec(f.read(), globals())
         except Exception as e:
+            error(e)
             exit("Failure loading '{0}': {1}", planofile, str(e))
 
     def main(self, args=None):

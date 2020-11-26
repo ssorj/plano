@@ -51,8 +51,8 @@ clean:
 
 .PHONY: test
 test: build
-	python2 scripts/test
 	python3 scripts/test
+	python2 scripts/test
 
 .PHONY: big-test
 big-test: test test-centos-8 test-centos-7 test-centos-6 test-fedora test-ubuntu

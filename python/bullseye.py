@@ -81,7 +81,9 @@ def clean():
     for path in find(".", "*.pyc"):
         remove(path)
 
-@target(help="Update Git submodules")
+@target(help="Update Git submodules",
+        args=(Argument("remote", help="Get remote commits"),
+              Argument("recursive", help="Update modules recursively")))
 def modules(remote=False, recursive=False):
     command = "git submodule update --init".split()
 
