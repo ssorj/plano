@@ -26,20 +26,16 @@ class _Project:
         self.name = None
         self.build_dir = "build"
         self.extra_dirs = []
-        self.default_prefix = join(get_home_dir(), ".local")
 
 project = _Project()
 
-@target
-def build(dest_dir="", prefix=None):
+@target(args=[Argument("prefix", help="The base path for installed files")])
+def build(prefix=join(get_home_dir(), ".local")):
     assert project.name
 
-    if prefix is None:
-        prefix = project.default_prefix
+    write_json(join(project.build_dir, "build.json"), {"prefix": prefix})
 
-    write_json(join(project.build_dir, "build.json"), {"prefix": prefix, "dest_dir": dest_dir})
-
-    default_home = join(project.default_prefix, "lib", project.name)
+    default_home = join(prefix, "lib", project.name)
 
     for path in find("bin", "*.in"):
         configure_file(path, join(project.build_dir, path[:-3]), {"default_home": default_home})
@@ -57,13 +53,14 @@ def build(dest_dir="", prefix=None):
         for path in find(dir_name):
             copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
-@target(requires=build)
-def install():
+@target(requires=build,
+        args=[Argument("dest_dir", help="A path prepended to installed files")])
+def install(dest_dir=""):
     assert project.name
     assert is_dir(project.build_dir)
 
     build = read_json(join(project.build_dir, "build.json"))
-    prefix = build["dest_dir"] + build["prefix"]
+    prefix = dest_dir + build["prefix"]
 
     for path in find(join(project.build_dir, "bin")):
         copy(path, join(prefix, path[6:]), inside=False, symlinks=False)

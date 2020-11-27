@@ -1009,7 +1009,7 @@ def target(_func=None, extends=None, name=None, default=False, help=None, requir
         def process_args(self, input_args):
             args_by_name = {}
 
-            if args is not None:
+            if input_args is not None:
                 args_by_name = dict(zip([x.name for x in input_args], input_args))
 
             output_args = list()
@@ -1026,8 +1026,14 @@ def target(_func=None, extends=None, name=None, default=False, help=None, requir
                     arg.has_default = True
                     arg.default = defaults[name]
 
-                if arg.type is None and arg.default is not None:
-                    arg.type = type(arg.default)
+                if arg.default is not None:
+                    if arg.type is None:
+                        arg.type = type(arg.default)
+
+                    if arg.help is None:
+                        arg.help = "The default is '{0}'".format(arg.default)
+                    else:
+                        arg.help = "{0} (default '{1}')".format(arg.help, arg.default)
 
                 output_args.append(arg)
 
@@ -1128,6 +1134,12 @@ class PlanoCommand(object):
                                                type=arg.type, help=arg.help)
                 else:
                     subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
+
+            # Patch the default help text
+            try:
+                subparser._actions[0].help = "Print this help message and exit"
+            except:
+                pass
 
         args = self.parser.parse_args(args)
 

@@ -758,8 +758,10 @@ def test_bullseye_targets(session):
         touch("python/__pycache__")
         touch("files/yellow.txt")
 
-        invoke("build", "--dest-dir", "/what")
+        invoke("build")
+        invoke("build", "--prefix", "/who")
         invoke("install")
+        invoke("install", "--dest-dir", "/what")
         invoke("clean")
         invoke("env")
 
