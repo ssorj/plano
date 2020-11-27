@@ -1169,7 +1169,9 @@ class PlanoCommand(object):
         subparsers = self.parser.add_subparsers(title="targets", dest="target")
 
         for target_ in _targets.values():
-            subparser = subparsers.add_parser(target_.name, help=target_.help, description=target_.description)
+            description = nvl(target_.description, target_.help)
+            subparser = subparsers.add_parser(target_.name, help=target_.help, description=description,
+                                              formatter_class=_argparse.RawDescriptionHelpFormatter)
 
             for arg in target_.args:
                 if arg.has_default:
