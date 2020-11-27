@@ -1006,30 +1006,32 @@ def target(_func=None, extends=None, name=None, default=False, help=None, requir
 
             _targets[self.name] = self
 
-        def process_args(self, args):
-            input_args = {}
+        def process_args(self, input_args):
+            args_by_name = {}
 
             if args is not None:
-                input_args = dict(zip([x.name for x in args], args))
+                args_by_name = dict(zip([x.name for x in input_args], input_args))
 
-            target_args = list()
-            arg_names, _, _, arg_defaults = _inspect.getargspec(self.func)
-            arg_defaults = dict(zip(reversed(arg_names), reversed(nvl(arg_defaults, []))))
+            output_args = list()
+            names, _, _, defaults = _inspect.getargspec(self.func)
+            defaults = dict(zip(reversed(names), reversed(nvl(defaults, []))))
 
-            for arg_name in arg_names:
+            for name in names:
                 try:
-                    target_arg = input_args[arg_name]
+                    arg = args_by_name[name]
                 except KeyError:
-                    target_arg = Argument(arg_name)
+                    arg = Argument(name)
 
-                target_arg.has_default = arg_name in arg_defaults
+                if name in defaults:
+                    arg.has_default = True
+                    arg.default = defaults[name]
 
-                if target_arg.has_default and target_arg.default is None:
-                    target_arg.default = arg_defaults[arg_name]
+                if arg.type is None and arg.default is not None:
+                    arg.type = type(arg.default)
 
-                target_args.append(target_arg)
+                output_args.append(arg)
 
-            return target_args
+            return output_args
 
         def __call__(self, *args):
             if self.called:
@@ -1060,9 +1062,11 @@ def target(_func=None, extends=None, name=None, default=False, help=None, requir
         return decorator(_func)
 
 class Argument(object):
-    def __init__(self, name, help=None):
+    def __init__(self, name, type=None, help=None):
         self.name = name
+        self.type = type
         self.help = help
+
         self.has_default = False
         self.default = None
 
@@ -1119,14 +1123,11 @@ class PlanoCommand(object):
                     if arg.default is False:
                         subparser.add_argument(arg.option_name, default=arg.default, action="store_true",
                                                help=arg.help)
-                    elif arg.default is None:
-                            subparser.add_argument(arg.option_name, default=arg.default, metavar=arg.metavar,
-                                                   help=arg.help)
                     else:
                         subparser.add_argument(arg.option_name, default=arg.default, metavar=arg.metavar,
-                                                   type=type(arg.default), help=arg.help)
+                                               type=arg.type, help=arg.help)
                 else:
-                    subparser.add_argument(arg.name, metavar=arg.metavar, help=arg.help)
+                    subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
 
         args = self.parser.parse_args(args)
 
@@ -1139,10 +1140,7 @@ class PlanoCommand(object):
         else:
             self.target = _targets[args.target]
 
-        names, _, _, defaults = _inspect.getargspec(self.target.func)
-        defaults = dict(zip(reversed(names), reversed(nvl(defaults, []))))
-
-        self.target_args = [nvl(getattr(args, name), defaults.get(name)) for name in names]
+        self.target_args = [getattr(args, arg.name) for arg in self.target.args]
 
     def load_config(self, planofile):
         if planofile is not None and not exists(planofile):

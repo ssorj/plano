@@ -21,7 +21,7 @@ def run_(trouble=False):
     if trouble:
         raise Exception("Trouble")
 
-@target
+@target(args=[Argument("mess_age", help="A message")])
 def echo(mess_age, count=1):
     print("Echoing (mess_age={0}, count={1})".format(mess_age, count))
 
