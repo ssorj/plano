@@ -21,9 +21,10 @@ def run_(trouble=False):
     if trouble:
         raise Exception("Trouble")
 
-@target(args=[Argument("mess_age", help="A message")])
-def echo(mess_age, count=1):
-    print("Echoing (mess_age={0}, count={1})".format(mess_age, count))
+@target(help="Print messages to the console",
+        args=[Argument("message", help="The message")])
+def echo(message, count=1):
+    print("Echoing (message={0}, count={1})".format(message, count))
 
     for i in range(count):
-       print(mess_age)
+       print(message)

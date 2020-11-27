@@ -85,6 +85,8 @@ def clean():
         args=(Argument("remote", help="Get remote commits"),
               Argument("recursive", help="Update modules recursively")))
 def modules(remote=False, recursive=False):
+    check_program("git")
+
     command = "git submodule update --init".split()
 
     if remote:

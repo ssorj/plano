@@ -26,7 +26,7 @@ import threading as _threading
 
 try:
     import http.server as _http
-except ImportError:
+except ImportError: # pragma: nocover
     import BaseHTTPServer as _http
 
 from plano import *
@@ -350,6 +350,7 @@ def test_logging_operations(session):
             error("Error!")
             warn("Warning!")
             notice("Take a look!")
+            notice(123)
             debug("By the way")
             debug("abc{0}{1}{2}", 1, 2, 3)
             eprint("Here's a story")
@@ -765,5 +766,5 @@ def test_bullseye_targets(session):
         try:
             invoke("modules", "--remote", "--recursive")
             assert False
-        except PlanoProcessError:
+        except PlanoException:
             pass
