@@ -32,7 +32,7 @@ except ImportError: # pragma: nocover
 from plano import *
 
 def open_test_session(session):
-    if session.module.command.verbose:
+    if session.verbose:
         enable_logging(level="debug")
 
 def test_archive_operations(session):
