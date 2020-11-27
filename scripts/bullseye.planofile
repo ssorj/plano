@@ -4,6 +4,6 @@ project.name = "test-project"
 project.extra_dirs = ["files"]
 
 @target(extends=build)
-def build(dest_dir="", prefix=None):
+def build():
     with project_env():
         eprint("Building!")

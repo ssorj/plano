@@ -1088,9 +1088,9 @@ def target(_func=None, extends=None, name=None, default=False, help=None, descri
             eprint()
 
             if self.extends is not None:
-                self.extends.func(*args)
+                self.extends.func(*args[:len(_inspect.getargspec(self.extends.func).args)])
 
-            self.func(*args)
+            self.func(*args[:len(_inspect.getargspec(self.func).args)])
 
     if _func is None:
         return decorator
