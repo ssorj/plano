@@ -95,7 +95,7 @@ def modules(remote=False, recursive=False):
     run(" ".join(command))
 
 @target(help="Generate shell settings for the project environment",
-        description="Source it from your shell.  For example:\n\n\n  $ source <(plano env)")
+        description="Source the output from your shell.  For example:\n\n\n  $ source <(plano env)")
 def env():
     assert project.name
 

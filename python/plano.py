@@ -1060,10 +1060,32 @@ def target(_func=None, extends=None, name=None, default=False, help=None, descri
                     for target in self.requires:
                         _targets[target.name]()
 
-            if hasattr(STDERR, "isatty") and STDERR.isatty():
-                eprint("\u001b[35m--> {0}\u001b[0m".format(self.name))
-            else: # pragma: nocover
-                eprint("--> {0}".format(self.name))
+            displayed_args = list()
+
+            for arg, value in zip(self.args, args):
+                if arg.default == value:
+                    continue
+
+                if _is_string(value):
+                    value = "\"{0}\"".format(value)
+
+                displayed_args.append("{0}={1}".format(arg.name, value))
+
+            colors = hasattr(STDERR, "isatty") and STDERR.isatty()
+
+            if colors:
+                eprint("\u001b[35m", end="")
+
+            try:
+                eprint("--> {0}".format(self.name), end="")
+
+                if displayed_args:
+                    eprint(" ({0})".format(", ".join(displayed_args)), end="")
+            finally:
+                if colors:
+                    eprint("\u001b[0m", end="")
+
+            eprint()
 
             if self.extends is not None:
                 self.extends.func(*args)
@@ -1187,7 +1209,7 @@ class PlanoCommand(object):
             # Patch the default help text
             try:
                 subparser._actions[0].help = "Show this help message and exit"
-            except:
+            except: # pragma: nocover
                 pass
 
     def main(self, args=None):

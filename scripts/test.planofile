@@ -1,14 +1,14 @@
 @target(default=True)
-def build(dest_dir="/"):
-    print("Bulding (dest_dir={0})".format(dest_dir))
+def build(prefix="/usr/local"):
+    print("Bulding (prefix={0})".format(prefix))
 
 @target(requires=build)
 def test():
     print("Testing")
 
 @target(requires=build, help="Install me!")
-def install():
-    print("Installing")
+def install(dest_dir="/"):
+    print("Installing (dest_dir={0})".format(dest_dir))
 
 @target
 def clean():
