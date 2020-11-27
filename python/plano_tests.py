@@ -669,9 +669,9 @@ def test_plano_command(session):
             command.main([])
 
     with working_dir():
+        write("Planofile", "garbage")
+        command = PlanoCommand()
         try:
-            write("Planofile", "garbage")
-            command = PlanoCommand()
             command.main([])
             assert False
         except SystemExit:
@@ -688,7 +688,7 @@ def test_plano_command(session):
         command = PlanoCommand()
         command.main(["--verbose", "-f", "scripts/test.planofile"] + list(args))
 
-    if _sys.version_info.major >= 3:
+    if _sys.version_info[0] >= 3:
         invoke()
         invoke("--quiet")
         invoke("--init-only")
@@ -697,13 +697,8 @@ def test_plano_command(session):
     invoke("install")
     invoke("clean")
     invoke("run")
-    invoke("help")
 
-    try:
-        invoke("--help")
-        assert False
-    except SystemExit:
-        pass
+    invoke("--help")
 
     try:
         invoke("build", "--help")

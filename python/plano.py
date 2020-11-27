@@ -977,17 +977,19 @@ _target_help = {
     "test":     "Run the tests",
 }
 
-def target(_func=None, extends=None, name=None, default=False, help=None, requires=None, args=None):
+def target(_func=None, extends=None, name=None, default=False, help=None, description=None, requires=None, args=None):
     class decorator(object):
         def __init__(self, func):
             self.func = func
             self.extends = extends
             self.default = default
+
             self.called = False
 
             if self.extends is None:
                 self.name = nvl(name, func.__name__.replace("_", "-"))
                 self.help = nvl(help, _target_help.get(self.name))
+                self.description = description
                 self.requires = requires
                 self.args = self.process_args(args)
 
@@ -999,6 +1001,7 @@ def target(_func=None, extends=None, name=None, default=False, help=None, requir
 
                 self.name = self.extends.name
                 self.help = nvl(help, self.extends.help)
+                self.description = nvl(description, self.extends.description)
                 self.requires = nvl(requires, self.extends.requires)
                 self.args = self.extends.args
 
@@ -1007,10 +1010,10 @@ def target(_func=None, extends=None, name=None, default=False, help=None, requir
             _targets[self.name] = self
 
         def process_args(self, input_args):
-            args_by_name = {}
+            input_args_by_name = {}
 
             if input_args is not None:
-                args_by_name = dict(zip([x.name for x in input_args], input_args))
+                input_args_by_name = dict(zip([x.name for x in input_args], input_args))
 
             output_args = list()
             names, _, _, defaults = _inspect.getargspec(self.func)
@@ -1018,7 +1021,7 @@ def target(_func=None, extends=None, name=None, default=False, help=None, requir
 
             for name in names:
                 try:
-                    arg = args_by_name[name]
+                    arg = input_args_by_name[name]
                 except KeyError:
                     arg = Argument(name)
 
@@ -1073,7 +1076,7 @@ def target(_func=None, extends=None, name=None, default=False, help=None, requir
         return decorator(_func)
 
 class Argument(object):
-    def __init__(self, name, type=None, help=None):
+    def __init__(self, name, type=None, help=None, description=None):
         self.name = name
         self.type = type
         self.help = help
@@ -1119,44 +1122,24 @@ class PlanoCommand(object):
 
         self.load_config(starting_args.file)
 
-        def help_func():
-            self.parser.print_help()
+        self.process_targets()
 
-        help_target = target(help_func, name="help", help="Print this help message and exit", default=True)
+        if not remaining_args:
+            args = _sys.argv[1:]
 
-        subparsers = self.parser.add_subparsers(title="targets", dest="target")
-
-        for target_ in _targets.values():
-            subparser = subparsers.add_parser(target_.name, help=target_.help, description=target_.help)
-
-            for arg in target_.args:
-                if arg.has_default:
-                    if arg.default is False:
-                        subparser.add_argument(arg.option_name, default=arg.default, action="store_true",
-                                               help=arg.help)
-                    else:
-                        subparser.add_argument(arg.option_name, default=arg.default, metavar=arg.metavar,
-                                               type=arg.type, help=arg.help)
-                else:
-                    subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
-
-            # Patch the default help text
-            try:
-                subparser._actions[0].help = "Show this help message and exit"
-            except:
-                pass
+            for target in _targets.values():
+                if target.default:
+                    args.append(target.name)
+                    break
 
         args = self.parser.parse_args(args)
 
-        if args.help:
+        if args.help or args.target is None:
             self.parser.print_help()
-            exit()
+            self.init_only = True
+            return
 
-        if args.target is None:
-            self.target = help_target
-        else:
-            self.target = _targets[args.target]
-
+        self.target = _targets[args.target]
         self.target_args = [getattr(args, arg.name) for arg in self.target.args]
 
     def load_config(self, planofile):
@@ -1181,6 +1164,29 @@ class PlanoCommand(object):
         except Exception as e:
             error(e)
             exit("Failure loading '{0}': {1}", planofile, str(e))
+
+    def process_targets(self):
+        subparsers = self.parser.add_subparsers(title="targets", dest="target")
+
+        for target_ in _targets.values():
+            subparser = subparsers.add_parser(target_.name, help=target_.help, description=target_.description)
+
+            for arg in target_.args:
+                if arg.has_default:
+                    if arg.default is False:
+                        subparser.add_argument(arg.option_name, default=arg.default, action="store_true",
+                                               help=arg.help)
+                    else:
+                        subparser.add_argument(arg.option_name, default=arg.default, metavar=arg.metavar,
+                                               type=arg.type, help=arg.help)
+                else:
+                    subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
+
+            # Patch the default help text
+            try:
+                subparser._actions[0].help = "Show this help message and exit"
+            except:
+                pass
 
     def main(self, args=None):
         self.init(args)
