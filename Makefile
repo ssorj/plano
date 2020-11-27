@@ -91,4 +91,4 @@ coverage:
 
 .PHONY: modules
 modules:
-	git submodule update --init --remote --recursive
+	git submodule update --init
