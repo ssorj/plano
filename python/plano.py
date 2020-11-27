@@ -1030,10 +1030,15 @@ def target(_func=None, extends=None, name=None, default=False, help=None, requir
                     if arg.type is None:
                         arg.type = type(arg.default)
 
-                    if arg.help is None:
-                        arg.help = "The default is '{0}'".format(arg.default)
+                    if _is_string(arg.default):
+                        default = "'{0}'".format(arg.default)
                     else:
-                        arg.help = "{0} (default '{1}')".format(arg.help, arg.default)
+                        default = arg.default
+
+                    if arg.help is None:
+                        arg.help = "The default is {0}".format(default)
+                    else:
+                        arg.help = "{0} (default {1})".format(arg.help, default)
 
                 output_args.append(arg)
 
