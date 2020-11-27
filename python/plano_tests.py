@@ -663,7 +663,7 @@ def test_user_operations(session):
     assert result == user, (result, user)
 
 def test_plano_command(session):
-    if _sys.version_info.major >= 3:
+    if _sys.version_info[0] >= 3:
         with working_dir():
             command = PlanoCommand()
             command.main([])

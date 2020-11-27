@@ -1090,6 +1090,8 @@ class PlanoCommand(object):
 
         self.parser = _argparse.ArgumentParser(prog="plano", description=description, add_help=False)
 
+        self.parser.add_argument("-h", "--help", action="store_true",
+                                 help="Show this help message and exit")
         self.parser.add_argument("-f", "--file",
                                  help="Load targets from FILE (default 'Planofile' or '.planofile')")
         self.parser.add_argument("--verbose", action="store_true",
@@ -1098,8 +1100,6 @@ class PlanoCommand(object):
                                  help="Print no logging to the console")
         self.parser.add_argument("--init-only", action="store_true",
                                  help=_argparse.SUPPRESS)
-        self.parser.add_argument("-h", "--help", action="store_true",
-                                 help="Print this help message and exit")
 
     def init(self, args):
         starting_args, remaining_args = self.parser.parse_known_args(args)
@@ -1137,7 +1137,7 @@ class PlanoCommand(object):
 
             # Patch the default help text
             try:
-                subparser._actions[0].help = "Print this help message and exit"
+                subparser._actions[0].help = "Show this help message and exit"
             except:
                 pass
 

@@ -22,7 +22,7 @@ def run_(trouble=False):
         raise Exception("Trouble")
 
 @target(help="Print messages to the console",
-        args=[Argument("message", help="The message")])
+        args=[Argument("message", help="The message to print")])
 def echo(message, count=1):
     print("Echoing (message={0}, count={1})".format(message, count))
 
