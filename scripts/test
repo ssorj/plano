@@ -20,8 +20,9 @@
 
 from commandant import TestCommand
 
+import bullseye_tests
 import plano_tests
 
 if __name__ == "__main__":
-    command = TestCommand(plano_tests)
+    command = TestCommand(plano_tests, bullseye_tests)
     command.main()

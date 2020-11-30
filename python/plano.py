@@ -58,6 +58,8 @@ STDOUT = _sys.stdout
 STDERR = _sys.stderr
 DEVNULL = _os.devnull
 
+PYTHON2 = _sys.version_info[0] == 2
+
 _logging_levels = (
     "debug",
     "notice",

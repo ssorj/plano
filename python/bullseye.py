@@ -17,6 +17,7 @@
 # under the License.
 #
 
+import importlib as _importlib
 import sys as _sys
 
 from plano import *
@@ -24,8 +25,10 @@ from plano import *
 class _Project:
     def __init__(self):
         self.name = None
+        self.source_dir = "python"
+        self.extra_source_dirs = []
         self.build_dir = "build"
-        self.extra_dirs = []
+        self.test_modules = []
 
 project = _Project()
 
@@ -46,12 +49,35 @@ def build(prefix=join(get_home_dir(), ".local")):
 
         copy(path, join(project.build_dir, path), inside=False, symlinks=False)
 
-    for path in find("python", "*.py"):
+    for path in find(project.source_dir, "*.py"):
         copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
-    for dir_name in project.extra_dirs:
+    for dir_name in project.extra_source_dirs:
         for path in find(dir_name):
             copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
+
+@target(requires=build,
+        args=[Argument("include", help="Run only tests with names matching PATTERN"),
+              Argument("verbose", help="Print detailed logging to the console"),
+              Argument("list", help="Print the test names and exit")])
+def test(include=None, verbose=False, list=False):
+    from commandant import TestCommand
+
+    with project_env():
+        modules = [_importlib.import_module(x) for x in project.test_modules]
+        command = TestCommand(*modules)
+        args = []
+
+        if list:
+            args.append("--list")
+
+        if verbose:
+            args.append("--verbose")
+
+        if include is not None:
+            args.append(include)
+
+        command.main(args)
 
 @target(requires=build,
         args=[Argument("dest_dir", help="A path prepended to installed files")])
@@ -79,8 +105,8 @@ def clean():
         remove(path)
 
 @target(help="Update Git submodules",
-        args=(Argument("remote", help="Get remote commits"),
-              Argument("recursive", help="Update modules recursively")))
+        args=[Argument("remote", help="Get remote commits"),
+              Argument("recursive", help="Update modules recursively")])
 def modules(remote=False, recursive=False):
     check_program("git")
 
@@ -100,13 +126,14 @@ def env():
     assert project.name
 
     home_var = "{0}_HOME".format(project.name.upper().replace("-", "_"))
+    home_dir = join("$PWD", project.build_dir, project.name)
 
-    print("export {0}=$PWD/build/{1}".format(home_var, project.name))
-    print("export PATH=$PWD/build/bin:$PWD/scripts:$PATH")
+    print("export {0}={1}".format(home_var, home_dir))
+    print("export PATH={0}:$PATH".format(join("$PWD", project.build_dir, "bin")))
 
     python_path = [
-        "${0}/python".format(home_var),
-        "$PWD/python",
+        join(home_dir, project.source_dir),
+        join("$PWD", project.source_dir),
     ]
 
     try:
@@ -125,9 +152,9 @@ class project_env(working_env):
         home_var = "{0}_HOME".format(project.name.upper().replace("-", "_"))
 
         env = {
-            home_var: get_absolute_path("build/{0}".format(project.name)),
-            "PATH": get_absolute_path("build/bin") + ":" + ENV["PATH"],
-            "PYTHONPATH": get_absolute_path("build/{0}/python".format(project.name)),
+            home_var: get_absolute_path(join(project.build_dir, project.name)),
+            "PATH": get_absolute_path(join(project.build_dir, "bin")) + ":" + ENV["PATH"],
+            "PYTHONPATH": get_absolute_path(join(project.build_dir, project.name, project.source_dir)),
         }
 
         super(project_env, self).__init__(**env)

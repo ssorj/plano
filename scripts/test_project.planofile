@@ -2,6 +2,7 @@ from bullseye import *
 
 project.name = "test-project"
 project.extra_dirs = ["files"]
+project.test_modules = ["test_project_tests"]
 
 @target(extends=build)
 def build():

@@ -21,7 +21,6 @@ import os as _os
 import pwd as _pwd
 import signal as _signal
 import socket as _socket
-import sys as _sys
 import threading as _threading
 
 try:
@@ -663,7 +662,7 @@ def test_user_operations(session):
     assert result == user, (result, user)
 
 def test_plano_command(session):
-    if _sys.version_info[0] >= 3:
+    if not PYTHON2:
         with working_dir():
             command = PlanoCommand()
             command.main([])
@@ -688,7 +687,7 @@ def test_plano_command(session):
         command = PlanoCommand()
         command.main(["--verbose", "-f", "scripts/test.planofile"] + list(args))
 
-    if _sys.version_info[0] >= 3:
+    if not PYTHON2:
         invoke()
         invoke("--quiet")
         invoke("--init-only")
@@ -737,31 +736,3 @@ def test_plano_command(session):
         assert False
     except SystemExit:
         pass
-
-def test_bullseye_targets(session):
-    planofile = get_absolute_path("scripts/bullseye.planofile")
-
-    def invoke(*args):
-        command = PlanoCommand()
-        command.main(["--verbose", "-f", planofile] + list(args))
-
-    with working_dir():
-        touch("bin/command1.in")
-        touch("bin/command2")
-        touch("python/lib.py")
-        touch("python/lib.pyc")
-        touch("python/__pycache__")
-        touch("files/yellow.txt")
-
-        invoke("build")
-        invoke("build", "--prefix", "/who")
-        invoke("install")
-        invoke("install", "--dest-dir", "/what")
-        invoke("clean")
-        invoke("env")
-
-        try:
-            invoke("modules", "--remote", "--recursive")
-            assert False
-        except PlanoException:
-            pass
