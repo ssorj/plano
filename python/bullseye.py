@@ -57,7 +57,7 @@ def build(prefix=join(get_home_dir(), ".local")):
             copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
 @target(requires=build,
-        args=[Argument("include", help="Run only tests with names matching PATTERN"),
+        args=[Argument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
               Argument("verbose", help="Print detailed logging to the console"),
               Argument("list", help="Print the test names and exit")])
 def test(include=None, verbose=False, list=False):

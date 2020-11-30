@@ -8,9 +8,9 @@ else:
 
 from bullseye import *
 
-project.name = "test-project"
+project.name = "chucker"
 project.extra_dirs = ["files"]
-project.test_modules = ["test_project_tests"]
+project.test_modules = ["chucker_tests"]
 
 @target(extends=build)
 def build():
