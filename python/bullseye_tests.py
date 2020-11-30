@@ -52,12 +52,14 @@ def test_targets(session):
 
         invoke("build")
         invoke("build", "--prefix", "/who")
-        # invoke("test")
-        # invoke("test", "--verbose")
-        # invoke("test", "--list")
+        invoke("test")
+        invoke("test", "--verbose")
+        invoke("test", "--list")
         invoke("test", "--include", "test_hello", "--list")
-        invoke("install")
-        invoke("install", "--dest-dir", "/what")
+
+        with working_dir() as temp_dir:
+            invoke("install", "--dest-dir", temp_dir)
+
         invoke("clean")
         invoke("env")
 

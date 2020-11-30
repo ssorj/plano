@@ -969,8 +969,6 @@ def _is_string(obj):
     except NameError:
         return isinstance(obj, str)
 
-_targets = _collections.OrderedDict()
-
 _target_help = {
     "build":    "Build artifacts from source",
     "clean":    "Clean up the source tree",
@@ -995,8 +993,8 @@ def target(_func=None, extends=None, name=None, default=False, help=None, descri
                 self.requires = requires
                 self.args = self.process_args(args)
 
-                if self.name in _targets:
-                    notice("Target '{0}' is already defined", self.name)
+                if self.name in PlanoCommand.targets:
+                    debug("Target '{0}' is already defined", self.name)
             else:
                 assert name is None
                 assert args is None # For now, no override
@@ -1009,7 +1007,7 @@ def target(_func=None, extends=None, name=None, default=False, help=None, descri
 
             debug("Adding target '{0}'", self.name)
 
-            _targets[self.name] = self
+            PlanoCommand.targets[self.name] = self
 
         def process_args(self, input_args):
             input_args_by_name = {}
@@ -1057,10 +1055,10 @@ def target(_func=None, extends=None, name=None, default=False, help=None, descri
 
             if self.requires is not None:
                 if callable(self.requires):
-                    _targets[self.requires.name]()
+                    PlanoCommand.targets[self.requires.name]()
                 else:
                     for target in self.requires:
-                        _targets[target.name]()
+                        PlanoCommand.targets[target.name]()
 
             displayed_args = list()
 
@@ -1117,7 +1115,11 @@ class Argument(object):
         return self.name.replace("_", "-").upper()
 
 class PlanoCommand(object):
+    targets = _collections.OrderedDict()
+
     def __init__(self):
+        PlanoCommand.targets.clear()
+
         description = "Run targets defined as Python functions"
 
         self.parser = _argparse.ArgumentParser(prog="plano", description=description, add_help=False)
@@ -1151,7 +1153,7 @@ class PlanoCommand(object):
         if not remaining_args:
             args = _sys.argv[1:]
 
-            for target in _targets.values():
+            for target in PlanoCommand.targets.values():
                 if target.default:
                     args.append(target.name)
                     break
@@ -1163,7 +1165,7 @@ class PlanoCommand(object):
             self.init_only = True
             return
 
-        self.target = _targets[args.target]
+        self.target = PlanoCommand.targets[args.target]
         self.target_args = [getattr(args, arg.name) for arg in self.target.args]
 
     def load_config(self, planofile):
@@ -1192,12 +1194,12 @@ class PlanoCommand(object):
     def process_targets(self):
         subparsers = self.parser.add_subparsers(title="targets", dest="target")
 
-        for target_ in _targets.values():
-            description = nvl(target_.description, target_.help)
-            subparser = subparsers.add_parser(target_.name, help=target_.help, description=description,
+        for target in PlanoCommand.targets.values():
+            description = nvl(target.description, target.help)
+            subparser = subparsers.add_parser(target.name, help=target.help, description=description,
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)
 
-            for arg in target_.args:
+            for arg in target.args:
                 if arg.has_default:
                     if arg.default is False:
                         subparser.add_argument(arg.option_name, default=arg.default, action="store_true",
