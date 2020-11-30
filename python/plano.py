@@ -1098,8 +1098,9 @@ def target(_func=None, extends=None, name=None, default=False, help=None, descri
         return decorator(_func)
 
 class Argument(object):
-    def __init__(self, name, type=None, help=None, description=None):
+    def __init__(self, name, metavar=None, type=None, help=None, description=None):
         self.name = name
+        self.metavar = nvl(metavar, self.name.replace("_", "-").upper())
         self.type = type
         self.help = help
 
@@ -1109,10 +1110,6 @@ class Argument(object):
     @property
     def option_name(self):
         return "--{0}".format(self.name.replace("_", "-"))
-
-    @property
-    def metavar(self):
-        return self.name.replace("_", "-").upper()
 
 class PlanoCommand(object):
     targets = _collections.OrderedDict()
