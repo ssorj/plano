@@ -20,6 +20,7 @@
 from plano import *
 
 _test_project_dir = get_absolute_path("test-project")
+_result_file = "build/result.json"
 
 class _test_project(working_dir):
     def __enter__(self):
@@ -35,9 +36,20 @@ def open_test_session(session):
     if session.verbose:
         enable_logging(level="debug")
 
+def test_project_env(session):
+    from bullseye import project, project_env
+
+    project.name = "ALPHABET"
+
+    with project_env():
+        assert "ALPHABET_HOME" in ENV, ENV
+
 def test_target_build(session):
     with _test_project():
         _invoke("build")
+
+        result = read_json(_result_file)
+        assert result["built"], result
 
         assert is_file("build/bin/chucker")
         assert is_file("build/bin/chucker-test")
@@ -61,19 +73,32 @@ def test_target_build(session):
 def test_target_test(session):
     with _test_project():
         _invoke("test")
+
+        result = read_json(_result_file)
+        assert result["tested"], result
+
         _invoke("test", "--verbose")
         _invoke("test", "--list")
-        _invoke("test", "--include", "test_hello", "--list")
+        _invoke("test", "--include", "test_hello")
 
 def test_target_install(session):
     with _test_project():
         _invoke("install", "--dest-dir", "staging")
 
+        result = read_json(_result_file)
+        assert result["installed"], result
+
+        assert is_dir("staging")
+
 def test_target_clean(session):
     with _test_project():
-        _invoke("clean")
         _invoke("build")
+
+        assert is_dir("build")
+
         _invoke("clean")
+
+        assert not is_dir("build")
 
 def test_target_env(session):
     with _test_project():

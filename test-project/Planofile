@@ -13,7 +13,21 @@ project.name = "chucker"
 project.extra_source_dirs = ["files"]
 project.test_modules = ["chucker_tests"]
 
+_result_file = "build/result.json"
+
 @target(extends=build)
 def build():
-    with project_env():
-        eprint("Building!")
+    data = {"built": True}
+    write_json(_result_file, data)
+
+@target(extends=test)
+def test():
+    data = read_json(_result_file)
+    data["tested"] = True
+    write_json(_result_file, data)
+
+@target(extends=install)
+def install():
+    data = read_json(_result_file)
+    data["installed"] = True
+    write_json(_result_file, data)

@@ -66,7 +66,7 @@ def test(include=None, verbose=False, list=False):
         try:
             import importlib
             modules = [importlib.import_module(x) for x in project.test_modules]
-        except ImportError:
+        except ImportError: # pragma: nocover
             modules = [__import__(x, fromlist=[""]) for x in project.test_modules]
 
         command = TestCommand(*modules)
