@@ -1,15 +1,16 @@
 import bullseye
 
-if PYTHON2:
-    reload(bullseye)
-else:
-    import importlib
-    importlib.reload(bullseye)
+if not bullseye.PlanoCommand.targets:
+    if PYTHON2:
+        reload(bullseye)
+    else:
+        import importlib
+        importlib.reload(bullseye)
 
 from bullseye import *
 
 project.name = "chucker"
-project.extra_dirs = ["files"]
+project.extra_source_dirs = ["files"]
 project.test_modules = ["chucker_tests"]
 
 @target(extends=build)

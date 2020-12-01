@@ -38,7 +38,25 @@ def open_test_session(session):
 def test_target_build(session):
     with _test_project():
         _invoke("build")
+
+        assert is_file("build/bin/chucker")
+        assert is_file("build/bin/chucker-test")
+        assert is_file("build/chucker/python/chucker.py")
+        assert is_file("build/chucker/python/chucker_tests.py")
+
+        result = read("build/bin/chucker").strip()
+        assert result.endswith(".local/lib/chucker"), result
+
+        result = read_json("build/build.json")
+        assert result["prefix"].endswith(".local"), result
+
         _invoke("build", "--prefix", "/usr/local")
+
+        result = read("build/bin/chucker").strip()
+        assert result == "/usr/local/lib/chucker", result
+
+        result = read_json("build/build.json")
+        assert result["prefix"] == ("/usr/local"), result
 
 def test_target_test(session):
     with _test_project():
@@ -49,8 +67,6 @@ def test_target_test(session):
 
 def test_target_install(session):
     with _test_project():
-        _invoke("build", "--prefix", "build")
-        _invoke("install")
         _invoke("install", "--dest-dir", "staging")
 
 def test_target_clean(session):

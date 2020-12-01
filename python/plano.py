@@ -598,12 +598,11 @@ def configure_file(input_file, output_file, substitutions, quiet=False):
     return output_file
 
 def make_dir(dir, quiet=False):
-    _log(quiet, "Making directory '{0}'", dir)
-
     if dir == "":
         return dir
 
     if not exists(dir):
+        _log(quiet, "Making directory '{0}'", dir)
         _os.makedirs(dir)
 
     return dir
