@@ -10,3 +10,4 @@ Python functions for writing shell-style system scripts.
  - make
  - python
  - tar
+ - findutils

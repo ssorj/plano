@@ -47,7 +47,8 @@ install: build
 .PHONY: clean
 clean:
 	find . -type f -name \*.pyc -delete
-	rm -rf python/__pycache__ scripts/__pycache__ build dist htmlcov .coverage
+	find . -type d -name __pycache__ -exec rm -rf \{} +
+	rm -rf build dist htmlcov .coverage
 
 .PHONY: test
 test: build

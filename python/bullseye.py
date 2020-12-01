@@ -17,7 +17,6 @@
 # under the License.
 #
 
-import importlib as _importlib
 import sys as _sys
 
 from plano import *
@@ -64,7 +63,12 @@ def test(include=None, verbose=False, list=False):
     from commandant import TestCommand
 
     with project_env():
-        modules = [_importlib.import_module(x) for x in project.test_modules]
+        try:
+            import importlib
+            modules = [importlib.import_module(x) for x in project.test_modules]
+        except ImportError:
+            modules = [__import__(x, fromlist=[""]) for x in project.test_modules]
+
         command = TestCommand(*modules)
         args = []
 
