@@ -111,3 +111,25 @@ def test_target_modules(session):
             assert False
         except PlanoException:
             pass
+
+def test_target_generate(session):
+    with _test_project():
+        _invoke("generate", "README.md")
+
+        assert exists("README.md"), list_dir()
+
+        _invoke("generate", "--stdout", "LICENSE.txt")
+
+        assert not exists("LICENSE.txt"), list_dir()
+
+        _invoke("generate", "all")
+
+        assert exists(".gitignore"), list_dir()
+        assert exists("LICENSE.txt"), list_dir()
+        assert exists("VERSION.txt"), list_dir()
+
+        try:
+            _invoke("generate", "no-such-file")
+            assert False
+        except SystemExit:
+            pass
