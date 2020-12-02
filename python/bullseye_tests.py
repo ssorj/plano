@@ -62,7 +62,7 @@ def test_target_build(session):
         result = read_json("build/build.json")
         assert result["prefix"].endswith(".local"), result
 
-        _invoke("build", "--prefix", "/usr/local")
+        _invoke("build", "--clean", "--prefix", "/usr/local")
 
         result = read("build/bin/chucker").strip()
         assert result == "/usr/local/lib/chucker", result

@@ -1028,7 +1028,7 @@ def target(_func=None, extends=None, name=None, default=False, help=None, descri
                     arg.has_default = True
                     arg.default = defaults[name]
 
-                if arg.default is not None:
+                if arg.default not in (None, False):
                     if arg.type is None:
                         arg.type = type(arg.default)
 
@@ -1097,18 +1097,15 @@ def target(_func=None, extends=None, name=None, default=False, help=None, descri
         return decorator(_func)
 
 class Argument(object):
-    def __init__(self, name, metavar=None, type=None, help=None, description=None):
+    def __init__(self, name, option_name=None, metavar=None, type=None, help=None, description=None):
         self.name = name
+        self.option_name = nvl(option_name, self.name.replace("_", "-"))
         self.metavar = nvl(metavar, self.name.replace("_", "-").upper())
         self.type = type
         self.help = help
 
         self.has_default = False
         self.default = None
-
-    @property
-    def option_name(self):
-        return "--{0}".format(self.name.replace("_", "-"))
 
 class PlanoCommand(object):
     targets = _collections.OrderedDict()
@@ -1197,14 +1194,16 @@ class PlanoCommand(object):
 
             for arg in target.args:
                 if arg.has_default:
+                    flag = "--{0}".format(arg.option_name)
+
                     if arg.default is False:
-                        subparser.add_argument(arg.option_name, default=arg.default, action="store_true",
+                        subparser.add_argument(flag, dest=arg.name, default=arg.default, action="store_true",
                                                help=arg.help)
                     else:
-                        subparser.add_argument(arg.option_name, default=arg.default, metavar=arg.metavar,
+                        subparser.add_argument(flag, dest=arg.name, default=arg.default, metavar=arg.metavar,
                                                type=arg.type, help=arg.help)
                 else:
-                    subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
+                    subparser.add_argument(arg.option_name, metavar=arg.metavar, type=arg.type, help=arg.help)
 
             # Patch the default help text
             try:

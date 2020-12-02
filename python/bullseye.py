@@ -31,9 +31,13 @@ class _Project:
 
 project = _Project()
 
-@target(args=[Argument("prefix", help="The base path for installed files")])
-def build(prefix=join(get_home_dir(), ".local")):
+@target(args=[Argument("clean_", option_name="clean", help="Clean before building"),
+              Argument("prefix", help="The base path for installed files")])
+def build(clean_=False, prefix=join(get_home_dir(), ".local")):
     assert project.name
+
+    if clean_:
+        clean()
 
     write_json(join(project.build_dir, "build.json"), {"prefix": prefix})
 
@@ -56,10 +60,10 @@ def build(prefix=join(get_home_dir(), ".local")):
             copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
 @target(requires=build,
-        args=[Argument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
+        args=[Argument("include", metavar="PATTERN", help="Run only tests with names matching PATTERN"),
               Argument("verbose", help="Print detailed logging to the console"),
-              Argument("list", help="Print the test names and exit")])
-def test(include=None, verbose=False, list=False):
+              Argument("list_", option_name="list", help="Print the test names and exit")])
+def test(include=None, verbose=False, list_=False):
     from commandant import TestCommand
 
     with project_env():
@@ -70,9 +74,9 @@ def test(include=None, verbose=False, list=False):
             modules = [__import__(x, fromlist=[""]) for x in project.test_modules]
 
         command = TestCommand(*modules)
-        args = []
+        args = list()
 
-        if list:
+        if list_:
             args.append("--list")
 
         if verbose:
