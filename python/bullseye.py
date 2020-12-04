@@ -21,6 +21,7 @@ import collections as _collections
 import sys as _sys
 
 from plano import *
+from plano import _import_module
 
 class _Project:
     def __init__(self):
@@ -82,11 +83,12 @@ def test(include=None, verbose=False, list_=False):
     from commandant import TestCommand
 
     with project_env():
-        try:
-            import importlib
-            modules = [importlib.import_module(x) for x in project.test_modules]
-        except ImportError: # pragma: nocover
-            modules = [__import__(x, fromlist=[""]) for x in project.test_modules]
+        modules = [_import_module(x) for x in project.test_modules]
+        # try:
+        #     import importlib
+        #     modules = [importlib.import_module(x) for x in project.test_modules]
+        # except ImportError: # pragma: nocover
+        #     modules = [__import__(x, fromlist=[""]) for x in project.test_modules]
 
         command = TestCommand(*modules)
         args = list()

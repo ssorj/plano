@@ -683,6 +683,14 @@ def test_plano_command(session):
     except SystemExit:
         pass
 
+    with working_dir():
+        write("Planofile", "import_target('bullseye', 'modules')")
+        command = PlanoCommand()
+        command.main([])
+
+        assert "modules" in PlanoCommand.targets, PlanoCommand.targets
+        assert "build" not in PlanoCommand.targets, PlanoCommand.targets
+
     def invoke(*args):
         command = PlanoCommand()
         command.main(["--verbose", "-f", "scripts/test.planofile"] + list(args))

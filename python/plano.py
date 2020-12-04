@@ -968,6 +968,15 @@ def _is_string(obj):
     except NameError:
         return isinstance(obj, str)
 
+try:
+    import importlib as _importlib
+
+    def _import_module(name):
+        return _importlib.import_module(name)
+except ImportError: # pragma: nocover
+    def _import_module(name):
+        return __import__(name, fromlist=[""])
+
 _target_help = {
     "build":    "Build artifacts from source",
     "clean":    "Clean up the source tree",
@@ -1095,6 +1104,15 @@ def target(_func=None, extends=None, name=None, default=False, help=None, descri
         return decorator
     else:
         return decorator(_func)
+
+def import_target(module_name, name):
+    targets = _collections.OrderedDict(PlanoCommand.targets)
+
+    try:
+        module = _import_module(module_name)
+        targets[name] = getattr(module, name)
+    finally:
+        PlanoCommand.targets = targets
 
 class Argument(object):
     def __init__(self, name, option_name=None, metavar=None, type=None, help=None, description=None):
