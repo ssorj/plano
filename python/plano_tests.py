@@ -667,29 +667,23 @@ def test_plano_command(session):
             command = PlanoCommand()
             command.main([])
 
-    with working_dir():
-        write("Planofile", "garbage")
-        command = PlanoCommand()
-        try:
-            command.main([])
-            assert False
-        except SystemExit:
-            pass
+        with working_dir():
+            write("Planofile", "garbage")
+            command = PlanoCommand()
+            try:
+                command.main([])
+                assert False
+            except SystemExit:
+                pass
 
-    try:
-        command = PlanoCommand()
-        command.main(["-f", "no-such-file"])
-        assert False
-    except SystemExit:
-        pass
+        with working_dir():
+            write(".planofile", "import_targets('bullseye', 'modules', 'clean')")
+            command = PlanoCommand()
+            command.main(["--help"])
 
-    with working_dir():
-        write("Planofile", "import_target('bullseye', 'modules')")
-        command = PlanoCommand()
-        command.main([])
-
-        assert "modules" in PlanoCommand.targets, PlanoCommand.targets
-        assert "build" not in PlanoCommand.targets, PlanoCommand.targets
+            assert "modules" in PlanoCommand.targets, PlanoCommand.targets
+            assert "clean" in PlanoCommand.targets, PlanoCommand.targets
+            assert "build" not in PlanoCommand.targets, PlanoCommand.targets
 
     def invoke(*args):
         command = PlanoCommand()
@@ -699,6 +693,13 @@ def test_plano_command(session):
         invoke()
         invoke("--quiet")
         invoke("--init-only")
+
+    try:
+        command = PlanoCommand()
+        command.main(["-f", "no-such-file"])
+        assert False
+    except SystemExit:
+        pass
 
     invoke("build")
     invoke("install")

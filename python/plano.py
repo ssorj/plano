@@ -1105,12 +1105,14 @@ def target(_func=None, extends=None, name=None, default=False, help=None, descri
     else:
         return decorator(_func)
 
-def import_target(module_name, name):
+def import_targets(module_name, *target_names):
     targets = _collections.OrderedDict(PlanoCommand.targets)
 
     try:
         module = _import_module(module_name)
-        targets[name] = getattr(module, name)
+
+        for name in target_names:
+            targets[name] = getattr(module, name)
     finally:
         PlanoCommand.targets = targets
 
