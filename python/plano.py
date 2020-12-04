@@ -985,17 +985,17 @@ _target_help = {
     "test":     "Run the tests",
 }
 
-def target(_func=None, extends=None, name=None, default=False, help=None, description=None, requires=None, args=None):
+def target(_function=None, extends=None, name=None, default=False, help=None, description=None, requires=None, args=None):
     class decorator(object):
-        def __init__(self, func):
-            self.func = func
+        def __init__(self, function):
+            self.function = function
             self.extends = extends
             self.default = default
 
             self.called = False
 
             if self.extends is None:
-                self.name = nvl(name, func.__name__.replace("_", "-"))
+                self.name = nvl(name, function.__name__.replace("_", "-"))
                 self.help = nvl(help, _target_help.get(self.name))
                 self.description = description
                 self.requires = requires
@@ -1024,7 +1024,7 @@ def target(_func=None, extends=None, name=None, default=False, help=None, descri
                 input_args_by_name = dict(zip([x.name for x in input_args], input_args))
 
             output_args = list()
-            names, _, _, defaults = _inspect.getargspec(self.func)
+            names, _, _, defaults = _inspect.getargspec(self.function)
             defaults = dict(zip(reversed(names), reversed(nvl(defaults, []))))
 
             for name in names:
@@ -1077,7 +1077,7 @@ def target(_func=None, extends=None, name=None, default=False, help=None, descri
                 if _is_string(value):
                     value = "\"{0}\"".format(value)
 
-                displayed_args.append("{0}={1}".format(arg.name, value))
+                displayed_args.append("{0}={1}".format(arg.option_name, value))
 
             colors = hasattr(STDERR, "isatty") and STDERR.isatty()
 
@@ -1096,14 +1096,14 @@ def target(_func=None, extends=None, name=None, default=False, help=None, descri
             eprint()
 
             if self.extends is not None:
-                self.extends.func(*args[:len(_inspect.getargspec(self.extends.func).args)])
+                self.extends.function(*args[:len(_inspect.getargspec(self.extends.function).args)])
 
-            self.func(*args[:len(_inspect.getargspec(self.func).args)])
+            self.function(*args[:len(_inspect.getargspec(self.function).args)])
 
-    if _func is None:
+    if _function is None:
         return decorator
     else:
-        return decorator(_func)
+        return decorator(_function)
 
 def import_targets(module_name, *target_names):
     targets = _collections.OrderedDict(PlanoCommand.targets)

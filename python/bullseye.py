@@ -53,7 +53,7 @@ def build(clean_=False, prefix=join(get_home_dir(), ".local")):
     assert project.name
 
     if clean_:
-        clean()
+        clean.function()
 
     write_json(join(project.build_dir, "build.json"), {"prefix": prefix})
 
