@@ -1232,12 +1232,22 @@ class PlanoCommand(object):
                 pass
 
     def main(self, args=None):
+        start = _time.time()
+
         self.init(args)
 
         if self.init_only:
             return
 
         self.target(*self.target_args)
+
+        elapsed = _time.time() - start
+        colors = hasattr(STDERR, "isatty") and STDERR.isatty()
+
+        if colors:
+            eprint("\u001b[35m>>>\u001b[0m \u001b[32mOK\u001b[0m \u001b[35m({0:.1}s)\u001b[0m".format(elapsed))
+        else:
+            eprint(">>> OK ({0:.1}s)".format(elapsed))
 
 if __name__ == "__main__": # pragma: nocover
     command = PlanoCommand()

@@ -91,6 +91,10 @@ def test(include=None, verbose=False, list_=False):
     with project_env():
         modules = [_import_module(x) for x in project.test_modules]
 
+        if not modules:
+            notice("No tests found")
+            return
+
         command = TestCommand(*modules)
         args = list()
 
