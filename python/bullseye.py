@@ -418,10 +418,10 @@ def _generate_file(filename, stdout):
     except KeyError:
         exit("File '{0}' is not one of the options".format(filename))
 
-    content = content.strip()
+    content = content.lstrip()
     content = content.format(title=project.name.capitalize(), name=project.name)
 
     if stdout:
-        print(content)
+        print(content, end="")
     else:
         write(filename, content)
