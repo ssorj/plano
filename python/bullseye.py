@@ -31,7 +31,7 @@ class _Project:
         self.source_dir = "python"
         self.extra_source_dirs = []
         self.build_dir = "build"
-        self.build_deps = []
+        self.build_deps = ["plano", "bullseye"]
         self.test_modules = []
 
 project = _Project()
