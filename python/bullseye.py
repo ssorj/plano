@@ -17,6 +17,8 @@
 # under the License.
 #
 
+from __future__ import print_function
+
 import collections as _collections
 import sys as _sys
 
@@ -29,6 +31,7 @@ class _Project:
         self.source_dir = "python"
         self.extra_source_dirs = []
         self.build_dir = "build"
+        self.build_deps = []
         self.test_modules = []
 
 project = _Project()
@@ -47,7 +50,7 @@ class project_env(working_env):
 
         super(project_env, self).__init__(**env)
 
-@target(args=[Argument("clean_", option_name="clean", help="Clean before building"),
+@target(args=[Argument("clean_", help="Clean before building", option_name="clean"),
               Argument("prefix", help="The base path for installed files")])
 def build(clean_=False, prefix=join(get_home_dir(), ".local")):
     assert project.name
@@ -69,6 +72,9 @@ def build(clean_=False, prefix=join(get_home_dir(), ".local")):
         copy(path, join(project.build_dir, path), inside=False, symlinks=False)
 
     for path in find(project.source_dir, "*.py"):
+        if get_name_stem(path) in project.build_deps:
+            continue
+
         copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
     for dir_name in project.extra_source_dirs:
@@ -76,9 +82,9 @@ def build(clean_=False, prefix=join(get_home_dir(), ".local")):
             copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
 @target(requires=build,
-        args=[Argument("include", metavar="PATTERN", help="Run only tests with names matching PATTERN"),
+        args=[Argument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
               Argument("verbose", help="Print detailed logging to the console"),
-              Argument("list_", option_name="list", help="Print the test names and exit")])
+              Argument("list_", help="Print the test names and exit", option_name="list")])
 def test(include=None, verbose=False, list_=False):
     from commandant import TestCommand
 
