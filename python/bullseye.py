@@ -158,16 +158,12 @@ def env():
     print("export PATH={0}:$PATH".format(join("$PWD", project.build_dir, "bin")))
 
     python_path = [
-        join(home_dir, project.source_dir),
+        join("${0}".format(home_var), project.source_dir),
         join("$PWD", project.source_dir),
+        "$PYTHONPATH",
     ]
 
-    try:
-        python_path.append(ENV["PYTHONPATH"])
-    except KeyError: # pragma: nocover
-        pass
-
-    python_path.extend(_sys.path)
+    # python_path.extend(_sys.path)
 
     print("export PYTHONPATH={0}".format(":".join(python_path)))
 
