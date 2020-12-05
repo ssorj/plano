@@ -50,15 +50,21 @@ class project_env(working_env):
 
         super(project_env, self).__init__(**env)
 
-@target(args=[Argument("clean_", help="Clean before building", option_name="clean"),
+@target(args=[Argument("clean", help="Clean before building"),
               Argument("prefix", help="The base path for installed files")])
-def build(clean_=False, prefix=join(get_home_dir(), ".local")):
+def build(clean=False, prefix=join(get_home_dir(), ".local")):
     assert project.name
 
-    if clean_:
-        clean.function()
+    if clean:
+        invoke_target("clean")
 
-    write_json(join(project.build_dir, "build.json"), {"prefix": prefix})
+    build_file = join(project.build_dir, "build.json")
+
+    if exists(build_file):
+        notice("Already built")
+        return
+
+    write_json(build_file, {"prefix": prefix})
 
     default_home = join(prefix, "lib", project.name)
 
@@ -115,8 +121,9 @@ def install(dest_dir=""):
     assert project.name
     assert is_dir(project.build_dir)
 
-    build = read_json(join(project.build_dir, "build.json"))
-    prefix = dest_dir + build["prefix"]
+    build_file = join(project.build_dir, "build.json")
+    build_data = read_json(build_file)
+    prefix = dest_dir + build_data["prefix"]
 
     for path in find(join(project.build_dir, "bin")):
         copy(path, join(prefix, path[6:]), inside=False, symlinks=False)

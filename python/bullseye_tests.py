@@ -88,7 +88,15 @@ def test_target_install(session):
         result = read_json(_result_file)
         assert result["installed"], result
 
-        assert is_dir("staging")
+        assert is_dir("staging"), list_dir()
+
+    with _test_project():
+        assert not exists("build"), list_dir()
+
+        _invoke("build", "--prefix", "/opt/local")
+        _invoke("install", "--dest-dir", "staging")
+
+        assert is_dir("staging/opt/local"), list_dir("staging")
 
 def test_target_clean(session):
     with _test_project():

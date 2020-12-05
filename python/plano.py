@@ -1063,10 +1063,10 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
 
             if self.requires is not None:
                 if callable(self.requires):
-                    PlanoCommand.targets[self.requires.name]()
+                    invoke_target(self.requires.name)
                 else:
                     for target in self.requires:
-                        PlanoCommand.targets[target.name]()
+                        invoke_target(target.name)
 
             displayed_args = list()
 
@@ -1104,6 +1104,9 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
         return decorator
     else:
         return decorator(_function)
+
+def invoke_target(name):
+    PlanoCommand.targets[name]()
 
 def import_targets(module_name, *target_names):
     targets = _collections.OrderedDict(PlanoCommand.targets)
