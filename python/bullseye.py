@@ -56,7 +56,7 @@ def build(clean=False, prefix=join(get_home_dir(), ".local")):
     assert project.name
 
     if clean:
-        invoke_target("clean")
+        run_target("clean")
 
     build_file = join(project.build_dir, "build.json")
 

@@ -1063,10 +1063,12 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
 
             if self.requires is not None:
                 if callable(self.requires):
-                    invoke_target(self.requires.name)
+                    run_target(self.requires.name)
                 else:
                     for target in self.requires:
-                        invoke_target(target.name)
+                        run_target(target.name)
+
+            PlanoCommand.running_targets.append(self)
 
             displayed_args = list()
 
@@ -1084,14 +1086,15 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
             if colors:
                 eprint("\u001b[35m", end="")
 
-            try:
-                eprint("--> {0}".format(self.name), end="")
+            arrow = "--" * len(PlanoCommand.running_targets)
 
-                if displayed_args:
-                    eprint(" ({0})".format(", ".join(displayed_args)), end="")
-            finally:
-                if colors:
-                    eprint("\u001b[0m", end="")
+            eprint("{0}> {1}".format(arrow, self.name), end="")
+
+            if displayed_args:
+                eprint(" ({0})".format(", ".join(displayed_args)), end="")
+
+            if colors:
+                eprint("\u001b[0m", end="")
 
             eprint()
 
@@ -1100,12 +1103,24 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
 
             self.function(*args[:len(_inspect.getargspec(self.function).args)])
 
+            if colors:
+                eprint("\u001b[35m", end="")
+
+            eprint("<{0} {1}".format(arrow, self.name), end="")
+
+            if colors:
+                eprint("\u001b[0m", end="")
+
+            eprint()
+
+            PlanoCommand.running_targets.pop()
+
     if _function is None:
         return decorator
     else:
         return decorator(_function)
 
-def invoke_target(name):
+def run_target(name):
     PlanoCommand.targets[name]()
 
 def import_targets(module_name, *target_names):
@@ -1132,9 +1147,11 @@ class Argument(object):
 
 class PlanoCommand(object):
     targets = _collections.OrderedDict()
+    running_targets = list()
 
     def __init__(self):
         PlanoCommand.targets.clear()
+        PlanoCommand.running_targets = list() # Python 3 has clear()
 
         description = "Run targets defined as Python functions"
 
@@ -1248,9 +1265,9 @@ class PlanoCommand(object):
         colors = hasattr(STDERR, "isatty") and STDERR.isatty()
 
         if colors:
-            eprint("\u001b[35m>>>\u001b[0m \u001b[32mOK\u001b[0m \u001b[35m({0:.2f}s)\u001b[0m".format(elapsed))
+            eprint("\u001b[32mOK\u001b[0m \u001b[35m({0:.2f}s)\u001b[0m".format(elapsed))
         else:
-            eprint(">>> OK ({0:.2f}s)".format(elapsed))
+            eprint("OK ({0:.2f}s)".format(elapsed))
 
 if __name__ == "__main__": # pragma: nocover
     command = PlanoCommand()
