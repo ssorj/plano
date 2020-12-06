@@ -105,12 +105,13 @@ def build(clean=False, prefix=None):
         for path in find(dir_name):
             copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
-@target(requires=build,
-        args=[Argument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
+@target(args=[Argument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
               Argument("verbose", help="Print detailed logging to the console"),
               Argument("list_", help="Print the test names and exit", option_name="list")])
 def test(include=None, verbose=False, list_=False):
     from commandant import TestCommand
+
+    run_target("build")
 
     with project_env():
         modules = [_import_module(x) for x in project.test_modules]
@@ -133,10 +134,12 @@ def test(include=None, verbose=False, list_=False):
 
         command.main(args)
 
-@target(requires=build,
-        args=[Argument("staging_dir", help="A path prepended to installed files")])
+@target(args=[Argument("staging_dir", help="A path prepended to installed files")])
 def install(staging_dir=""):
     assert project.name
+
+    run_target("build")
+
     assert is_dir(project.build_dir)
 
     build_file = join(project.build_dir, "build.json")

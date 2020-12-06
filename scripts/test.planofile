@@ -2,20 +2,26 @@
 def build(prefix="/usr/local"):
     print("Bulding (prefix={0})".format(prefix))
 
-@target(requires=build)
+@target
 def test():
+    build()
     print("Testing")
 
-@target(requires=build, help="Install me!")
-def install(dest_dir="/"):
-    print("Installing (dest_dir={0})".format(dest_dir))
+@target(help="Install me!")
+def install(staging_dir="/"):
+    build()
+    print("Installing (dest_dir={0})".format(staging_dir))
 
 @target
 def clean():
     print("Cleaning")
 
-@target(name="run", requires=(clean, build, clean), help="Run with it")
+@target(name="run", help="Run with it")
 def run_(trouble=False):
+    clean()
+    clean()
+    build()
+
     print("Running (trouble={0})".format(trouble))
 
     if trouble:

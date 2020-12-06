@@ -1019,20 +1019,17 @@ _target_help = {
     "test":     "Run the tests",
 }
 
-def target(_function=None, extends=None, name=None, default=False, help=None, description=None, requires=None, args=None):
+def target(_function=None, extends=None, name=None, default=False, help=None, description=None, args=None):
     class decorator(object):
         def __init__(self, function):
             self.function = function
             self.extends = extends
             self.default = default
 
-            self.called = False
-
             if self.extends is None:
                 self.name = nvl(name, function.__name__.replace("_", "-"))
                 self.help = nvl(help, _target_help.get(self.name))
                 self.description = description
-                self.requires = requires
                 self.args = self.process_args(args)
 
                 if self.name in PlanoCommand.targets:
@@ -1044,7 +1041,6 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
                 self.name = self.extends.name
                 self.help = nvl(help, self.extends.help)
                 self.description = nvl(description, self.extends.description)
-                self.requires = nvl(requires, self.extends.requires)
                 self.args = self.extends.args
 
             debug("Adding target '{0}'", self.name)
@@ -1092,21 +1088,9 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
             return output_args
 
         def __call__(self, *args):
-            if self.called:
-                return
-
-            self.called = True
-
-            if self.requires is not None:
-                if callable(self.requires):
-                    run_target(self.requires.name)
-                else:
-                    for target in self.requires:
-                        run_target(target.name)
-
             PlanoCommand.running_targets.append(self)
 
-            arrow = "--" * len(PlanoCommand.running_targets)
+            dashes = "--" * len(PlanoCommand.running_targets)
             displayed_args = list()
 
             for arg, value in zip(self.args, args):
@@ -1121,7 +1105,7 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
                 displayed_args.append("{0}={1}".format(arg.option_name, value))
 
             with console_color("magenta", file=STDERR):
-                eprint("{0}> {1}".format(arrow, self.name), end="")
+                eprint("{0}> {1}".format(dashes, self.name), end="")
 
                 if displayed_args:
                     eprint(" ({0})".format(", ".join(displayed_args)), end="")
@@ -1134,9 +1118,15 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
             self.function(*args[:len(_inspect.getargspec(self.function).args)])
 
             with console_color("magenta", file=STDERR):
-                eprint("<{0} {1}".format(arrow, self.name))
+                eprint("<{0} {1}".format(dashes, self.name))
 
             PlanoCommand.running_targets.pop()
+
+            if PlanoCommand.running_targets:
+                name = PlanoCommand.running_targets[-1].name
+
+                with console_color("magenta", file=STDERR):
+                    eprint("{0} {1} ...".format(dashes[:-1], name))
 
     if _function is None:
         return decorator
