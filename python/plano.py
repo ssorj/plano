@@ -1087,7 +1087,7 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
 
             return output_args
 
-        def __call__(self, *args):
+        def __call__(self, *args, **kwargs):
             PlanoCommand.running_targets.append(self)
 
             dashes = "--" * len(PlanoCommand.running_targets)
@@ -1113,9 +1113,11 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
                 eprint()
 
             if self.extends is not None:
-                self.extends.function(*args[:len(_inspect.getargspec(self.extends.function).args)])
+                target_args = _get_target_args(self.extends.function, args, kwargs)
+                self.extends.function(*target_args)
 
-            self.function(*args[:len(_inspect.getargspec(self.function).args)])
+            target_args = _get_target_args(self.function, args, kwargs)
+            self.function(*target_args)
 
             with console_color("magenta", file=STDERR):
                 eprint("<{0} {1}".format(dashes, self.name))
@@ -1133,8 +1135,26 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
     else:
         return decorator(_function)
 
-def run_target(name):
-    PlanoCommand.targets[name]()
+def _get_target_args(function, args, kwargs):
+    argspec = _inspect.getargspec(function)
+    args = list(args)
+    values = list()
+
+    # XXX zip?
+
+    for name in argspec.args:
+        if name in kwargs:
+            values.append(kwargs[name])
+        else:
+            try:
+                values.append(args.pop(0))
+            except IndexError:
+                pass
+
+    return values
+
+def run_target(name, *args, **kwargs):
+    PlanoCommand.targets[name](*args, **kwargs)
 
 def import_targets(module_name, *target_names):
     targets = _collections.OrderedDict(PlanoCommand.targets)

@@ -117,9 +117,7 @@ def _maybe_build(prefix=None, clean=False):
     fresh_build_data = _generate_build_data(build_data, prefix)
 
     if build_data != fresh_build_data:
-        run_target("build")
-        # build(prefix=prefix)
-        # run_target("build", prefix=prefix)
+        run_target("build", prefix=prefix)
 
 @target(args=[Argument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
               Argument("verbose", help="Print detailed logging to the console"),
