@@ -1068,7 +1068,9 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
 
                 if name in defaults:
                     arg.has_default = True
-                    arg.default = defaults[name]
+
+                    if defaults[name] is not None:
+                        arg.default = defaults[name]
 
                 if arg.default not in (None, False):
                     if arg.type is None:
@@ -1153,15 +1155,15 @@ def import_targets(module_name, *target_names):
         PlanoCommand.targets = targets
 
 class Argument(object):
-    def __init__(self, name, option_name=None, metavar=None, type=None, help=None, description=None):
+    def __init__(self, name, option_name=None, metavar=None, type=None, help=None, default=None):
         self.name = name
         self.option_name = nvl(option_name, self.name.replace("_", "-"))
         self.metavar = nvl(metavar, self.name.replace("_", "-").upper())
         self.type = type
         self.help = help
+        self.default = default
 
         self.has_default = False
-        self.default = None
 
 class PlanoCommand(object):
     targets = _collections.OrderedDict()
