@@ -1248,9 +1248,9 @@ class PlanoCommand(object):
         colors = hasattr(STDERR, "isatty") and STDERR.isatty()
 
         if colors:
-            eprint("\u001b[35m>>>\u001b[0m \u001b[32mOK\u001b[0m \u001b[35m({0:.1}s)\u001b[0m".format(elapsed))
+            eprint("\u001b[35m>>>\u001b[0m \u001b[32mOK\u001b[0m \u001b[35m({0:.2f}s)\u001b[0m".format(elapsed))
         else:
-            eprint(">>> OK ({0:.1}s)".format(elapsed))
+            eprint(">>> OK ({0:.2f}s)".format(elapsed))
 
 if __name__ == "__main__": # pragma: nocover
     command = PlanoCommand()
