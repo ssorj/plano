@@ -182,6 +182,32 @@ def flush():
     STDOUT.flush()
     STDERR.flush()
 
+_console_colors = {
+    "black": "\u001b[30m",
+    "red": "\u001b[31m",
+    "green": "\u001b[32m",
+    "yellow": "\u001b[33m",
+    "blue": "\u001b[34m",
+    "magenta": "\u001b[35m",
+    "cyan": "\u001b[36m",
+    "white": "\u001b[37m",
+}
+
+class console_color(object):
+    def __init__(self, color, file=STDOUT):
+        self.color = _console_colors[color]
+        self.file = file
+
+        self.has_colors = hasattr(self.file, "isatty") and self.file.isatty()
+
+    def __enter__(self):
+        if self.has_colors:
+            print(self.color, file=self.file, end="")
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.has_colors:
+            print("\u001b[0m", file=self.file, end="")
+
 get_absolute_path = _os.path.abspath
 normalize_path = _os.path.normpath
 get_real_path = _os.path.realpath
@@ -1070,6 +1096,7 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
 
             PlanoCommand.running_targets.append(self)
 
+            arrow = "--" * len(PlanoCommand.running_targets)
             displayed_args = list()
 
             for arg, value in zip(self.args, args):
@@ -1081,37 +1108,21 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
 
                 displayed_args.append("{0}={1}".format(arg.option_name, value))
 
-            colors = hasattr(STDERR, "isatty") and STDERR.isatty()
+            with console_color("magenta", file=STDERR):
+                eprint("{0}> {1}".format(arrow, self.name), end="")
 
-            if colors:
-                eprint("\u001b[35m", end="")
+                if displayed_args:
+                    eprint(" ({0})".format(", ".join(displayed_args)), end="")
 
-            arrow = "--" * len(PlanoCommand.running_targets)
-
-            eprint("{0}> {1}".format(arrow, self.name), end="")
-
-            if displayed_args:
-                eprint(" ({0})".format(", ".join(displayed_args)), end="")
-
-            if colors:
-                eprint("\u001b[0m", end="")
-
-            eprint()
+                eprint()
 
             if self.extends is not None:
                 self.extends.function(*args[:len(_inspect.getargspec(self.extends.function).args)])
 
             self.function(*args[:len(_inspect.getargspec(self.function).args)])
 
-            if colors:
-                eprint("\u001b[35m", end="")
-
-            eprint("<{0} {1}".format(arrow, self.name), end="")
-
-            if colors:
-                eprint("\u001b[0m", end="")
-
-            eprint()
+            with console_color("magenta", file=STDERR):
+                eprint("<{0} {1}".format(arrow, self.name))
 
             PlanoCommand.running_targets.pop()
 
@@ -1262,12 +1273,12 @@ class PlanoCommand(object):
         self.target(*self.target_args)
 
         elapsed = _time.time() - start
-        colors = hasattr(STDERR, "isatty") and STDERR.isatty()
 
-        if colors:
-            eprint("\u001b[32mOK\u001b[0m \u001b[35m({0:.2f}s)\u001b[0m".format(elapsed))
-        else:
-            eprint("OK ({0:.2f}s)".format(elapsed))
+        with console_color("green", file=STDERR):
+            eprint("OK", end="")
+
+        with console_color("magenta", file=STDERR):
+            eprint(" ({0:.2f}s)".format(elapsed))
 
 if __name__ == "__main__": # pragma: nocover
     command = PlanoCommand()
