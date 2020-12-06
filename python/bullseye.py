@@ -52,7 +52,7 @@ class project_env(working_env):
         super(project_env, self).__init__(**env)
 
 @target(args=[Argument("clean", help="Clean before building"),
-              Argument("prefix", help="The base path for installed files", default="~/.local")])
+              Argument("prefix", help="The base path for installed files", default=join(get_home_dir(), ".local"))])
 def build(clean=False, prefix=None):
     assert project.name
 
@@ -134,14 +134,14 @@ def test(include=None, verbose=False, list_=False):
         command.main(args)
 
 @target(requires=build,
-        args=[Argument("dest_dir", help="A path prepended to installed files")])
-def install(dest_dir=""):
+        args=[Argument("staging_dir", help="A path prepended to installed files")])
+def install(staging_dir=""):
     assert project.name
     assert is_dir(project.build_dir)
 
     build_file = join(project.build_dir, "build.json")
     build_data = read_json(build_file)
-    prefix = dest_dir + build_data["prefix"]
+    prefix = staging_dir + build_data["prefix"]
 
     for path in find(join(project.build_dir, "bin")):
         copy(path, join(prefix, path[6:]), inside=False, symlinks=False)

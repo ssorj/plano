@@ -83,7 +83,7 @@ def test_target_test(session):
 
 def test_target_install(session):
     with _test_project():
-        _invoke("install", "--dest-dir", "staging")
+        _invoke("install", "--staging-dir", "staging")
 
         result = read_json(_result_file)
         assert result["installed"], result
@@ -94,7 +94,7 @@ def test_target_install(session):
         assert not exists("build"), list_dir()
 
         _invoke("build", "--prefix", "/opt/local")
-        _invoke("install", "--dest-dir", "staging")
+        _invoke("install", "--staging-dir", "staging")
 
         assert is_dir("staging/opt/local"), list_dir("staging")
 

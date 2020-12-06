@@ -214,6 +214,7 @@ class console_color(object):
     def __exit__(self, exc_type, exc_value, traceback):
         if self.has_colors:
             print("\u001b[0m", file=self.file, end="")
+            self.file.flush()
 
 get_absolute_path = _os.path.abspath
 normalize_path = _os.path.normpath
@@ -1114,6 +1115,8 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
 
                 if _is_string(value):
                     value = "\"{0}\"".format(value)
+                elif value in (True, False):
+                    value = str(value).lower()
 
                 displayed_args.append("{0}={1}".format(arg.option_name, value))
 

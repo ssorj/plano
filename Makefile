@@ -51,7 +51,7 @@ clean:
 	rm -rf build dist htmlcov .coverage test-project/build
 
 .PHONY: test
-test: build
+test: clean build
 	python3 scripts/test
 	python2 scripts/test
 
