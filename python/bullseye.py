@@ -20,6 +20,7 @@
 from __future__ import print_function
 
 import collections as _collections
+import os as _os
 import sys as _sys
 
 from plano import *
@@ -51,20 +52,37 @@ class project_env(working_env):
         super(project_env, self).__init__(**env)
 
 @target(args=[Argument("clean", help="Clean before building"),
-              Argument("prefix", help="The base path for installed files")])
-def build(clean=False, prefix=join(get_home_dir(), ".local")):
+              Argument("prefix", help="The base path for installed files", default="~/.local")])
+def build(clean=False, prefix=None):
     assert project.name
 
     if clean:
         run_target("clean")
 
     build_file = join(project.build_dir, "build.json")
+    build_data = None
 
     if exists(build_file):
+        build_data = read_json(build_file)
+
+    if prefix is None:
+        if exists(build_file):
+            prefix = build_data["prefix"]
+        else:
+            prefix = join(get_home_dir(), ".local")
+
+    latest_mtime = _os.stat(project.source_dir).st_mtime
+
+    for path in find(project.source_dir):
+        latest_mtime = max(latest_mtime, _os.stat(path).st_mtime)
+
+    new_build_data = {"prefix": prefix, "mtime": latest_mtime}
+
+    if build_data == new_build_data:
         notice("Already built")
         return
 
-    write_json(build_file, {"prefix": prefix})
+    write_json(build_file, new_build_data)
 
     default_home = join(prefix, "lib", project.name)
 
