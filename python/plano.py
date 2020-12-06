@@ -1126,7 +1126,7 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
                 name = PlanoCommand.running_targets[-1].name
 
                 with console_color("magenta", file=STDERR):
-                    eprint("{0} {1} ...".format(dashes[:-1], name))
+                    eprint("{0} {1}".format(dashes[:-1], name))
 
     if _function is None:
         return decorator

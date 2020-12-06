@@ -37,6 +37,9 @@ class _Project:
 
 project = _Project()
 
+_build_file = join(project.build_dir, "build.json")
+_default_prefix = join(get_home_dir(), ".local")
+
 class project_env(working_env):
     def __init__(self):
         assert project.name
@@ -51,40 +54,24 @@ class project_env(working_env):
 
         super(project_env, self).__init__(**env)
 
-@target(args=[Argument("clean", help="Clean before building"),
-              Argument("prefix", help="The base path for installed files", default=join(get_home_dir(), ".local"))])
-def build(clean=False, prefix=None):
+@target(args=[Argument("prefix", help="The base path for installed files", default=_default_prefix),
+              Argument("clean", help="Clean before building")])
+def build(prefix=None, clean=False):
     assert project.name
 
     if clean:
         run_target("clean")
 
-    build_file = join(project.build_dir, "build.json")
-    build_data = None
+    build_data = _load_build_data()
+    fresh_build_data = _generate_build_data(build_data, prefix)
 
-    if exists(build_file):
-        build_data = read_json(build_file)
-
-    if prefix is None:
-        if exists(build_file):
-            prefix = build_data["prefix"]
-        else:
-            prefix = join(get_home_dir(), ".local")
-
-    latest_mtime = _os.stat(project.source_dir).st_mtime
-
-    for path in find(project.source_dir):
-        latest_mtime = max(latest_mtime, _os.stat(path).st_mtime)
-
-    new_build_data = {"prefix": prefix, "mtime": latest_mtime}
-
-    if build_data == new_build_data:
+    if build_data == fresh_build_data:
         notice("Already built")
         return
 
-    write_json(build_file, new_build_data)
+    write_json(_build_file, fresh_build_data)
 
-    default_home = join(prefix, "lib", project.name)
+    default_home = join(fresh_build_data["prefix"], "lib", project.name)
 
     for path in find("bin", "*.in"):
         configure_file(path, join(project.build_dir, path[:-3]), {"default_home": default_home})
@@ -105,13 +92,42 @@ def build(clean=False, prefix=None):
         for path in find(dir_name):
             copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
+def _load_build_data():
+    if exists(_build_file):
+        return read_json(_build_file)
+
+    return {}
+
+def _generate_build_data(build_data, prefix):
+    mtime = _os.stat(project.source_dir).st_mtime
+
+    for path in find(project.source_dir):
+        mtime = max(mtime, _os.stat(path).st_mtime)
+
+    if prefix is None:
+        prefix = build_data.get("prefix", _default_prefix)
+
+    return {"prefix": prefix, "mtime": mtime}
+
+def _maybe_build(prefix=None, clean=False):
+    if clean:
+        run_target("clean")
+
+    build_data = _load_build_data()
+    fresh_build_data = _generate_build_data(build_data, prefix)
+
+    if build_data != fresh_build_data:
+        run_target("build")
+        # build(prefix=prefix)
+        # run_target("build", prefix=prefix)
+
 @target(args=[Argument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
               Argument("verbose", help="Print detailed logging to the console"),
               Argument("list_", help="Print the test names and exit", option_name="list")])
-def test(include=None, verbose=False, list_=False):
+def test(include=None, verbose=False, list_=False, clean=False):
     from commandant import TestCommand
 
-    run_target("build")
+    _maybe_build(clean=clean)
 
     with project_env():
         modules = [_import_module(x) for x in project.test_modules]
@@ -135,12 +151,12 @@ def test(include=None, verbose=False, list_=False):
         command.main(args)
 
 @target(args=[Argument("staging_dir", help="A path prepended to installed files")])
-def install(staging_dir=""):
+def install(staging_dir="", prefix=None, clean=False):
     assert project.name
 
-    run_target("build")
+    _maybe_build(prefix=prefix, clean=clean)
 
-    assert is_dir(project.build_dir)
+    assert is_dir(project.build_dir), list_dir()
 
     build_file = join(project.build_dir, "build.json")
     build_data = read_json(build_file)
