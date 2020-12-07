@@ -1117,14 +1117,14 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
                 name = PlanoCommand.running_targets[-1].name
 
                 with console_color("magenta", file=STDERR):
-                    eprint("{0} {1}".format(dashes[:-1], name))
+                    eprint("{0} [{1}]".format(dashes[:-1], name))
 
         def get_display_args(self, args, kwargs):
             for i, arg in enumerate(self.args):
                 try:
                     value = args[i]
                 except IndexError:
-                    value = kwargs.get(arg.name)
+                    value = kwargs.get(arg.name, arg.default)
 
                 if arg.default == value:
                     continue
