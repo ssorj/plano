@@ -1091,33 +1091,22 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
             PlanoCommand.running_targets.append(self)
 
             dashes = "--" * len(PlanoCommand.running_targets)
-            displayed_args = list()
-
-            for arg, value in zip(self.args, args):
-                if arg.default == value:
-                    continue
-
-                if _is_string(value):
-                    value = "\"{0}\"".format(value)
-                elif value in (True, False):
-                    value = str(value).lower()
-
-                displayed_args.append("{0}={1}".format(arg.option_name, value))
+            display_args = list(self.get_display_args(args, kwargs))
 
             with console_color("magenta", file=STDERR):
                 eprint("{0}> {1}".format(dashes, self.name), end="")
 
-                if displayed_args:
-                    eprint(" ({0})".format(", ".join(displayed_args)), end="")
+                if display_args:
+                    eprint(" ({0})".format(", ".join(display_args)), end="")
 
                 eprint()
 
             if self.extends is not None:
-                target_args = _get_target_args(self.extends.function, args, kwargs)
-                self.extends.function(*target_args)
+                call_args = self.get_call_args(self.extends.function, args, kwargs)
+                self.extends.function(*call_args)
 
-            target_args = _get_target_args(self.function, args, kwargs)
-            self.function(*target_args)
+            call_args = self.get_call_args(self.function, args, kwargs)
+            self.function(*call_args)
 
             with console_color("magenta", file=STDERR):
                 eprint("<{0} {1}".format(dashes, self.name))
@@ -1130,28 +1119,38 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
                 with console_color("magenta", file=STDERR):
                     eprint("{0} {1}".format(dashes[:-1], name))
 
+        def get_display_args(self, args, kwargs):
+            for i, arg in enumerate(self.args):
+                try:
+                    value = args[i]
+                except IndexError:
+                    value = kwargs.get(arg.name)
+
+                if arg.default == value:
+                    continue
+
+                if _is_string(value):
+                    value = "\"{0}\"".format(value)
+                elif value in (True, False):
+                    value = str(value).lower()
+
+                yield "{0}={1}".format(arg.option_name, value)
+
+        def get_call_args(self, function, args, kwargs):
+            names, _, _, defaults = _inspect.getargspec(function)
+            defaults = dict(zip(reversed(names), reversed(nvl(defaults, []))))
+
+            for i, name in enumerate(names):
+                try:
+                    yield args[i]
+                except IndexError:
+                    assert name in defaults, (name, defaults)
+                    yield kwargs.get(name, defaults[name])
+
     if _function is None:
         return decorator
     else:
         return decorator(_function)
-
-def _get_target_args(function, args, kwargs):
-    argspec = _inspect.getargspec(function)
-    args = list(args)
-    values = list()
-
-    # XXX zip?
-
-    for name in argspec.args:
-        if name in kwargs:
-            values.append(kwargs[name])
-        else:
-            try:
-                values.append(args.pop(0))
-            except IndexError:
-                pass
-
-    return values
 
 def run_target(name, *args, **kwargs):
     PlanoCommand.targets[name](*args, **kwargs)
