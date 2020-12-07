@@ -84,7 +84,7 @@ def enable_logging(level="warn", output=None):
     global _logging_threshold
     _logging_threshold = _logging_levels.index(level)
 
-    if _is_string(output):
+    if is_string(output):
         output = open(output, "w")
 
     global _logging_output
@@ -121,7 +121,7 @@ def exit(arg=None, *args):
     if arg in (0, None):
         _sys.exit()
 
-    if _is_string(arg):
+    if is_string(arg):
         error(arg, *args)
         _sys.exit(1)
 
@@ -152,7 +152,7 @@ def _print_message(category, message, args):
     out.flush()
 
 def _format_message(category, message, args):
-    if not _is_string(message):
+    if not is_string(message):
         message = str(message)
 
     if args:
@@ -704,6 +704,12 @@ def sleep(seconds, quiet=False):
 
     _time.sleep(seconds)
 
+def _format_command(command):
+    if is_string(command):
+        return "'{0}'".format(command)
+
+    return command
+
 # quiet=False - Don't log at notice level
 # stash=False - No output unless there is an error
 # output=<file> - Send stdout and stderr to a file
@@ -712,18 +718,18 @@ def sleep(seconds, quiet=False):
 # stderr=<file> - Send stderr to a file
 # shell=False - XXX
 def start(command, stdin=None, stdout=None, stderr=None, output=None, shell=False, stash=False, quiet=False):
-    _log(quiet, "Starting '{0}'", command)
+    _log(quiet, "Starting {0}", _format_command(command))
 
     if output is not None:
         stdout, stderr = output, output
 
-    if _is_string(stdin):
+    if is_string(stdin):
         stdin = open(stdin, "r")
 
-    if _is_string(stdout):
+    if is_string(stdout):
         stdout = open(stdout, "w")
 
-    if _is_string(stderr):
+    if is_string(stderr):
         stderr = open(stderr, "w")
 
     if stdin is None:
@@ -744,14 +750,20 @@ def start(command, stdin=None, stdout=None, stderr=None, output=None, shell=Fals
         stderr = out
 
     if shell:
-        args = command
+        if is_string(command):
+            args = command
+        else:
+            args = " ".join(command)
     else:
-        args = _shlex.split(command)
+        if is_string(command):
+            args = _shlex.split(command)
+        else:
+            args = command
 
     try:
         proc = PlanoProcess(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell, close_fds=True, stash_file=stash_file)
     except OSError as e:
-        raise PlanoException("Command '{0}': {1}".format(command, str(e)))
+        raise PlanoException("Command {0}: {1}".format(_format_command(command), str(e)))
 
     debug("{0} started", proc)
 
@@ -807,7 +819,7 @@ def wait(proc, check=False, quiet=False):
 # input=<string> - Pipe <string> to the process
 def run(command, stdin=None, stdout=None, stderr=None, input=None, output=None,
         stash=False, shell=False, check=True, quiet=False):
-    _log(quiet, "Running '{0}'", command)
+    _log(quiet, "Running {0}", _format_command(command))
 
     if input is not None:
         assert stdin in (None, _subprocess.PIPE), stdin
@@ -830,7 +842,7 @@ def run(command, stdin=None, stdout=None, stderr=None, input=None, output=None,
 
 # input=<string> - Pipe the given input into the process
 def call(command, input=None, shell=False, quiet=False):
-    _log(quiet, "Calling '{0}'", command)
+    _log(quiet, "Calling {0}", _format_command(command))
 
     proc = run(command, stdin=_subprocess.PIPE, stdout=_subprocess.PIPE, stderr=_subprocess.PIPE,
                input=input, shell=shell, check=True, quiet=True)
@@ -862,7 +874,7 @@ class PlanoProcess(_subprocess.Popen):
         kill(self)
 
     def __repr__(self):
-        return "process {0} ('{1}')".format(self.pid, " ".join(self.args))
+        return "process {0} ({1})".format(self.pid, _format_command(self.args))
 
 class PlanoException(Exception):
     pass
@@ -936,7 +948,7 @@ def get_random_port(min=49152, max=65535):
 def wait_for_port(port, host="", timeout=30, quiet=False):
     _log(quiet, "Waiting for port {0}", port)
 
-    if _is_string(port):
+    if is_string(port):
         port = int(port)
 
     sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
@@ -996,11 +1008,19 @@ def plural(noun, count=0):
 
     return "{0}s".format(noun)
 
-def _is_string(obj):
+def is_string(obj):
     try:
         return isinstance(obj, basestring)
     except NameError:
         return isinstance(obj, str)
+
+# # Non-string iterable
+# def is_iterable(obj):
+#     try:
+#         iter(obj)
+#         not is_string(obj)
+#     except TypeError:
+#         return false
 
 try:
     import importlib as _importlib
@@ -1073,7 +1093,7 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
                     if arg.type is None:
                         arg.type = type(arg.default)
 
-                    if _is_string(arg.default):
+                    if is_string(arg.default):
                         default = "'{0}'".format(arg.default)
                     else:
                         default = arg.default
@@ -1129,7 +1149,7 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
                 if arg.default == value:
                     continue
 
-                if _is_string(value):
+                if is_string(value):
                     value = "\"{0}\"".format(value)
                 elif value in (True, False):
                     value = str(value).lower()

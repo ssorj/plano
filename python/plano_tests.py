@@ -495,7 +495,7 @@ def test_process_operations(session):
 
     run("date", stash=True)
 
-    proc = run("echo hello", check=False)
+    proc = run(["echo", "hello"], check=False)
     assert proc.exit_code == 0, proc.exit_code
 
     proc = run("cat /uh/uh", check=False)
