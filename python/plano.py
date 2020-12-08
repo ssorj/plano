@@ -576,10 +576,10 @@ def move(from_path, to_path, inside=True, quiet=False):
     return to_path
 
 def remove(path, quiet=False):
-    _log(quiet, "Removing '{0}'", path)
-
     if not exists(path):
         return
+
+    _log(quiet, "Removing '{0}'", path)
 
     if is_dir(path):
         _shutil.rmtree(path, ignore_errors=True)
