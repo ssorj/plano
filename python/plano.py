@@ -575,18 +575,20 @@ def move(from_path, to_path, inside=True, quiet=False):
 
     return to_path
 
-def remove(path, quiet=False):
-    if not exists(path):
-        return
+def remove(paths, quiet=False):
+    if is_string(paths):
+        paths = [paths]
 
-    _log(quiet, "Removing '{0}'", path)
+    for path in paths:
+        if not exists(path):
+            continue
 
-    if is_dir(path):
-        _shutil.rmtree(path, ignore_errors=True)
-    else:
-        _os.remove(path)
+        _log(quiet, "Removing '{0}'", path)
 
-    return path
+        if is_dir(path):
+            _shutil.rmtree(path, ignore_errors=True)
+        else:
+            _os.remove(path)
 
 def make_link(path, linked_path, quiet=False):
     _log(quiet, "Making link '{0}' to '{1}'", path, linked_path)

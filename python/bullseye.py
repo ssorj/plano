@@ -154,12 +154,8 @@ def install(staging_dir="", prefix=None, clean=False):
 @target
 def clean():
     remove(project.build_dir)
-
-    for path in find(".", "__pycache__"):
-        remove(path)
-
-    for path in find(".", "*.pyc"):
-        remove(path)
+    remove(find(".", "__pycache__"))
+    remove(find(".", "*.pyc"))
 
 @target(help="Update Git submodules",
         args=[Argument("remote", help="Get remote commits"),

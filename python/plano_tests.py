@@ -148,18 +148,21 @@ def test_file_operations(session):
         epsilon_dir = make_dir("epsilon-dir")
         epsilon_file_1 = touch(join(epsilon_dir, "epsilon-file-1"))
         epsilon_file_2 = touch(join(epsilon_dir, "epsilon-file-2"))
+        epsilon_file_3 = touch(join(epsilon_dir, "epsilon-file-3"))
+        epsilon_file_4 = touch(join(epsilon_dir, "epsilon-file-4"))
 
-        result = remove("not-there")
-        assert result is None, result
+        remove("not-there")
 
-        result = remove(epsilon_file_2)
-        assert result == epsilon_file_2, result
+        remove(epsilon_file_2)
         assert not exists(epsilon_file_2)
 
-        result = remove(epsilon_dir)
-        assert result == epsilon_dir, result
+        remove(epsilon_dir)
         assert not exists(epsilon_file_1)
         assert not exists(epsilon_dir)
+
+        remove([epsilon_file_3, epsilon_file_4])
+        assert not exists(epsilon_file_3)
+        assert not exists(epsilon_file_4)
 
         input_file = write("zeta-file", "X@replace-me@X")
         output_file = configure_file(input_file, "zeta-file", {"replace-me": "Y"})
