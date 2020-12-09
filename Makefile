@@ -44,6 +44,11 @@ build:
 install: build
 	./setup.py install --root ${DESTDIR} --prefix ${PREFIX}
 
+.PHONY: docs
+docs:
+	mkdir -p build
+	sphinx-build -M html docs build/docs
+
 .PHONY: clean
 clean:
 	find . -type f -name \*.pyc -delete
