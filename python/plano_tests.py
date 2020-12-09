@@ -126,24 +126,29 @@ def test_file_operations(session):
         assert exists(beta_file)
 
         with working_dir("beta-dir"):
-            assert exists(read_link("beta-file-link"))
+            assert is_file(read_link("beta-file-link"))
 
         copied_file = copy(alpha_file, beta_dir)
         assert copied_file == join(beta_dir, "alpha-file"), copied_file
+        assert is_file(copied_file), list_dir(beta_dir)
 
-        assert exists(beta_link)
         copied_link = copy(beta_link, join(beta_dir, "beta-file-link-copy"))
         assert copied_link == join(beta_dir, "beta-file-link-copy"), copied_link
+        assert is_link(copied_link), list_dir(beta_dir)
 
         copied_dir = copy(alpha_dir, beta_dir)
         assert copied_dir == join(beta_dir, "alpha-dir"), copied_dir
-        assert exists(join(copied_dir, "alpha-file-link"))
+        assert is_link(join(copied_dir, "alpha-file-link"))
 
         moved_file = move(beta_file, alpha_dir)
         assert moved_file == join(alpha_dir, "beta-file"), moved_file
+        assert is_file(moved_file), list_dir(alpha_dir)
+        assert not exists(beta_file), list_dir(beta_dir)
 
         moved_dir = move(beta_dir, alpha_dir)
         assert moved_dir == join(alpha_dir, "beta-dir"), moved_dir
+        assert is_dir(moved_dir), list_dir(alpha_dir)
+        assert not exists(beta_dir)
 
         gamma_dir = make_dir("gamma-dir")
         gamma_file = touch(join(gamma_dir, "gamma-file"))

@@ -571,13 +571,13 @@ def move(from_path, to_path, inside=True, quiet=False):
     _log(quiet, "Moving '{0}' to '{1}'", from_path, to_path)
 
     to_path = copy(from_path, to_path, inside=inside, quiet=True)
-    remove(from_path)
+    remove(from_path, quiet=True)
 
     return to_path
 
 def remove(paths, quiet=False):
     if is_string(paths):
-        paths = [paths]
+        paths = (paths,)
 
     for path in paths:
         if not exists(path):
