@@ -990,12 +990,18 @@ def replace(string, expr, replacement, count=0):
     return _re.sub(expr, replacement, string, count)
 
 def remove_prefix(string, prefix):
+    if string is None:
+        return ""
+
     if prefix and string.startswith(prefix):
         string = string[len(prefix):]
 
     return string
 
 def remove_suffix(string, suffix):
+    if string is None:
+        return ""
+
     if suffix and string.endswith(suffix):
         string = string[:-len(suffix)]
 
@@ -1026,31 +1032,26 @@ def shorten(string, max_, ellipsis=""):
         else:
             return string[0:max_]
 
-def plural(noun, count=0):
+def plural(noun, count=0, plural=None):
     if noun in (None, ""):
         return ""
 
     if count == 1:
         return noun
 
-    if noun.endswith("s"):
-        return "{0}ses".format(noun)
+    if plural is None:
+        if noun.endswith("s"):
+            plural = "{0}ses".format(noun)
+        else:
+            plural = "{0}s".format(noun)
 
-    return "{0}s".format(noun)
+    return plural
 
 def is_string(obj):
     try:
         return isinstance(obj, basestring)
     except NameError:
         return isinstance(obj, str)
-
-# # Non-string iterable
-# def is_iterable(obj):
-#     try:
-#         iter(obj)
-#         not is_string(obj)
-#     except TypeError:
-#         return false
 
 try:
     import importlib as _importlib
@@ -1081,9 +1082,6 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
                 self.help = nvl(help, _target_help.get(self.name))
                 self.description = description
                 self.args = self.process_args(args)
-
-                if self.name in PlanoCommand.targets:
-                    debug("Target '{0}' is already defined", self.name)
             else:
                 assert name is None
                 assert args is None # For now, no override

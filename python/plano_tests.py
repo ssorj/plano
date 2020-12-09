@@ -420,6 +420,15 @@ def test_logging_operations(session):
         finally:
             enable_logging()
 
+def test_console_operations(session):
+    eprint("abc123")
+
+    with console_color("red"):
+        print("ALERT")
+
+    with console_color("red", bright=True):
+        print("CRITICAL ALERT")
+
 def test_path_operations(session):
     result = get_home_dir()
     assert result == ENV["HOME"], result
@@ -532,6 +541,7 @@ def test_process_operations(session):
 
     run("echo hello", quiet=True)
     run("echo hello | cat", shell=True)
+    run(["echo", "hello"], shell=True)
 
     try:
         run("/not/there")
@@ -584,6 +594,24 @@ def test_string_operations(session):
     result = replace("aba", "a", "b", count=1)
     assert result == "bba", result
 
+    result = remove_prefix(None, "xxx")
+    assert result == "", result
+
+    result = remove_prefix("anterior", "ant")
+    assert result == "erior", result
+
+    result = remove_prefix("anterior", "ext")
+    assert result == "anterior", result
+
+    result = remove_suffix(None, "xxx")
+    assert result == "", result
+
+    result = remove_suffix("exterior", "ior")
+    assert result == "exter", result
+
+    result = remove_suffix("exterior", "nal")
+    assert result == "exterior"
+
     result = nvl(None, "a")
     assert result == "a", result
 
@@ -622,6 +650,9 @@ def test_string_operations(session):
 
     result = plural("bus", 1)
     assert result == "bus", result
+
+    result = plural("bus", 2, "bussen")
+    assert result == "bussen", result
 
     encoded_result = base64_encode(b"abc")
     decoded_result = base64_decode(encoded_result)
