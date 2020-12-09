@@ -139,13 +139,14 @@ def install(staging_dir="", prefix=None, clean=False):
 
     build_file = join(project.build_dir, "build.json")
     build_data = read_json(build_file)
-    prefix = staging_dir + build_data["prefix"]
+    build_prefix = project.build_dir + "/"
+    install_prefix = staging_dir + build_data["prefix"]
 
     for path in find(join(project.build_dir, "bin")):
-        copy(path, join(prefix, path[6:]), inside=False, symlinks=False)
+        copy(path, join(install_prefix, remove_prefix(path, build_prefix)), inside=False, symlinks=False)
 
     for path in find(join(project.build_dir, project.name)):
-        copy(path, join(prefix, "lib", path[6:]), inside=False, symlinks=False)
+        copy(path, join(install_prefix, "lib", remove_prefix(path, build_prefix)), inside=False, symlinks=False)
 
 @target
 def clean():

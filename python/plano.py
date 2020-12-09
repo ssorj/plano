@@ -989,6 +989,18 @@ def wait_for_port(port, host="", timeout=30, quiet=False):
 def replace(string, expr, replacement, count=0):
     return _re.sub(expr, replacement, string, count)
 
+def remove_prefix(string, prefix):
+    if prefix and string.startswith(prefix):
+        string = string[len(prefix):]
+
+    return string
+
+def remove_suffix(string, suffix):
+    if suffix and string.endswith(suffix):
+        string = string[:-len(suffix)]
+
+    return string
+
 def nvl(value, substitution, template=None):
     if value is None:
         return substitution
