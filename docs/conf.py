@@ -14,7 +14,6 @@ autodoc_default_options = {
     "members": True,
     "member-order": "bysource",
     "undoc-members": True,
-    "inherited-members": True,
     "imported-members": True,
     "exclude-members": "PlanoProcess",
 }

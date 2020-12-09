@@ -1,6 +1,6 @@
 import bullseye
 
-if not bullseye.PlanoCommand.targets:
+if not bullseye.PlanoCommand._targets:
     if PYTHON2:
         reload(bullseye)
     else:

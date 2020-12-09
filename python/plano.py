@@ -283,8 +283,8 @@ def get_program_name(command=None):
 def which(program_name):
     assert "PATH" in ENV
 
-    for dir_ in ENV["PATH"].split(PATH_VAR_SEP):
-        program = join(dir_, program_name)
+    for dir in ENV["PATH"].split(PATH_VAR_SEP):
+        program = join(dir, program_name)
 
         if _os.access(program, _os.X_OK):
             return program
@@ -719,11 +719,6 @@ class working_env(object):
 def get_process_id():
     return _os.getpid()
 
-def sleep(seconds, quiet=False):
-    _log(quiet, "Sleeping for {0} {1}", seconds, plural("second", seconds))
-
-    _time.sleep(seconds)
-
 def _format_command(command):
     if is_string(command):
         return "'{0}'".format(command)
@@ -903,14 +898,26 @@ class PlanoProcessError(_subprocess.CalledProcessError, PlanoException):
     def __init__(self, proc):
         super(PlanoProcessError, self).__init__(proc.exit_code, " ".join(proc.args))
 
-def default_sigterm_handler(signum, frame):
+def _default_sigterm_handler(signum, frame):
     for proc in _child_processes:
         if proc.poll() is None:
             proc.terminate()
 
     exit(-(_signal.SIGTERM))
 
-_signal.signal(_signal.SIGTERM, default_sigterm_handler)
+_signal.signal(_signal.SIGTERM, _default_sigterm_handler)
+
+## Time operations
+
+def sleep(seconds, quiet=False):
+    _log(quiet, "Sleeping for {0} {1}", seconds, plural("second", seconds))
+
+    _time.sleep(seconds)
+
+def get_time():
+    return _time.time()
+
+## Archive operations
 
 def make_archive(input_dir, output_file=None, quiet=False):
     check_program("tar")
@@ -965,7 +972,7 @@ def rename_archive(input_file, new_archive_stem, quiet=False):
 def get_random_port(min=49152, max=65535):
     return _random.randint(min, max)
 
-def wait_for_port(port, host="", timeout=30, quiet=False):
+def await_port(port, host="", timeout=30, quiet=False):
     _log(quiet, "Waiting for port {0}", port)
 
     if is_string(port):
@@ -1095,7 +1102,7 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
 
             debug("Adding target '{0}'", self.name)
 
-            PlanoCommand.targets[self.name] = self
+            PlanoCommand._targets[self.name] = self
 
         def process_args(self, input_args):
             input_args_by_name = {}
@@ -1138,9 +1145,9 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
             return output_args
 
         def __call__(self, *args, **kwargs):
-            PlanoCommand.running_targets.append(self)
+            PlanoCommand._running_targets.append(self)
 
-            dashes = "--" * len(PlanoCommand.running_targets)
+            dashes = "--" * len(PlanoCommand._running_targets)
             display_args = list(self.get_display_args(args, kwargs))
 
             with console_color("magenta", file=STDERR):
@@ -1161,10 +1168,10 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
             with console_color("magenta", file=STDERR):
                 eprint("<{0} {1}".format(dashes, self.name))
 
-            PlanoCommand.running_targets.pop()
+            PlanoCommand._running_targets.pop()
 
-            if PlanoCommand.running_targets:
-                name = PlanoCommand.running_targets[-1].name
+            if PlanoCommand._running_targets:
+                name = PlanoCommand._running_targets[-1].name
 
                 with console_color("magenta", file=STDERR):
                     eprint("{0} [{1}]".format(dashes[:-1], name))
@@ -1203,10 +1210,10 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
         return decorator(_function)
 
 def run_target(name, *args, **kwargs):
-    PlanoCommand.targets[name](*args, **kwargs)
+    PlanoCommand._targets[name](*args, **kwargs)
 
 def import_targets(module_name, *target_names):
-    targets = _collections.OrderedDict(PlanoCommand.targets)
+    targets = _collections.OrderedDict(PlanoCommand._targets)
 
     try:
         module = _import_module(module_name)
@@ -1214,7 +1221,7 @@ def import_targets(module_name, *target_names):
         for name in target_names:
             targets[name] = getattr(module, name)
     finally:
-        PlanoCommand.targets = targets
+        PlanoCommand._targets = targets
 
 class Argument(object):
     def __init__(self, name, option_name=None, metavar=None, type=None, help=None, default=None):
@@ -1228,12 +1235,12 @@ class Argument(object):
         self.has_default = False
 
 class PlanoCommand(object):
-    targets = _collections.OrderedDict()
-    running_targets = list()
+    _targets = _collections.OrderedDict()
+    _running_targets = list()
 
     def __init__(self):
-        PlanoCommand.targets.clear()
-        PlanoCommand.running_targets = list() # Python 3 has clear()
+        PlanoCommand._targets.clear()
+        PlanoCommand._running_targets = list() # Python 3 has clear()
 
         description = "Run targets defined as Python functions"
 
@@ -1261,14 +1268,13 @@ class PlanoCommand(object):
 
         self.init_only = starting_args.init_only
 
-        self.load_config(starting_args.file)
-
-        self.process_targets()
+        self._load_config(starting_args.file)
+        self._process_targets()
 
         if not remaining_args:
             args = _sys.argv[1:]
 
-            for target in PlanoCommand.targets.values():
+            for target in PlanoCommand._targets.values():
                 if target.default:
                     args.append(target.name)
                     break
@@ -1280,10 +1286,10 @@ class PlanoCommand(object):
             self.init_only = True
             return
 
-        self.target = PlanoCommand.targets[args.target]
+        self.target = PlanoCommand._targets[args.target]
         self.target_args = [getattr(args, arg.name) for arg in self.target.args]
 
-    def load_config(self, planofile):
+    def _load_config(self, planofile):
         if planofile is not None and not exists(planofile):
             exit("File '{0}' not found", planofile)
 
@@ -1306,10 +1312,10 @@ class PlanoCommand(object):
             error(e)
             exit("Failure loading '{0}': {1}", planofile, str(e))
 
-    def process_targets(self):
+    def _process_targets(self):
         subparsers = self.parser.add_subparsers(title="targets", dest="target")
 
-        for target in PlanoCommand.targets.values():
+        for target in PlanoCommand._targets.values():
             description = nvl(target.description, target.help)
             subparser = subparsers.add_parser(target.name, help=target.help, description=description,
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)

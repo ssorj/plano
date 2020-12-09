@@ -505,12 +505,12 @@ def test_port_operations(session):
         server_socket.bind(("localhost", server_port))
         server_socket.listen(5)
 
-        wait_for_port(server_port)
+        await_port(server_port)
     finally:
         server_socket.close()
 
     try:
-        wait_for_port(str(get_random_port()), timeout=0.1)
+        await_port(str(get_random_port()), timeout=0.1)
     except PlanoException:
         pass
 
@@ -664,7 +664,8 @@ def test_string_operations(session):
 
     try:
         proc = start("sleep 1")
-        default_sigterm_handler(_signal.SIGTERM, None)
+        from plano import _default_sigterm_handler
+        _default_sigterm_handler(_signal.SIGTERM, None)
     except SystemExit:
         pass
     finally:
@@ -733,9 +734,9 @@ def test_plano_command(session):
             command = PlanoCommand()
             command.main(["--help"])
 
-            assert "modules" in PlanoCommand.targets, PlanoCommand.targets
-            assert "clean" in PlanoCommand.targets, PlanoCommand.targets
-            assert "build" not in PlanoCommand.targets, PlanoCommand.targets
+            assert "modules" in PlanoCommand._targets, PlanoCommand._targets
+            assert "clean" in PlanoCommand._targets, PlanoCommand._targets
+            assert "build" not in PlanoCommand._targets, PlanoCommand._targets
 
     def invoke(*args):
         command = PlanoCommand()
