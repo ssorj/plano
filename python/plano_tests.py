@@ -618,9 +618,6 @@ def test_string_operations(session):
     result = nvl("b", "a")
     assert result == "b", result
 
-    result = nvl("b", "a", "x{0}x")
-    assert result == "xbx", result
-
     result = shorten("abc", 2)
     assert result == "ab", result
 

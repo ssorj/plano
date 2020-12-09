@@ -1016,12 +1016,9 @@ def remove_suffix(string, suffix):
 
     return string
 
-def nvl(value, substitution, template=None):
+def nvl(value, substitution):
     if value is None:
         return substitution
-
-    if template is not None:
-        return template.format(value)
 
     return value
 
