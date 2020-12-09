@@ -317,14 +317,6 @@ def prepend(file, string):
     orig = read(file)
     return write(file, string + orig)
 
-def touch(file):
-    try:
-        _os.utime(file, None)
-    except OSError:
-        append(file, "")
-
-    return file
-
 def tail(file, n):
     return "".join(tail_lines(file, n))
 
@@ -543,6 +535,16 @@ def url_encode(string):
 
 def url_decode(string):
     return _urlparse.unquote_plus(string)
+
+def touch(file, quiet=False):
+    _log(quiet, "Touching '{0}'", file)
+
+    try:
+        _os.utime(file, None)
+    except OSError:
+        append(file, "")
+
+    return file
 
 # symlinks=True - Preserve symlinks
 # inside=True - Place from_path inside to_path if to_path is a directory
