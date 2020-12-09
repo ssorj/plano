@@ -21,10 +21,10 @@ from __future__ import print_function
 
 import collections as _collections
 import os as _os
+import shutil as _shutil
 import sys as _sys
 
 from plano import *
-from plano import _import_module
 
 class _Project:
     def __init__(self):
@@ -52,6 +52,20 @@ class project_env(working_env):
         }
 
         super(project_env, self).__init__(**env)
+
+def configure_file(input_file, output_file, substitutions, quiet=False):
+    notice("Configuring '{0}' for output '{1}'", input_file, output_file)
+
+    content = read(input_file)
+
+    for name, value in substitutions.items():
+        content = content.replace("@{0}@".format(name), value)
+
+    write(output_file, content)
+
+    _shutil.copymode(input_file, output_file)
+
+    return output_file
 
 @target(args=[Argument("prefix", help="The base path for installed files", default=_default_prefix),
               Argument("clean", help="Clean before building")])
@@ -110,6 +124,7 @@ def test(include=None, verbose=False, list_=False, clean=False):
     run_target("build", clean=clean)
 
     with project_env():
+        from plano import _import_module
         modules = [_import_module(x) for x in project.test_modules]
 
         if not modules:

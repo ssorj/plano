@@ -97,6 +97,21 @@ def test_dir_operations(session):
         assert curr_dir == prev_dir, (curr_dir, prev_dir)
         assert new_curr_dir == new_prev_dir, (new_curr_dir, new_prev_dir)
 
+def test_console_operations(session):
+    eprint("Here's a story")
+    eprint("About a", "man named Brady")
+
+    pprint(list_dir())
+    pprint(PlanoProcess, 1, "abc", end="\n\n")
+
+    flush()
+
+    with console_color("red"):
+        print("ALERT")
+
+    with console_color("red", bright=True):
+        print("CRITICAL ALERT")
+
 def test_env_operations(session):
     result = which("echo")
     assert result, result
@@ -181,11 +196,6 @@ def test_file_operations(session):
         remove([epsilon_file_3, epsilon_file_4])
         assert not exists(epsilon_file_3)
         assert not exists(epsilon_file_4)
-
-        input_file = write("zeta-file", "X@replace-me@X")
-        output_file = configure_file(input_file, "zeta-file", {"replace-me": "Y"})
-        output = read(output_file)
-        assert output == "XYX", output
 
 def test_host_operations(session):
     result = get_hostname()
@@ -373,8 +383,6 @@ def test_logging_operations(session):
             notice(123)
             debug("By the way")
             debug("abc{0}{1}{2}", 1, 2, 3)
-            eprint("Here's a story")
-            eprint("About a", "man named Brady")
 
             exc = Exception("abc123")
 
@@ -382,52 +390,11 @@ def test_logging_operations(session):
                 fail(exc)
             except Exception as e:
                 assert e is exc, e
-
-            try:
-                exit()
-            except SystemExit:
-                pass
-
-            try:
-                exit("abc")
-            except SystemExit:
-                pass
-
-            try:
-                exit(Exception())
-            except SystemExit:
-                pass
-
-            try:
-                exit(123)
-            except SystemExit:
-                pass
-
-            try:
-                exit(-123)
-            except SystemExit:
-                pass
-
-            try:
-                exit(object())
-            except PlanoException:
-                pass
-
-            flush()
         except:
             print(read(f))
             raise
         finally:
             enable_logging()
-
-def test_console_operations(session):
-    eprint("abc123")
-
-    with console_color("red"):
-        print("ALERT")
-
-    with console_color("red", bright=True):
-        print("CRITICAL ALERT")
 
 def test_path_operations(session):
     result = get_home_dir()
@@ -587,6 +554,42 @@ def test_process_operations(session):
         with start("date", stdin="i", stdout="o", stderr="e"):
             pass
 
+            try:
+                exit()
+                assert False
+            except SystemExit:
+                pass
+
+            try:
+                exit("abc")
+                assert False
+            except SystemExit:
+                pass
+
+            try:
+                exit(Exception())
+                assert False
+            except SystemExit:
+                pass
+
+            try:
+                exit(123)
+                assert False
+            except SystemExit:
+                pass
+
+            try:
+                exit(-123)
+                assert False
+            except SystemExit:
+                pass
+
+            try:
+                exit(object())
+                assert False
+            except PlanoException:
+                pass
+
 def test_string_operations(session):
     result = replace("ab", "a", "b")
     assert result == "bb", result
@@ -648,8 +651,8 @@ def test_string_operations(session):
     result = plural("bus", 1)
     assert result == "bus", result
 
-    result = plural("bus", 2, "bussen")
-    assert result == "bussen", result
+    result = plural("terminus", 2, "termini")
+    assert result == "termini", result
 
     encoded_result = base64_encode(b"abc")
     decoded_result = base64_decode(encoded_result)
@@ -693,6 +696,13 @@ def test_temp_operations(session):
 
     user_temp_dir = get_user_temp_dir()
     assert user_temp_dir, user_temp_dir
+
+def test_time_operations(session):
+    start_time = get_time()
+
+    sleep(0.1)
+
+    assert get_time() - start_time > 0.1
 
 def test_unique_id_operations(session):
     id1 = get_unique_id()

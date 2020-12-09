@@ -17,7 +17,7 @@
 # under the License.
 #
 
-from plano import *
+from bullseye import *
 
 _test_project_dir = get_absolute_path("test-project")
 _result_file = "build/result.json"
@@ -37,12 +37,17 @@ def open_test_session(session):
         enable_logging(level="debug")
 
 def test_project_env(session):
-    from bullseye import project, project_env
-
     project.name = "ALPHABET"
 
     with project_env():
         assert "ALPHABET_HOME" in ENV, ENV
+
+def test_configure_file(session):
+    with working_dir():
+        input_file = write("zeta-file", "X@replace-me@X")
+        output_file = configure_file(input_file, "zeta-file", {"replace-me": "Y"})
+        output = read(output_file)
+        assert output == "XYX", output
 
 def test_target_build(session):
     with _test_project():

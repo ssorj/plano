@@ -29,6 +29,7 @@ import getpass as _getpass
 import inspect as _inspect
 import json as _json
 import os as _os
+import pprint as _pprint
 import random as _random
 import re as _re
 import shlex as _shlex
@@ -117,28 +118,6 @@ def debug(message, *args):
     if _logging_threshold <= _debug:
         _print_message("Debug", message, args)
 
-def exit(arg=None, *args):
-    if arg in (0, None):
-        _sys.exit()
-
-    if is_string(arg):
-        error(arg, *args)
-        _sys.exit(1)
-
-    if isinstance(arg, BaseException):
-        error(str(arg))
-        _sys.exit(1)
-
-    if isinstance(arg, int):
-        if arg > 0:
-            error("Exiting with code {0}", arg)
-        else:
-            notice("Exiting with code {0}", arg)
-
-        _sys.exit(arg)
-
-    raise PlanoException("Illegal argument")
-
 def _print_message(category, message, args):
     out = nvl(_logging_output, _sys.stderr)
 
@@ -177,6 +156,10 @@ def _log(quiet, message, *args):
 
 def eprint(*args, **kwargs):
     print(*args, file=_sys.stderr, **kwargs)
+
+def pprint(*args, **kwargs):
+    args = [_pprint.pformat(x, width=120) for x in args]
+    print(*args, **kwargs)
 
 def flush():
     STDOUT.flush()
@@ -632,20 +615,6 @@ def find(dirs, include="*", exclude=()):
 
     return sorted(found)
 
-def configure_file(input_file, output_file, substitutions, quiet=False):
-    _log(quiet, "Configuring '{0}' for output '{1}'", input_file, output_file)
-
-    content = read(input_file)
-
-    for name, value in substitutions.items():
-        content = content.replace("@{0}@".format(name), value)
-
-    write(output_file, content)
-
-    _shutil.copymode(input_file, output_file)
-
-    return output_file
-
 def make_dir(dir, quiet=False):
     if dir == "":
         return dir
@@ -864,6 +833,28 @@ def call(command, input=None, shell=False, quiet=False):
 
     return proc.stdout_result
 
+def exit(arg=None, *args):
+    if arg in (0, None):
+        _sys.exit()
+
+    if is_string(arg):
+        error(arg, *args)
+        _sys.exit(1)
+
+    if isinstance(arg, BaseException):
+        error(str(arg))
+        _sys.exit(1)
+
+    if isinstance(arg, int):
+        if arg > 0:
+            error("Exiting with code {0}", arg)
+        else:
+            notice("Exiting with code {0}", arg)
+
+        _sys.exit(arg)
+
+    raise PlanoException("Illegal argument")
+
 _child_processes = list()
 
 class PlanoProcess(_subprocess.Popen):
@@ -1022,21 +1013,23 @@ def nvl(value, substitution):
 
     return value
 
-def shorten(string, max_, ellipsis=""):
-    assert max_ is None or isinstance(max_, int)
+_max = max
+
+def shorten(string, max, ellipsis=""):
+    assert max is None or isinstance(max, int)
 
     if string is None:
         return ""
 
-    if max_ is None or len(string) < max_:
+    if max is None or len(string) < max:
         return string
     else:
         if ellipsis:
             string = string + ellipsis
-            end = max(0, max_ - len(ellipsis))
+            end = _max(0, max - len(ellipsis))
             return string[0:end] + ellipsis
         else:
-            return string[0:max_]
+            return string[0:max]
 
 def plural(noun, count=0, plural=None):
     if noun in (None, ""):
@@ -1053,11 +1046,11 @@ def plural(noun, count=0, plural=None):
 
     return plural
 
-def is_string(obj):
+def is_string(value):
     try:
-        return isinstance(obj, basestring)
+        return isinstance(value, basestring)
     except NameError:
-        return isinstance(obj, str)
+        return isinstance(value, str)
 
 try:
     import importlib as _importlib
