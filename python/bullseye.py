@@ -167,7 +167,7 @@ def clean():
 def modules(remote=False, recursive=False):
     check_program("git")
 
-    command = "git submodule update --init".split()
+    command = ["git", "submodule", "update", "--init"]
 
     if remote:
         command.append("--remote")
@@ -175,7 +175,7 @@ def modules(remote=False, recursive=False):
     if recursive:
         command.append("--recursive")
 
-    run(" ".join(command))
+    run(command)
 
 @target(help="Generate shell settings for the project environment",
         description="Source the output from your shell.  For example:\n\n\n  $ source <(plano env)")
