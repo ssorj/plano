@@ -603,21 +603,32 @@ def make_link(path, linked_path, quiet=False):
 def read_link(path):
     return _os.readlink(path)
 
-def find(dir, *patterns):
-    matched_paths = set()
+def find(dirs, include="*", exclude=()):
+    if is_string(dirs):
+        dirs = (dirs,)
 
-    if not patterns:
-        patterns = ("*",)
+    if is_string(include):
+        include = (include,)
 
-    for root, dirs, files in _os.walk(dir):
-        for pattern in patterns:
-            matched_dirs = _fnmatch.filter(dirs, pattern)
-            matched_files = _fnmatch.filter(files, pattern)
+    if is_string(exclude):
+        exclude = (exclude,)
 
-            matched_paths.update([join(root, x) for x in matched_dirs])
-            matched_paths.update([join(root, x) for x in matched_files])
+    found = set()
 
-    return sorted(matched_paths)
+    for dir in dirs:
+        for root, dir_names, file_names in _os.walk(dir):
+            names = dir_names + file_names
+
+            for include_pattern in include:
+                names = _fnmatch.filter(names, include_pattern)
+
+                for exclude_pattern in exclude:
+                    for name in _fnmatch.filter(names, exclude_pattern):
+                        names.remove(name)
+
+                found.update([join(root, x) for x in names])
+
+    return sorted(found)
 
 def configure_file(input_file, output_file, substitutions, quiet=False):
     _log(quiet, "Configuring '{0}' for output '{1}'", input_file, output_file)
@@ -647,35 +658,40 @@ def make_parent_dir(path, quiet=False):
     return make_dir(get_parent_dir(path), quiet=quiet)
 
 # Returns the current working directory so you can change it back
-def change_dir(dir_, quiet=False):
-    _log(quiet, "Changing directory to '{0}'", dir_)
+def change_dir(dir, quiet=False):
+    _log(quiet, "Changing directory to '{0}'", dir)
 
     prev_dir = get_current_dir()
 
-    if not dir_:
+    if not dir:
         return prev_dir
 
-    _os.chdir(dir_)
+    _os.chdir(dir)
 
     return prev_dir
 
-def list_dir(dir_=None, *patterns):
-    if dir_ is None:
-        dir_ = get_current_dir()
+def list_dir(dir=None, include="*", exclude=()):
+    if dir is None:
+        dir = get_current_dir()
 
-    assert is_dir(dir_)
+    assert is_dir(dir)
 
-    names = _os.listdir(dir_)
+    if is_string(include):
+        include = (include,)
 
-    if not patterns:
-        return sorted(names)
+    if is_string(exclude):
+        exclude = (exclude,)
 
-    matched_names = set()
+    names = _os.listdir(dir)
 
-    for pattern in patterns:
-        matched_names.update(_fnmatch.filter(names, pattern))
+    for include_pattern in include:
+        names = _fnmatch.filter(names, include_pattern)
 
-    return sorted(matched_names)
+        for exclude_pattern in exclude:
+            for name in _fnmatch.filter(names, exclude_pattern):
+                names.remove(name)
+
+    return sorted(names)
 
 class working_env(object):
     def __init__(self, **env_vars):

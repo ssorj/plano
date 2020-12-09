@@ -88,10 +88,7 @@ def build(prefix=None, clean=False):
     for path in find("bin", "*.in"):
         configure_file(path, join(project.build_dir, path[:-3]), {"default_home": default_home})
 
-    for path in find("bin"):
-        if path.endswith(".in"):
-            continue
-
+    for path in find("bin", exclude="*.in"):
         copy(path, join(project.build_dir, path), inside=False, symlinks=False)
 
     for path in find(project.source_dir, "*.py"):

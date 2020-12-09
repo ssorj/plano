@@ -61,16 +61,29 @@ def test_dir_operations(session):
 
     with working_dir():
         test_dir = make_dir("some-dir")
-        test_file = touch(join(test_dir, "some-file"))
+        test_file_1 = touch(join(test_dir, "some-file-1"))
+        test_file_2 = touch(join(test_dir, "some-file-2"))
 
         result = list_dir(test_dir)
-        assert join(test_dir, result[0]) == test_file, (join(test_dir, result[0]), test_file)
+        assert join(test_dir, result[0]) == test_file_1, (join(test_dir, result[0]), test_file_1)
+
+        result = list_dir(test_dir, "*-file-1")
+        assert result == ["some-file-1"], (result, ["some-file-1"])
+
+        result = list_dir(test_dir, exclude="*-file-1")
+        assert result == ["some-file-2"], (result, ["some-file-2"])
 
         result = list_dir("some-dir", "*.not-there")
         assert result == [], result
 
         result = find(test_dir)
-        assert result == [test_file], (result, [test_file])
+        assert result == [test_file_1, test_file_2], (result, [test_file_1, test_file_2])
+
+        result = find(test_dir, "*-file-1")
+        assert result == [test_file_1], (result, [test_file_1])
+
+        result = find(test_dir, exclude="*-file-1")
+        assert result == [test_file_2], (result, [test_file_2])
 
     with working_dir():
         with working_dir("a-dir", quiet=True):
