@@ -116,7 +116,6 @@ def test(include=None, verbose=False, list_=False, clean=False):
             notice("No tests found")
             return
 
-        command = TestCommand(*modules)
         args = list()
 
         if list_:
@@ -128,7 +127,7 @@ def test(include=None, verbose=False, list_=False, clean=False):
         if include is not None:
             args.append(include)
 
-        command.main(args)
+        TestCommand(*modules).main(args)
 
 @target(args=[Argument("staging_dir", help="A path prepended to installed files")])
 def install(staging_dir="", prefix=None, clean=False):
@@ -186,8 +185,6 @@ def env():
         join("$PWD", project.source_dir),
         "$PYTHONPATH",
     ]
-
-    # python_path.extend(_sys.path)
 
     print("export PYTHONPATH={0}".format(":".join(python_path)))
 
