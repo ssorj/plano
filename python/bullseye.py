@@ -67,8 +67,8 @@ def configure_file(input_file, output_file, substitutions, quiet=False):
 
     return output_file
 
-@target(args=[Argument("prefix", help="The base path for installed files", default=_default_prefix),
-              Argument("clean", help="Clean before building")])
+@target(args=[TargetArgument("prefix", help="The base path for installed files", default=_default_prefix),
+              TargetArgument("clean", help="Clean before building")])
 def build(prefix=None, clean=False):
     assert project.name
 
@@ -115,9 +115,9 @@ def build(prefix=None, clean=False):
         for path in find(dir_name):
             copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
-@target(args=[Argument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
-              Argument("verbose", help="Print detailed logging to the console"),
-              Argument("list_", help="Print the test names and exit", option_name="list")])
+@target(args=[TargetArgument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
+              TargetArgument("verbose", help="Print detailed logging to the console"),
+              TargetArgument("list_", help="Print the test names and exit", option_name="list")])
 def test(include=None, verbose=False, list_=False, clean=False):
     from commandant import TestCommand
 
@@ -144,7 +144,7 @@ def test(include=None, verbose=False, list_=False, clean=False):
 
         TestCommand(*modules).main(args)
 
-@target(args=[Argument("staging_dir", help="A path prepended to installed files")])
+@target(args=[TargetArgument("staging_dir", help="A path prepended to installed files")])
 def install(staging_dir="", prefix=None, clean=False):
     assert project.name
 
@@ -170,8 +170,8 @@ def clean():
     remove(find(".", "*.pyc"))
 
 @target(help="Update Git submodules",
-        args=[Argument("remote", help="Get remote commits"),
-              Argument("recursive", help="Update modules recursively")])
+        args=[TargetArgument("remote", help="Get remote commits"),
+              TargetArgument("recursive", help="Update modules recursively")])
 def modules(remote=False, recursive=False):
     check_program("git")
 
@@ -440,8 +440,8 @@ Or use the special filename "all" to generate all of them.
 """.format("\n  ".join(_project_files))
 
 @target(help="Generate standard project files", description=_description,
-        args=[Argument("filename", help="Which file to generate"),
-              Argument("stdout", help="Print to stdout instead of writing the file directly")])
+        args=[TargetArgument("filename", help="Which file to generate"),
+              TargetArgument("stdout", help="Print to stdout instead of writing the file directly")])
 def generate(filename, stdout=False):
     assert project.name
 

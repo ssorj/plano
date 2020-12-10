@@ -1108,7 +1108,7 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
                 try:
                     arg = input_args_by_name[name]
                 except KeyError:
-                    arg = Argument(name)
+                    arg = TargetArgument(name)
 
                 if name in defaults:
                     arg.has_default = True
@@ -1213,7 +1213,7 @@ def import_targets(module_name, *target_names):
     finally:
         PlanoCommand._targets = targets
 
-class Argument(object):
+class TargetArgument(object):
     def __init__(self, name, option_name=None, metavar=None, type=None, help=None, default=None):
         self.name = name
         self.option_name = nvl(option_name, self.name.replace("_", "-"))

@@ -28,8 +28,8 @@ def run_(trouble=False):
         raise Exception("Trouble")
 
 @target(help="Print messages to the console",
-        args=[Argument("message", help="The message to print"),
-              Argument("count", help="Print the message COUNT times")])
+        args=[TargetArgument("message", help="The message to print"),
+              TargetArgument("count", help="Print the message COUNT times")])
 def echo(message, count=1, extra=None):
     print("Echoing (message={0}, count={1})".format(message, count))
 
