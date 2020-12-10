@@ -53,12 +53,22 @@ def test_archive_operations(session):
         assert is_dir("something-else")
         assert is_file("something-else/some-file")
 
+def test_console_operations(session):
+    eprint("Here's a story")
+    eprint("About a", "man named Brady")
+
+    pprint(list_dir())
+    pprint(PlanoProcess, 1, "abc", end="\n\n")
+
+    flush()
+
+    with console_color("red"):
+        print("ALERT")
+
+    with console_color("red", bright=True):
+        print("CRITICAL ALERT")
+
 def test_dir_operations(session):
-    curr_dir = get_current_dir()
-
-    with working_dir("."):
-        assert get_current_dir() == curr_dir, (get_current_dir(), curr_dir)
-
     with working_dir():
         test_dir = make_dir("some-dir")
         test_file_1 = touch(join(test_dir, "some-file-1"))
@@ -97,22 +107,25 @@ def test_dir_operations(session):
         assert curr_dir == prev_dir, (curr_dir, prev_dir)
         assert new_curr_dir == new_prev_dir, (new_curr_dir, new_prev_dir)
 
-def test_console_operations(session):
-    eprint("Here's a story")
-    eprint("About a", "man named Brady")
+def test_environment_operations(session):
+    curr_dir = get_current_dir()
 
-    pprint(list_dir())
-    pprint(PlanoProcess, 1, "abc", end="\n\n")
+    with working_dir("."):
+        assert get_current_dir() == curr_dir, (get_current_dir(), curr_dir)
 
-    flush()
+    result = get_home_dir()
+    assert result == ENV["HOME"], result
 
-    with console_color("red"):
-        print("ALERT")
+    result = get_home_dir("alice")
+    assert result.endswith("alice"), result
 
-    with console_color("red", bright=True):
-        print("CRITICAL ALERT")
+    user = _pwd.getpwuid(_os.getuid())[0]
+    result = get_user()
+    assert result == user, (result, user)
 
-def test_env_operations(session):
+    result = get_hostname()
+    assert result, result
+
     result = which("echo")
     assert result, result
 
@@ -196,10 +209,6 @@ def test_file_operations(session):
         remove([epsilon_file_3, epsilon_file_4])
         assert not exists(epsilon_file_3)
         assert not exists(epsilon_file_4)
-
-def test_host_operations(session):
-    result = get_hostname()
-    assert result, result
 
 def test_http_operations(session):
     class Handler(_http.BaseHTTPRequestHandler):
@@ -397,12 +406,6 @@ def test_logging_operations(session):
             enable_logging()
 
 def test_path_operations(session):
-    result = get_home_dir()
-    assert result == ENV["HOME"], result
-
-    result = get_home_dir("alice")
-    assert result.endswith("alice"), result
-
     with working_dir("/"):
         curr_dir = get_current_dir()
         assert curr_dir == "/", curr_dir
@@ -715,11 +718,6 @@ def test_unique_id_operations(session):
 
     result = get_unique_id(16)
     assert len(result) == 32
-
-def test_user_operations(session):
-    user = _pwd.getpwuid(_os.getuid())[0]
-    result = get_user()
-    assert result == user, (result, user)
 
 def test_plano_command(session):
     if not PYTHON2:

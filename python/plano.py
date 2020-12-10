@@ -48,6 +48,17 @@ try: # pragma: nocover
 except ImportError: # pragma: nocover
     import urllib as _urlparse
 
+try:
+    import importlib as _importlib
+
+    def _import_module(name):
+        return _importlib.import_module(name)
+except ImportError: # pragma: nocover
+    def _import_module(name):
+        return __import__(name, fromlist=[""])
+
+_max = max
+
 LINE_SEP = _os.linesep
 PATH_SEP = _os.sep
 PATH_VAR_SEP = _os.pathsep
@@ -60,6 +71,8 @@ STDERR = _sys.stderr
 DEVNULL = _os.devnull
 
 PYTHON2 = _sys.version_info[0] == 2
+
+## Logging operations
 
 _logging_levels = (
     "debug",
@@ -154,6 +167,8 @@ def _log(quiet, message, *args):
     else:
         notice(message, *args)
 
+## Console operations
+
 def eprint(*args, **kwargs):
     print(*args, file=_sys.stderr, **kwargs)
 
@@ -199,31 +214,43 @@ class console_color(object):
             print("\u001b[0m", file=self.file, end="")
             self.file.flush()
 
-get_absolute_path = _os.path.abspath
-normalize_path = _os.path.normpath
-get_real_path = _os.path.realpath
-get_relative_path = _os.path.relpath
-exists = _os.path.lexists
-is_absolute = _os.path.isabs
-is_dir = _os.path.isdir
-is_file = _os.path.isfile
-is_link = _os.path.islink
-get_file_size = _os.path.getsize
+## Path operations
 
-join = _os.path.join
-split = _os.path.split
-split_extension = _os.path.splitext
+def get_absolute_path(path):
+    return _os.path.abspath(path)
 
-get_current_dir = _os.getcwd
+def normalize_path(path):
+    return _os.path.normpath(path)
 
-def get_home_dir(user=None):
-    return _os.path.expanduser("~{0}".format(user or ""))
+def get_real_path(path):
+    return _os.path.realpath(path)
 
-def get_user():
-    return _getpass.getuser()
+def get_relative_path(path):
+    return _os.path.relpath(path)
 
-def get_hostname():
-    return _socket.gethostname()
+def exists(path):
+    return _os.path.lexists(path)
+
+def is_absolute(path):
+    return _os.path.isabs(path)
+
+def is_dir(path):
+    return _os.path.isdir(path)
+
+def is_file(path):
+    return _os.path.isfile(path)
+
+def is_link(path):
+    return _os.path.islink(path)
+
+def join(*paths):
+    return _os.path.join(*paths)
+
+def split(path):
+    return _os.path.split(path)
+
+def split_extension(path):
+    return _os.path.splitext(path)
 
 def get_parent_dir(path):
     path = normalize_path(path)
@@ -263,6 +290,23 @@ def get_program_name(command=None):
         if "=" not in arg:
             return get_base_name(arg)
 
+def get_file_size(file):
+    return _os.path.getsize(file)
+
+## Environment operations
+
+def get_current_dir():
+    return _os.getcwd()
+
+def get_home_dir(user=None):
+    return _os.path.expanduser("~{0}".format(user or ""))
+
+def get_user():
+    return _getpass.getuser()
+
+def get_hostname():
+    return _socket.gethostname()
+
 def which(program_name):
     assert "PATH" in ENV
 
@@ -275,6 +319,8 @@ def which(program_name):
 def check_program(program_name):
     if which(program_name) is None:
         raise PlanoException("Program '{0}' is unavailable".format(program_name))
+
+## IO operations
 
 def read(file):
     with _codecs.open(file, encoding="utf-8", mode="r") as f:
@@ -354,6 +400,8 @@ def tail_lines(file, n):
 
         return lines[-n:]
 
+## JSON operations
+
 def read_json(file):
     with _codecs.open(file, encoding="utf-8", mode="r") as f:
         return _json.load(f)
@@ -371,6 +419,8 @@ def parse_json(json):
 
 def emit_json(obj):
     return _json.dumps(obj, indent=4, separators=(",", ": "), sort_keys=True)
+
+## HTTP operations
 
 def _run_curl(method, url, content=None, content_file=None, content_type=None, output_file=None, insecure=False):
     check_program("curl")
@@ -430,6 +480,8 @@ def http_post_file(url, content_file, content_type=None, output_file=None, insec
 
 def http_post_json(url, data, insecure=False):
     return parse_json(http_post(url, emit_json(data), content_type="application/json", insecure=insecure))
+
+## Temp operations
 
 def get_temp_dir():
     return _tempfile.gettempdir()
@@ -497,27 +549,19 @@ class working_dir(object):
         if self.remove:
             remove(self.dir, quiet=True)
 
+## Unique ID operations
+
 # Length in bytes, renders twice as long in hex
-def get_unique_id(length=16):
-    assert length >= 1
-    assert length <= 16
+def get_unique_id(bytes=16):
+    assert bytes >= 1
+    assert bytes <= 16
 
     uuid_bytes = _uuid.uuid4().bytes
-    uuid_bytes = uuid_bytes[:length]
+    uuid_bytes = uuid_bytes[:bytes]
 
     return _binascii.hexlify(uuid_bytes).decode("utf-8")
 
-def base64_encode(string):
-    return _base64.b64encode(string)
-
-def base64_decode(string):
-    return _base64.b64decode(string)
-
-def url_encode(string):
-    return _urlparse.quote_plus(string)
-
-def url_decode(string):
-    return _urlparse.unquote_plus(string)
+## File operations
 
 def touch(file, quiet=False):
     _log(quiet, "Touching '{0}'", file)
@@ -986,6 +1030,14 @@ def await_port(port, host="", timeout=30, quiet=False):
     finally:
         sock.close()
 
+## String operations
+
+def is_string(value):
+    try:
+        return isinstance(value, basestring)
+    except NameError:
+        return isinstance(value, str)
+
 def replace(string, expr, replacement, count=0):
     return _re.sub(expr, replacement, string, count)
 
@@ -1012,8 +1064,6 @@ def nvl(value, substitution):
         return substitution
 
     return value
-
-_max = max
 
 def shorten(string, max, ellipsis=""):
     assert max is None or isinstance(max, int)
@@ -1046,20 +1096,19 @@ def plural(noun, count=0, plural=None):
 
     return plural
 
-def is_string(value):
-    try:
-        return isinstance(value, basestring)
-    except NameError:
-        return isinstance(value, str)
+def base64_encode(string):
+    return _base64.b64encode(string)
 
-try:
-    import importlib as _importlib
+def base64_decode(string):
+    return _base64.b64decode(string)
 
-    def _import_module(name):
-        return _importlib.import_module(name)
-except ImportError: # pragma: nocover
-    def _import_module(name):
-        return __import__(name, fromlist=[""])
+def url_encode(string):
+    return _urlparse.quote_plus(string)
+
+def url_decode(string):
+    return _urlparse.unquote_plus(string)
+
+## Targets
 
 _target_help = {
     "build":    "Build artifacts from source",
@@ -1080,7 +1129,7 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
                 self.name = nvl(name, function.__name__.replace("_", "-"))
                 self.help = nvl(help, _target_help.get(self.name))
                 self.description = description
-                self.args = self.process_args(args)
+                self.args = self._process_args(args)
             else:
                 assert name is None
                 assert args is None # For now, no override
@@ -1094,7 +1143,7 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
 
             PlanoCommand._targets[self.name] = self
 
-        def process_args(self, input_args):
+        def _process_args(self, input_args):
             input_args_by_name = {}
 
             if input_args is not None:
