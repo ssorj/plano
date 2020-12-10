@@ -1251,16 +1251,23 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
 def run_target(name, *args, **kwargs):
     PlanoCommand._targets[name](*args, **kwargs)
 
-def import_targets(module_name, *target_names):
+def import_target(module, name, chosen_name=None):
+    if chosen_name is None:
+        chosen_name = name
+
     targets = _collections.OrderedDict(PlanoCommand._targets)
 
     try:
-        module = _import_module(module_name)
-
-        for name in target_names:
-            targets[name] = getattr(module, name)
+        module = _import_module(module)
+        target = getattr(module, name)
+        targets[chosen_name] = target
     finally:
         PlanoCommand._targets = targets
+
+    return target
+
+def remove_target(name):
+    del PlanoCommand._targets[name]
 
 class TargetArgument(object):
     def __init__(self, name, option_name=None, metavar=None, type=None, help=None, default=None):

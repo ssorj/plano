@@ -18,8 +18,13 @@
 # under the License.
 #
 
+import os
 import code
+import sys
+
+if os.path.isdir("python"):
+    sys.path.insert(0, "python")
 
 from plano import *
 
-code.interact(local=locals(), banner="Plano", exitmsg="")
+code.interact(local=locals(), banner="", exitmsg="")

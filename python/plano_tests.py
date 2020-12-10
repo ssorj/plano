@@ -735,12 +735,16 @@ def test_plano_command(session):
                 pass
 
         with working_dir():
-            write(".planofile", "import_targets('bullseye', 'modules', 'clean')")
+            write(".planofile", "import_target('bullseye', 'modules')\n")
+            append(".planofile", "import_target('bullseye', 'clean', chosen_name='cleanx')\n")
+            append(".planofile", "import_target('bullseye', 'build')\n")
+            append(".planofile", "remove_target('build')\n")
+
             command = PlanoCommand()
             command.main(["--help"])
 
             assert "modules" in PlanoCommand._targets, PlanoCommand._targets
-            assert "clean" in PlanoCommand._targets, PlanoCommand._targets
+            assert "cleanx" in PlanoCommand._targets, PlanoCommand._targets
             assert "build" not in PlanoCommand._targets, PlanoCommand._targets
 
     def invoke(*args):
