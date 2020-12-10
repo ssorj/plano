@@ -464,10 +464,10 @@ class temp_file(object):
 
 # No args constructor gets a temp dir
 class working_dir(object):
-    def __init__(self, dir=None, remove=False, quiet=False):
+    def __init__(self, dir=None, quiet=False):
         self.dir = dir
         self.prev_dir = None
-        self.remove = remove
+        self.remove = False
         self.quiet = quiet
 
         if self.dir is None:
