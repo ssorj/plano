@@ -27,4 +27,4 @@ setup(name="plano",
       author_email="justin.ross@gmail.com",
       py_modules=["plano"],
       package_dir={"": "python"},
-      scripts=["bin/plano"])
+      scripts=["bin/plano", "bin/planosh"])
