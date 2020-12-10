@@ -346,8 +346,8 @@ def prepend(file, string):
     orig = read(file)
     return write(file, string + orig)
 
-def tail(file, n):
-    return "".join(tail_lines(file, n))
+def tail(file, count):
+    return "".join(tail_lines(file, count))
 
 def read_lines(file):
     with _codecs.open(file, encoding="utf-8", mode="r") as f:
@@ -406,19 +406,19 @@ def read_json(file):
     with _codecs.open(file, encoding="utf-8", mode="r") as f:
         return _json.load(f)
 
-def write_json(file, obj):
+def write_json(file, data):
     make_parent_dir(file, quiet=True)
 
     with _codecs.open(file, encoding="utf-8", mode="w") as f:
-        _json.dump(obj, f, indent=4, separators=(",", ": "), sort_keys=True)
+        _json.dump(data, f, indent=4, separators=(",", ": "), sort_keys=True)
 
     return file
 
 def parse_json(json):
     return _json.loads(json)
 
-def emit_json(obj):
-    return _json.dumps(obj, indent=4, separators=(",", ": "), sort_keys=True)
+def emit_json(data):
+    return _json.dumps(data, indent=4, separators=(",", ": "), sort_keys=True)
 
 ## HTTP operations
 
@@ -1059,9 +1059,9 @@ def remove_suffix(string, suffix):
 
     return string
 
-def nvl(value, substitution):
+def nvl(value, replacement):
     if value is None:
-        return substitution
+        return replacement
 
     return value
 
