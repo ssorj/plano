@@ -739,7 +739,7 @@ def get_process_id():
 
 def _format_command(command):
     if is_string(command):
-        return "'{0}'".format(command)
+        return literal(command)
 
     return command
 
@@ -1101,6 +1101,12 @@ def plural(noun, count=0, plural=None):
 
     return plural
 
+def literal(value):
+    if is_string(value):
+        return "'{0}'".format(value)
+
+    return str(value)
+
 def base64_encode(string):
     return _base64.b64encode(string)
 
@@ -1255,7 +1261,7 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
                     yield kwargs.get(name, defaults[name])
 
         def __repr__(self):
-            return "{0}({1})".format(self.__class__.__name__, self.name)
+            return "target '{0}'".format(self.name)
 
     if _function is None:
         return Target
@@ -1292,11 +1298,11 @@ class TargetArgument(object):
         self.help = help
         self.default = default
 
-        self.default_value = None
         self.has_default_value = False
+        self.default_value = None
 
     def __repr__(self):
-        return "{0}({1},default_value={2})".format(self.__class__.__name__, self.name, self.default_value)
+        return "argument '{0}' (default_value={1})".format(self.name, literal(self.default_value))
 
 class PlanoCommand(object):
     _targets = _collections.OrderedDict()
