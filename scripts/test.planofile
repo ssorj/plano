@@ -29,7 +29,8 @@ def run_(trouble=False):
 
 @target(help="Print messages to the console",
         args=[TargetArgument("message", help="The message to print"),
-              TargetArgument("count", help="Print the message COUNT times")])
+              TargetArgument("count", help="Print the message COUNT times"),
+              TargetArgument("extra", default=1)])
 def echo(message, count=1, extra=None):
     print("Echoing (message={0}, count={1})".format(message, count))
 
