@@ -226,8 +226,8 @@ def normalize_path(path):
 def get_real_path(path):
     return _os.path.realpath(path)
 
-def get_relative_path(path):
-    return _os.path.relpath(path)
+def get_relative_path(path, start=None):
+    return _os.path.relpath(path, start=start)
 
 def exists(path):
     return _os.path.lexists(path)

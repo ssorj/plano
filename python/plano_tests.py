@@ -131,6 +131,13 @@ def test_environment_operations(session):
 
     try:
         check_program("not-there")
+        assert False
+    except PlanoException:
+        pass
+
+    try:
+        check_module("not_there")
+        assert False
     except PlanoException:
         pass
 
@@ -383,6 +390,7 @@ def test_logging_operations(session):
         try:
             try:
                 fail("Nooo!")
+                assert False
             except PlanoException:
                 pass
 
@@ -397,6 +405,7 @@ def test_logging_operations(session):
 
             try:
                 fail(exc)
+                assert False
             except Exception as e:
                 assert e is exc, e
         except:
@@ -418,6 +427,12 @@ def test_path_operations(session):
     result = get_absolute_path(path)
     assert result == path, result
 
+    path = "/x/y/z"
+    assert is_absolute(path)
+
+    path = "x/y/z"
+    assert not is_absolute(path)
+
     path = "a//b/../c/"
     result = normalize_path(path)
     assert result == "a/c", result
@@ -425,6 +440,10 @@ def test_path_operations(session):
     path = "/a/../c"
     result = get_real_path(path)
     assert result == "/c", result
+
+    path = "/a/b"
+    result = get_relative_path(path, "/a/c")
+    assert result == "../b", result
 
     path = "/alpha/beta.ext"
     path_split = "/alpha", "beta.ext"
@@ -464,6 +483,11 @@ def test_path_operations(session):
     result = get_program_name("X=Y alpha beta")
     assert result == "alpha", result
 
+    with working_dir():
+        file = write("xes", "x" * 10)
+        result = get_file_size(file)
+        assert result == 10, result
+
 def test_port_operations(session):
     result = get_random_port()
     assert result >= 49152 and result <= 65535, result
@@ -481,6 +505,7 @@ def test_port_operations(session):
 
     try:
         await_port(str(get_random_port()), timeout=0.1)
+        assert False
     except PlanoException:
         pass
 
@@ -515,11 +540,13 @@ def test_process_operations(session):
 
     try:
         run("/not/there")
+        assert False
     except PlanoException:
         pass
 
     try:
         run("cat /whoa/not/really", stash=True)
+        assert False
     except PlanoProcessError:
         pass
 
@@ -531,6 +558,7 @@ def test_process_operations(session):
 
     try:
         call("cat /whoa/not/really")
+        assert False
     except PlanoProcessError:
         pass
 
@@ -656,6 +684,12 @@ def test_string_operations(session):
 
     result = plural("terminus", 2, "termini")
     assert result == "termini", result
+
+    result = literal("x")
+    assert result == "'x'", result
+
+    result = literal(1)
+    assert result == "1", result
 
     encoded_result = base64_encode(b"abc")
     decoded_result = base64_decode(encoded_result)
