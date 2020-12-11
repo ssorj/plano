@@ -1,4 +1,4 @@
-set_default_target("build", "/tmp/alpha") # prefix="/tmp/alpha")
+set_default_target("build", prefix="/tmp/alpha")
 
 @target
 def build(prefix="/usr/local"):

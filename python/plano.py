@@ -1347,7 +1347,6 @@ class PlanoCommand(object):
         self._process_targets()
 
         args = self.parser.parse_args(args)
-
         default_target = PlanoCommand._default_target
 
         if args.help or args.target is None and default_target is None:
@@ -1357,10 +1356,12 @@ class PlanoCommand(object):
 
         if args.target is None:
             self.target = PlanoCommand._targets[default_target[0]]
-            self.target_args = [] # XXX
+            self.target_args = default_target[1]
+            self.target_kwargs = default_target[2]
         else:
             self.target = PlanoCommand._targets[args.target]
             self.target_args = [getattr(args, arg.name) for arg in self.target.args]
+            self.target_kwargs = {}
 
     def _load_config(self, planofile):
         if planofile is not None and not exists(planofile):
@@ -1420,7 +1421,7 @@ class PlanoCommand(object):
         if self.init_only:
             return
 
-        self.target(*self.target_args)
+        self.target(*self.target_args, **self.target_kwargs)
 
         elapsed = _time.time() - start
 
