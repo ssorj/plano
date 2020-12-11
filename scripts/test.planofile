@@ -1,6 +1,8 @@
-@target(default=True)
+set_default_target("build", "/tmp/alpha") # prefix="/tmp/alpha")
+
+@target
 def build(prefix="/usr/local"):
-    print("Bulding (prefix={0})".format(prefix))
+    print("Building (prefix={0})".format(prefix))
 
 @target
 def test():

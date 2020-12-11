@@ -28,6 +28,7 @@ try:
 except ImportError: # pragma: nocover
     import BaseHTTPServer as _http
 
+from commandant import TestSkipped
 from plano import *
 
 def open_test_session(session):
@@ -754,32 +755,34 @@ def test_unique_id_operations(session):
     assert len(result) == 32
 
 def test_plano_command(session):
-    if not PYTHON2:
-        with working_dir():
-            command = PlanoCommand()
+    if PYTHON2:
+        raise TestSkipped("The plano command is not supported on Python 2")
+
+    with working_dir():
+        command = PlanoCommand()
+        command.main([])
+
+    with working_dir():
+        write("Planofile", "garbage")
+        command = PlanoCommand()
+        try:
             command.main([])
+            assert False
+        except SystemExit:
+            pass
 
-        with working_dir():
-            write("Planofile", "garbage")
-            command = PlanoCommand()
-            try:
-                command.main([])
-                assert False
-            except SystemExit:
-                pass
+    with working_dir():
+        write(".planofile", "import_target('bullseye', 'modules')\n")
+        append(".planofile", "import_target('bullseye', 'clean', chosen_name='cleanx')\n")
+        append(".planofile", "import_target('bullseye', 'build')\n")
+        append(".planofile", "remove_target('build')\n")
 
-        with working_dir():
-            write(".planofile", "import_target('bullseye', 'modules')\n")
-            append(".planofile", "import_target('bullseye', 'clean', chosen_name='cleanx')\n")
-            append(".planofile", "import_target('bullseye', 'build')\n")
-            append(".planofile", "remove_target('build')\n")
+        command = PlanoCommand()
+        command.main(["--help"])
 
-            command = PlanoCommand()
-            command.main(["--help"])
-
-            assert "modules" in PlanoCommand._targets, PlanoCommand._targets
-            assert "cleanx" in PlanoCommand._targets, PlanoCommand._targets
-            assert "build" not in PlanoCommand._targets, PlanoCommand._targets
+        assert "modules" in PlanoCommand._targets, PlanoCommand._targets
+        assert "cleanx" in PlanoCommand._targets, PlanoCommand._targets
+        assert "build" not in PlanoCommand._targets, PlanoCommand._targets
 
     def invoke(*args):
         command = PlanoCommand()
