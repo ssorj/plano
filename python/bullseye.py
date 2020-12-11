@@ -39,9 +39,14 @@ project = _Project()
 
 _default_prefix = join(get_home_dir(), ".local")
 
+def check_project():
+    assert project.name
+    assert project.source_dir
+    assert project.build_dir
+
 class project_env(working_env):
     def __init__(self):
-        assert project.name
+        check_project()
 
         home_var = "{0}_HOME".format(project.name.upper().replace("-", "_"))
 
@@ -67,10 +72,13 @@ def configure_file(input_file, output_file, substitutions, quiet=False):
 
     return output_file
 
-@target(args=[TargetArgument("prefix", help="The base path for installed files", default=_default_prefix),
-              TargetArgument("clean", help="Clean before building")])
+_prefix_arg = TargetArgument("prefix", help="The base path for installed files", default=_default_prefix)
+_clean_arg = TargetArgument("clean", help="Clean before starting")
+_verbose_arg = TargetArgument("verbose", help="Print detailed logging to the console")
+
+@target(args=(_prefix_arg, _clean_arg))
 def build(prefix=None, clean=False):
-    assert project.name
+    check_project()
 
     if clean:
         run_target("clean")
@@ -90,6 +98,9 @@ def build(prefix=None, clean=False):
         prefix = build_data.get("prefix", _default_prefix)
 
     new_build_data = {"prefix": prefix, "mtime": mtime}
+
+    debug("Existing build data: {0}", build_data)
+    debug("New build data:      {0}", new_build_data)
 
     if build_data == new_build_data:
         debug("Already built")
@@ -115,11 +126,20 @@ def build(prefix=None, clean=False):
         for path in find(dir_name):
             copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
-@target(args=[TargetArgument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
-              TargetArgument("verbose", help="Print detailed logging to the console"),
-              TargetArgument("list_", help="Print the test names and exit", option_name="list")])
-def test(include=None, verbose=False, list_=False, clean=False):
+@target(args=(TargetArgument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
+              TargetArgument("list_", help="Print the test names and exit", option_name="list"),
+              _verbose_arg, _clean_arg))
+def test(include=None, list_=False, verbose=False, clean=False):
+    check_project()
+    check_module("commandant")
+
     from commandant import TestCommand
+
+    if clean:
+        run_target("clean")
+
+    if not list_:
+        run_target("build")
 
     run_target("build", clean=clean)
 
@@ -144,9 +164,10 @@ def test(include=None, verbose=False, list_=False, clean=False):
 
         TestCommand(*modules).main(args)
 
-@target(args=[TargetArgument("staging_dir", help="A path prepended to installed files")])
+@target(args=(TargetArgument("staging_dir", help="A path prepended to installed files"),
+              _prefix_arg, _clean_arg))
 def install(staging_dir="", prefix=None, clean=False):
-    assert project.name
+    check_project()
 
     run_target("build", prefix=prefix, clean=clean)
 
@@ -165,6 +186,8 @@ def install(staging_dir="", prefix=None, clean=False):
 
 @target
 def clean():
+    check_project()
+
     remove(project.build_dir)
     remove(find(".", "__pycache__"))
     remove(find(".", "*.pyc"))
@@ -188,7 +211,7 @@ def modules(remote=False, recursive=False):
 @target(help="Generate shell settings for the project environment",
         description="Source the output from your shell.  For example:\n\n\n  $ source <(plano env)")
 def env():
-    assert project.name
+    check_project()
 
     home_var = "{0}_HOME".format(project.name.upper().replace("-", "_"))
     home_dir = join("$PWD", project.build_dir, project.name)

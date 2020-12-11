@@ -23,9 +23,10 @@ def build():
 
 @target(extends=test)
 def test():
-    data = read_json(_result_file)
-    data["tested"] = True
-    write_json(_result_file, data)
+    if exists(_result_file):
+        data = read_json(_result_file)
+        data["tested"] = True
+        write_json(_result_file, data)
 
 @target(extends=install)
 def install():

@@ -30,6 +30,7 @@ import inspect as _inspect
 import json as _json
 import os as _os
 import pprint as _pprint
+import pkgutil as _pkgutil
 import random as _random
 import re as _re
 import shlex as _shlex
@@ -316,9 +317,13 @@ def which(program_name):
         if _os.access(program, _os.X_OK):
             return program
 
+def check_module(module_name):
+    if _pkgutil.find_loader(module_name) is None:
+        raise PlanoException("Module '{0}' is not found".format(module_name))
+
 def check_program(program_name):
     if which(program_name) is None:
-        raise PlanoException("Program '{0}' is unavailable".format(program_name))
+        raise PlanoException("Program '{0}' is not found".format(program_name))
 
 ## IO operations
 
@@ -1119,7 +1124,7 @@ _target_help = {
 }
 
 def target(_function=None, extends=None, name=None, default=False, help=None, description=None, args=None):
-    class decorator(object):
+    class Target(object):
         def __init__(self, function):
             self.function = function
             self.extends = extends
@@ -1139,7 +1144,10 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
                 self.description = nvl(description, self.extends.description)
                 self.args = self.extends.args
 
-            debug("Adding target '{0}'", self.name)
+            debug("Adding {0}", self)
+
+            for arg in self.args:
+                debug("  {0}", arg)
 
             PlanoCommand._targets[self.name] = self
 
@@ -1160,15 +1168,16 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
                     arg = TargetArgument(name)
 
                 if name in defaults:
-                    arg.has_default = True
+                    arg.has_default_value = True
 
                     if defaults[name] is not None:
-                        arg.default = defaults[name]
+                        arg.default_value = defaults[name]
+
+                if arg.default_value not in (None, False):
+                    if arg.type is None:
+                        arg.type = type(arg.default_value)
 
                 if arg.default not in (None, False):
-                    if arg.type is None:
-                        arg.type = type(arg.default)
-
                     if is_string(arg.default):
                         default = "'{0}'".format(arg.default)
                     else:
@@ -1184,6 +1193,8 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
             return output_args
 
         def __call__(self, *args, **kwargs):
+            debug("Running {0} {1} {2}".format(self, args, kwargs))
+
             PlanoCommand._running_targets.append(self)
 
             dashes = "--" * len(PlanoCommand._running_targets)
@@ -1220,9 +1231,9 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
                 try:
                     value = args[i]
                 except IndexError:
-                    value = kwargs.get(arg.name, arg.default)
+                    value = kwargs.get(arg.name, arg.default_value)
 
-                if arg.default == value:
+                if arg.default_value == value:
                     continue
 
                 if is_string(value):
@@ -1243,10 +1254,13 @@ def target(_function=None, extends=None, name=None, default=False, help=None, de
                     assert name in defaults, (name, defaults)
                     yield kwargs.get(name, defaults[name])
 
+        def __repr__(self):
+            return "{0}({1})".format(self.__class__.__name__, self.name)
+
     if _function is None:
-        return decorator
+        return Target
     else:
-        return decorator(_function)
+        return Target(_function)
 
 def run_target(name, *args, **kwargs):
     PlanoCommand._targets[name](*args, **kwargs)
@@ -1278,7 +1292,11 @@ class TargetArgument(object):
         self.help = help
         self.default = default
 
-        self.has_default = False
+        self.default_value = None
+        self.has_default_value = False
+
+    def __repr__(self):
+        return "{0}({1},default_value={2})".format(self.__class__.__name__, self.name, self.default_value)
 
 class PlanoCommand(object):
     _targets = _collections.OrderedDict()
@@ -1367,14 +1385,14 @@ class PlanoCommand(object):
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)
 
             for arg in target.args:
-                if arg.has_default:
+                if arg.has_default_value:
                     flag = "--{0}".format(arg.option_name)
 
-                    if arg.default is False:
-                        subparser.add_argument(flag, dest=arg.name, default=arg.default, action="store_true",
+                    if arg.default_value is False:
+                        subparser.add_argument(flag, dest=arg.name, default=arg.default_value, action="store_true",
                                                help=arg.help)
                     else:
-                        subparser.add_argument(flag, dest=arg.name, default=arg.default, metavar=arg.metavar,
+                        subparser.add_argument(flag, dest=arg.name, default=arg.default_value, metavar=arg.metavar,
                                                type=arg.type, help=arg.help)
                 else:
                     subparser.add_argument(arg.option_name, metavar=arg.metavar, type=arg.type, help=arg.help)
