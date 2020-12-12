@@ -170,16 +170,16 @@ def _log(quiet, message, *args):
 
 ## Console operations
 
+def flush():
+    _sys.stdout.flush()
+    _sys.stderr.flush()
+
 def eprint(*args, **kwargs):
     print(*args, file=_sys.stderr, **kwargs)
 
 def pprint(*args, **kwargs):
     args = [_pprint.pformat(x, width=120) for x in args]
     print(*args, **kwargs)
-
-def flush():
-    STDOUT.flush()
-    STDERR.flush()
 
 _color_codes = {
     "black": "\u001b[30",
@@ -193,7 +193,7 @@ _color_codes = {
 }
 
 class console_color(object):
-    def __init__(self, color, bright=False, file=STDOUT):
+    def __init__(self, color, bright=False, file=_sys.stdout):
         elems = [_color_codes[color]]
 
         if bright:
