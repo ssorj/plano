@@ -645,7 +645,10 @@ def make_link(path, linked_path, quiet=False):
 def read_link(path):
     return _os.readlink(path)
 
-def find(dirs, include="*", exclude=()):
+def find(dirs=None, include="*", exclude=()):
+    if dirs is None:
+        dirs = "."
+
     if is_string(dirs):
         dirs = (dirs,)
 
@@ -667,6 +670,11 @@ def find(dirs, include="*", exclude=()):
                 for exclude_pattern in exclude:
                     for name in _fnmatch.filter(names, exclude_pattern):
                         names.remove(name)
+
+                if root.startswith("./"):
+                    root = remove_prefix(root, "./")
+                elif root.startswith("."):
+                    root = remove_prefix(root, ".")
 
                 found.update([join(root, x) for x in names])
 

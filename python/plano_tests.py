@@ -86,6 +86,10 @@ def test_dir_operations(session):
         result = list_dir("some-dir", "*.not-there")
         assert result == [], result
 
+        with working_dir():
+            result = list_dir()
+            assert result == [], result
+
         result = find(test_dir)
         assert result == [test_file_1, test_file_2], (result, [test_file_1, test_file_2])
 
@@ -94,6 +98,10 @@ def test_dir_operations(session):
 
         result = find(test_dir, exclude="*-file-1")
         assert result == [test_file_2], (result, [test_file_2])
+
+        with working_dir():
+            result = find()
+            assert result == [], result
 
     with working_dir():
         with working_dir("a-dir", quiet=True):
