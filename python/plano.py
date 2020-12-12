@@ -1190,17 +1190,6 @@ def target(_function=None, extends=None, name=None, help=None, description=None,
                     if arg.type is None:
                         arg.type = type(arg.default_value)
 
-                if arg.default not in (None, False):
-                    if is_string(arg.default):
-                        default = "'{0}'".format(arg.default)
-                    else:
-                        default = arg.default
-
-                    if arg.help is None:
-                        arg.help = "The default is {0}".format(default)
-                    else:
-                        arg.help = "{0} (default {1})".format(arg.help, default)
-
                 output_args.append(arg)
 
             return output_args
@@ -1410,13 +1399,19 @@ class PlanoCommand(object):
             for arg in target.args:
                 if arg.has_default_value:
                     flag = "--{0}".format(arg.option_name)
+                    help = arg.help
+
+                    if arg.default not in (None, False):
+                        if help is None:
+                            help = "Default value is {0}".format(literal(arg.default))
+                        else:
+                            help += " (default {0})".format(literal(arg.default))
 
                     if arg.default_value is False:
-                        subparser.add_argument(flag, dest=arg.name, default=arg.default_value, action="store_true",
-                                               help=arg.help)
+                        subparser.add_argument(flag, dest=arg.name, default=arg.default_value, action="store_true", help=help)
                     else:
                         subparser.add_argument(flag, dest=arg.name, default=arg.default_value, metavar=arg.metavar,
-                                               type=arg.type, help=arg.help)
+                                               type=arg.type, help=help)
                 else:
                     subparser.add_argument(arg.option_name, metavar=arg.metavar, type=arg.type, help=arg.help)
 
