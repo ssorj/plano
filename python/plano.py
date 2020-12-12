@@ -215,6 +215,14 @@ class console_color(object):
             print("\u001b[0m", file=self.file, end="")
             self.file.flush()
 
+def cprint(*args, **kwargs):
+    color = kwargs.pop("color", "white")
+    bright = kwargs.pop("bright", False)
+    file = kwargs.get("file", _sys.stdout)
+
+    with console_color(color, bright=bright, file=file):
+        print(*args, **kwargs)
+
 ## Path operations
 
 def get_absolute_path(path):
@@ -1205,7 +1213,7 @@ def target(_function=None, extends=None, name=None, help=None, description=None,
             dashes = "--" * len(PlanoCommand._running_targets)
             display_args = list(self.get_display_args(args, kwargs))
 
-            with console_color("magenta", file=STDERR):
+            with console_color("magenta", file=_sys.stderr):
                 eprint("{0}> {1}".format(dashes, self.name), end="")
 
                 if display_args:
@@ -1220,16 +1228,14 @@ def target(_function=None, extends=None, name=None, help=None, description=None,
             call_args = self.get_call_args(self.function, args, kwargs)
             self.function(*call_args)
 
-            with console_color("magenta", file=STDERR):
-                eprint("<{0} {1}".format(dashes, self.name))
+            cprint("<{0} {1}".format(dashes, self.name), color="magenta", file=_sys.stderr)
 
             PlanoCommand._running_targets.pop()
 
             if PlanoCommand._running_targets:
                 name = PlanoCommand._running_targets[-1].name
 
-                with console_color("magenta", file=STDERR):
-                    eprint("{0} [{1}]".format(dashes[:-1], name))
+                cprint("{0} [{1}]".format(dashes[:-1], name), color="magenta", file=_sys.stderr)
 
         def get_display_args(self, args, kwargs):
             for i, arg in enumerate(self.args):
@@ -1425,11 +1431,8 @@ class PlanoCommand(object):
 
         elapsed = _time.time() - start
 
-        with console_color("green", file=STDERR):
-            eprint("OK", end="")
-
-        with console_color("magenta", file=STDERR):
-            eprint(" ({0:.2f}s)".format(elapsed))
+        cprint("OK", color="green", file=_sys.stderr, end="")
+        cprint(" ({0:.2f}s)".format(elapsed), color="magenta", file=_sys.stderr)
 
 if __name__ == "__main__": # pragma: nocover
     command = PlanoCommand()

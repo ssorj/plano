@@ -66,8 +66,7 @@ def test_console_operations(session):
     with console_color("red"):
         print("ALERT")
 
-    with console_color("red", bright=True):
-        print("CRITICAL ALERT")
+    cprint("CRITICAL ALERT", color="red", bright=True)
 
 def test_dir_operations(session):
     with working_dir():
