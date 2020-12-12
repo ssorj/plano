@@ -1288,6 +1288,20 @@ class TargetArgument(object):
     def __repr__(self):
         return "argument '{0}' (default_value={1})".format(self.name, literal(self.default_value))
 
+def get_target(name):
+    return PlanoCommand._targets[name]
+
+def remove_target(name):
+    del PlanoCommand._targets[name]
+
+def set_default_target(name, *args, **kwargs):
+    PlanoCommand._default_target_name = name
+    PlanoCommand._default_target_args = args
+    PlanoCommand._default_target_kwargs = kwargs
+
+def run_target(name, *args, **kwargs):
+    get_target(name)(*args, **kwargs)
+
 def import_target(module, name, chosen_name=None):
     if chosen_name is None:
         chosen_name = name
@@ -1303,19 +1317,13 @@ def import_target(module, name, chosen_name=None):
 
     return target
 
-def remove_target(name):
-    del PlanoCommand._targets[name]
-
-def set_default_target(name, *args, **kwargs):
-    PlanoCommand._default_target = name, args, kwargs
-
-def run_target(name, *args, **kwargs):
-    PlanoCommand._targets[name](*args, **kwargs)
-
 class PlanoCommand(object):
     _targets = _collections.OrderedDict()
-    _default_target = None
     _running_targets = list()
+
+    _default_target_name = None
+    _default_target_args = None
+    _default_target_kwargs = None
 
     def __init__(self):
         PlanoCommand._targets.clear()
@@ -1353,19 +1361,18 @@ class PlanoCommand(object):
         self._process_targets()
 
         args = self.parser.parse_args(args)
-        default_target = PlanoCommand._default_target
 
-        if args.help or args.target is None and default_target is None:
+        if args.help or args.target is None and PlanoCommand._default_target_name is None:
             self.parser.print_help()
             self.init_only = True
             return
 
         if args.target is None:
-            self.target = PlanoCommand._targets[default_target[0]]
-            self.target_args = default_target[1]
-            self.target_kwargs = default_target[2]
+            self.target = get_target(PlanoCommand._default_target_name)
+            self.target_args = PlanoCommand._default_target_args
+            self.target_kwargs = PlanoCommand._default_target_kwargs
         else:
-            self.target = PlanoCommand._targets[args.target]
+            self.target = get_target(args.target)
             self.target_args = [getattr(args, arg.name) for arg in self.target.args]
             self.target_kwargs = {}
 
