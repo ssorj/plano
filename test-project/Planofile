@@ -1,6 +1,6 @@
 import bullseye
 
-if not bullseye.PlanoCommand._targets:
+if not bullseye.PlanoCommand._commands:
     if PYTHON2:
         reload(bullseye)
     else:
@@ -16,19 +16,19 @@ project.test_modules = ["chucker_tests"]
 
 _result_file = "build/result.json"
 
-@target(extends=build)
+@command(extends=build)
 def build():
     data = {"built": True}
     write_json(_result_file, data)
 
-@target(extends=test)
+@command(extends=test)
 def test():
     if exists(_result_file):
         data = read_json(_result_file)
         data["tested"] = True
         write_json(_result_file, data)
 
-@target(extends=install)
+@command(extends=install)
 def install():
     data = read_json(_result_file)
     data["installed"] = True

@@ -787,17 +787,17 @@ def test_plano_command(session):
             pass
 
     with working_dir():
-        write(".planofile", "import_target('bullseye', 'modules')\n")
-        append(".planofile", "import_target('bullseye', 'clean', chosen_name='cleanx')\n")
-        append(".planofile", "import_target('bullseye', 'build')\n")
-        append(".planofile", "remove_target('build')\n")
+        write(".planofile", "import_command('bullseye', 'modules')\n")
+        append(".planofile", "import_command('bullseye', 'clean', chosen_name='cleanx')\n")
+        append(".planofile", "import_command('bullseye', 'build')\n")
+        append(".planofile", "remove_command('build')\n")
 
         command = PlanoCommand()
         command.main(["--help"])
 
-        assert "modules" in PlanoCommand._targets, PlanoCommand._targets
-        assert "cleanx" in PlanoCommand._targets, PlanoCommand._targets
-        assert "build" not in PlanoCommand._targets, PlanoCommand._targets
+        assert "modules" in PlanoCommand._commands, PlanoCommand._commands
+        assert "cleanx" in PlanoCommand._commands, PlanoCommand._commands
+        assert "build" not in PlanoCommand._commands, PlanoCommand._commands
 
     def invoke(*args):
         command = PlanoCommand()
@@ -829,19 +829,19 @@ def test_plano_command(session):
         pass
 
     try:
-        invoke("no-such-target")
+        invoke("no-such-command")
         assert False
     except SystemExit:
         pass
 
     try:
-        invoke("no-such-target", "--help")
+        invoke("no-such-command", "--help")
         assert False
     except SystemExit:
         pass
 
     try:
-        invoke("--help", "no-such-target")
+        invoke("--help", "no-such-command")
         assert False
     except SystemExit:
         pass

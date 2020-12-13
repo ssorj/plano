@@ -49,7 +49,7 @@ def test_configure_file(session):
         output = read(output_file)
         assert output == "XYX", output
 
-def test_target_build(session):
+def test_command_build(session):
     with _test_project():
         _invoke("build")
 
@@ -75,7 +75,7 @@ def test_target_build(session):
         result = read_json("build/build.json")
         assert result["prefix"] == ("/usr/local"), result
 
-def test_target_test(session):
+def test_command_test(session):
     with _test_project():
         _invoke("test")
 
@@ -86,7 +86,7 @@ def test_target_test(session):
         _invoke("test", "--list")
         _invoke("test", "--include", "test_hello")
 
-def test_target_install(session):
+def test_command_install(session):
     with _test_project():
         _invoke("install", "--staging-dir", "staging")
 
@@ -103,7 +103,7 @@ def test_target_install(session):
 
         assert is_dir("staging/opt/local"), list_dir("staging")
 
-def test_target_clean(session):
+def test_command_clean(session):
     with _test_project():
         _invoke("build")
 
@@ -113,11 +113,11 @@ def test_target_clean(session):
 
         assert not is_dir("build")
 
-def test_target_env(session):
+def test_command_env(session):
     with _test_project():
         _invoke("env")
 
-def test_target_modules(session):
+def test_command_modules(session):
     with _test_project():
         try:
             _invoke("modules", "--remote", "--recursive")
@@ -125,7 +125,7 @@ def test_target_modules(session):
         except PlanoException:
             pass
 
-def test_target_generate(session):
+def test_command_generate(session):
     with _test_project():
         _invoke("generate", "README.md")
 

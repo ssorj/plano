@@ -1138,9 +1138,9 @@ def url_encode(string):
 def url_decode(string):
     return _urlparse.unquote_plus(string)
 
-## Targets
+## Commands
 
-_target_help = {
+_command_help = {
     "build":    "Build artifacts from source",
     "clean":    "Clean up the source tree",
     "dist":     "Generate distribution artifacts",
@@ -1148,15 +1148,15 @@ _target_help = {
     "test":     "Run the tests",
 }
 
-def target(_function=None, extends=None, name=None, help=None, description=None, args=None):
-    class Target(object):
+def command(_function=None, extends=None, name=None, help=None, description=None, args=None):
+    class Command(object):
         def __init__(self, function):
             self.function = function
             self.extends = extends
 
             if self.extends is None:
                 self.name = nvl(name, function.__name__.replace("_", "-"))
-                self.help = nvl(help, _target_help.get(self.name))
+                self.help = nvl(help, _command_help.get(self.name))
                 self.description = description
                 self.args = self._process_args(args)
             else:
@@ -1173,7 +1173,7 @@ def target(_function=None, extends=None, name=None, help=None, description=None,
             for arg in self.args:
                 debug("  {0}", arg)
 
-            PlanoCommand._targets[self.name] = self
+            PlanoCommand._commands[self.name] = self
             self.command = None
 
         def _process_args(self, input_args):
@@ -1190,7 +1190,7 @@ def target(_function=None, extends=None, name=None, help=None, description=None,
                 try:
                     arg = input_args_by_name[name]
                 except KeyError:
-                    arg = TargetArgument(name)
+                    arg = CommandArgument(name)
 
                 if name in defaults:
                     arg.has_default_value = True
@@ -1211,9 +1211,9 @@ def target(_function=None, extends=None, name=None, help=None, description=None,
 
             assert self.command is not None
 
-            self.command.running_targets.append(self)
+            self.command.running_commands.append(self)
 
-            dashes = "--" * len(self.command.running_targets)
+            dashes = "--" * len(self.command.running_commands)
             display_args = list(self.get_display_args(args, kwargs))
 
             with console_color("magenta", file=_sys.stderr):
@@ -1233,10 +1233,10 @@ def target(_function=None, extends=None, name=None, help=None, description=None,
 
             cprint("<{0} {1}".format(dashes, self.name), color="magenta", file=_sys.stderr)
 
-            self.command.running_targets.pop()
+            self.command.running_commands.pop()
 
-            if self.command.running_targets:
-                name = self.command.running_targets[-1].name
+            if self.command.running_commands:
+                name = self.command.running_commands[-1].name
 
                 cprint("{0} [{1}]".format(dashes[:-1], name), color="magenta", file=_sys.stderr)
 
@@ -1269,14 +1269,14 @@ def target(_function=None, extends=None, name=None, help=None, description=None,
                     yield kwargs.get(name, defaults[name])
 
         def __repr__(self):
-            return "target '{0}'".format(self.name)
+            return "command '{0}'".format(self.name)
 
     if _function is None:
-        return Target
+        return Command
     else:
-        return Target(_function)
+        return Command(_function)
 
-class TargetArgument(object):
+class CommandArgument(object):
     def __init__(self, name, option_name=None, metavar=None, type=None, help=None, default=None):
         self.name = name
         self.option_name = nvl(option_name, self.name.replace("_", "-"))
@@ -1291,53 +1291,53 @@ class TargetArgument(object):
     def __repr__(self):
         return "argument '{0}' (default_value={1})".format(self.name, literal(self.default_value))
 
-def get_target(name):
-    return PlanoCommand._targets[name]
+def get_command(name):
+    return PlanoCommand._commands[name]
 
-def remove_target(name):
-    del PlanoCommand._targets[name]
+def remove_command(name):
+    del PlanoCommand._commands[name]
 
-def set_default_target(name, *args, **kwargs):
-    PlanoCommand._default_target_name = name
-    PlanoCommand._default_target_args = args
-    PlanoCommand._default_target_kwargs = kwargs
+def set_default_command(name, *args, **kwargs):
+    PlanoCommand._default_command_name = name
+    PlanoCommand._default_command_args = args
+    PlanoCommand._default_command_kwargs = kwargs
 
-def run_target(name, *args, **kwargs):
-    get_target(name)(*args, **kwargs)
+def run_command(name, *args, **kwargs):
+    get_command(name)(*args, **kwargs)
 
-def import_target(module, name, chosen_name=None):
+def import_command(module, name, chosen_name=None):
     if chosen_name is None:
         chosen_name = name
 
-    targets = _collections.OrderedDict(PlanoCommand._targets)
+    commands = _collections.OrderedDict(PlanoCommand._commands)
 
     try:
         module = _import_module(module)
-        target = getattr(module, name)
-        targets[chosen_name] = target
+        command = getattr(module, name)
+        commands[chosen_name] = command
     finally:
-        PlanoCommand._targets = targets
+        PlanoCommand._commands = commands
 
-    return target
+    return command
 
 class PlanoCommand(object):
-    _targets = _collections.OrderedDict()
+    _commands = _collections.OrderedDict()
 
-    _default_target_name = None
-    _default_target_args = None
-    _default_target_kwargs = None
+    _default_command_name = None
+    _default_command_args = None
+    _default_command_kwargs = None
 
     def __init__(self):
-        PlanoCommand._targets.clear()
+        PlanoCommand._commands.clear()
 
-        description = "Run targets defined as Python functions"
+        description = "Run commands defined as Python functions"
 
         self.pre_parser = _argparse.ArgumentParser(prog="plano", description=description, add_help=False)
 
         self.pre_parser.add_argument("-h", "--help", action="store_true",
                                      help="Show this help message and exit")
         self.pre_parser.add_argument("-f", "--file",
-                                     help="Load targets from FILE (default 'Planofile' or '.planofile')")
+                                     help="Load commands from FILE (default 'Planofile' or '.planofile')")
         self.pre_parser.add_argument("--verbose", action="store_true",
                                      help="Print detailed logging to the console")
         self.pre_parser.add_argument("--quiet", action="store_true",
@@ -1347,7 +1347,7 @@ class PlanoCommand(object):
 
         self.parser = _argparse.ArgumentParser(prog="plano", parents=(self.pre_parser,), add_help=False)
 
-        self.running_targets = list()
+        self.running_commands = list()
 
     def init(self, args):
         pre_args, _ = self.pre_parser.parse_known_args(args)
@@ -1361,23 +1361,23 @@ class PlanoCommand(object):
         self.init_only = pre_args.init_only
 
         self._load_config(pre_args.file)
-        self._process_targets()
+        self._process_commands()
 
         args = self.parser.parse_args(args)
 
-        if args.help or args.target is None and PlanoCommand._default_target_name is None:
+        if args.help or args.command is None and PlanoCommand._default_command_name is None:
             self.parser.print_help()
             self.init_only = True
             return
 
-        if args.target is None:
-            self.target = get_target(PlanoCommand._default_target_name)
-            self.target_args = PlanoCommand._default_target_args
-            self.target_kwargs = PlanoCommand._default_target_kwargs
+        if args.command is None:
+            self.command = get_command(PlanoCommand._default_command_name)
+            self.command_args = PlanoCommand._default_command_args
+            self.command_kwargs = PlanoCommand._default_command_kwargs
         else:
-            self.target = get_target(args.target)
-            self.target_args = [getattr(args, arg.name) for arg in self.target.args]
-            self.target_kwargs = {}
+            self.command = get_command(args.command)
+            self.command_args = [getattr(args, arg.name) for arg in self.command.args]
+            self.command_kwargs = {}
 
     def _load_config(self, planofile):
         if planofile is not None and not exists(planofile):
@@ -1402,17 +1402,17 @@ class PlanoCommand(object):
             error(e)
             exit("Failure loading '{0}': {1}", planofile, str(e))
 
-    def _process_targets(self):
-        subparsers = self.parser.add_subparsers(title="targets", dest="target")
+    def _process_commands(self):
+        subparsers = self.parser.add_subparsers(title="commands", dest="command")
 
-        for target in PlanoCommand._targets.values():
-            target.command = self
+        for command in PlanoCommand._commands.values():
+            command.command = self
 
-            description = nvl(target.description, target.help)
-            subparser = subparsers.add_parser(target.name, help=target.help, description=description,
+            description = nvl(command.description, command.help)
+            subparser = subparsers.add_parser(command.name, help=command.help, description=description,
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)
 
-            for arg in target.args:
+            for arg in command.args:
                 if arg.has_default_value:
                     flag = "--{0}".format(arg.option_name)
                     help = arg.help
@@ -1445,7 +1445,7 @@ class PlanoCommand(object):
         if self.init_only:
             return
 
-        self.target(*self.target_args, **self.target_kwargs)
+        self.command(*self.command_args, **self.command_kwargs)
 
         elapsed = _time.time() - start
 

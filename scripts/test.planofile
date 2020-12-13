@@ -1,24 +1,24 @@
-set_default_target("build", prefix="/tmp/alpha")
+set_default_command("build", prefix="/tmp/alpha")
 
-@target
+@command
 def build(prefix="/usr/local"):
     print("Building (prefix={0})".format(prefix))
 
-@target
+@command
 def test():
     build()
     print("Testing")
 
-@target(help="Install me!")
+@command(help="Install me!")
 def install(staging_dir="/"):
     build()
     print("Installing (dest_dir={0})".format(staging_dir))
 
-@target
+@command
 def clean():
     print("Cleaning")
 
-@target(name="run", help="Run with it")
+@command(name="run", help="Run with it")
 def run_(trouble=False):
     clean()
     clean()
@@ -29,10 +29,10 @@ def run_(trouble=False):
     if trouble:
         raise Exception("Trouble")
 
-@target(help="Print messages to the console",
-        args=[TargetArgument("message", help="The message to print"),
-              TargetArgument("count", help="Print the message COUNT times"),
-              TargetArgument("extra", default=1)])
+@command(help="Print messages to the console",
+        args=(CommandArgument("message", help="The message to print"),
+              CommandArgument("count", help="Print the message COUNT times"),
+              CommandArgument("extra", default=1)))
 def echo(message, count=1, extra=None):
     print("Echoing (message={0}, count={1})".format(message, count))
 

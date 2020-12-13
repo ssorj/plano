@@ -72,16 +72,16 @@ def configure_file(input_file, output_file, substitutions, quiet=False):
 
     return output_file
 
-_prefix_arg = TargetArgument("prefix", help="The base path for installed files", default=_default_prefix)
-_clean_arg = TargetArgument("clean", help="Clean before starting")
-_verbose_arg = TargetArgument("verbose", help="Print detailed logging to the console")
+_prefix_arg = CommandArgument("prefix", help="The base path for installed files", default=_default_prefix)
+_clean_arg = CommandArgument("clean", help="Clean before starting")
+_verbose_arg = CommandArgument("verbose", help="Print detailed logging to the console")
 
-@target(args=(_prefix_arg, _clean_arg))
+@command(args=(_prefix_arg, _clean_arg))
 def build(prefix=None, clean=False):
     check_project()
 
     if clean:
-        run_target("clean")
+        run_command("clean")
 
     build_file = join(project.build_dir, "build.json")
     build_data = {}
@@ -126,8 +126,8 @@ def build(prefix=None, clean=False):
         for path in find(dir_name):
             copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
-@target(args=(TargetArgument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
-              TargetArgument("list_", help="Print the test names and exit", option_name="list"),
+@command(args=(CommandArgument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
+              CommandArgument("list_", help="Print the test names and exit", option_name="list"),
               _verbose_arg, _clean_arg))
 def test(include=None, list_=False, verbose=False, clean=False):
     check_project()
@@ -136,12 +136,12 @@ def test(include=None, list_=False, verbose=False, clean=False):
     from commandant import TestCommand
 
     if clean:
-        run_target("clean")
+        run_command("clean")
 
     if not list_:
-        run_target("build")
+        run_command("build")
 
-    run_target("build", clean=clean)
+    run_command("build", clean=clean)
 
     with project_env():
         from plano import _import_module
@@ -164,12 +164,12 @@ def test(include=None, list_=False, verbose=False, clean=False):
 
         TestCommand(*modules).main(args)
 
-@target(args=(TargetArgument("staging_dir", help="A path prepended to installed files"),
+@command(args=(CommandArgument("staging_dir", help="A path prepended to installed files"),
               _prefix_arg, _clean_arg))
 def install(staging_dir="", prefix=None, clean=False):
     check_project()
 
-    run_target("build", prefix=prefix, clean=clean)
+    run_command("build", prefix=prefix, clean=clean)
 
     assert is_dir(project.build_dir), list_dir()
 
@@ -184,7 +184,7 @@ def install(staging_dir="", prefix=None, clean=False):
     for path in find(join(project.build_dir, project.name)):
         copy(path, join(install_prefix, "lib", remove_prefix(path, build_prefix)), inside=False, symlinks=False)
 
-@target
+@command
 def clean():
     check_project()
 
@@ -192,9 +192,9 @@ def clean():
     remove(find(".", "__pycache__"))
     remove(find(".", "*.pyc"))
 
-@target(help="Update Git submodules",
-        args=[TargetArgument("remote", help="Get remote commits"),
-              TargetArgument("recursive", help="Update modules recursively")])
+@command(help="Update Git submodules",
+        args=[CommandArgument("remote", help="Get remote commits"),
+              CommandArgument("recursive", help="Update modules recursively")])
 def modules(remote=False, recursive=False):
     check_program("git")
 
@@ -208,7 +208,7 @@ def modules(remote=False, recursive=False):
 
     run(command)
 
-@target(help="Generate shell settings for the project environment",
+@command(help="Generate shell settings for the project environment",
         description="Source the output from your shell.  For example:\n\n\n  $ source <(plano env)")
 def env():
     check_project()
@@ -459,9 +459,9 @@ Use one of the following filenames:
 Or use the special filename "all" to generate all of them.
 """.format("\n  ".join(_project_files))
 
-@target(help="Generate standard project files", description=_description,
-        args=[TargetArgument("filename", help="Which file to generate"),
-              TargetArgument("stdout", help="Print to stdout instead of writing the file directly")])
+@command(help="Generate standard project files", description=_description,
+        args=[CommandArgument("filename", help="Which file to generate"),
+              CommandArgument("stdout", help="Print to stdout instead of writing the file directly")])
 def generate(filename, stdout=False):
     assert project.name
 
