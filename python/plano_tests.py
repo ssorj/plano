@@ -453,6 +453,14 @@ def test_path_operations(session):
     result = get_relative_path(path, "/a/c")
     assert result == "../b", result
 
+    path = "/a/b"
+    result = get_path_url(path)
+    assert result == "file:/a/b", result
+
+    with working_dir("asub"):
+        result = get_path_url("afile")
+        assert result == "file:{0}/afile".format(get_current_dir()), result
+
     path = "/alpha/beta.ext"
     path_split = "/alpha", "beta.ext"
     path_split_extension = "/alpha/beta", ".ext"

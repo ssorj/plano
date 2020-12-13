@@ -237,6 +237,9 @@ def get_real_path(path):
 def get_relative_path(path, start=None):
     return _os.path.relpath(path, start=start)
 
+def get_path_url(path):
+    return "file:{0}".format(get_absolute_path(path))
+
 def exists(path):
     return _os.path.lexists(path)
 
