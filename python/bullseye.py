@@ -233,9 +233,6 @@ _project_files[".gitignore"] = """
 *.pyc
 __pycache__/
 /build
-/dist
-/.coverage
-/htmlcov
 """
 
 _project_files["README.md"] = """
