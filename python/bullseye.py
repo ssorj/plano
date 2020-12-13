@@ -165,7 +165,7 @@ def test(include=None, list_=False, verbose=False, clean=False):
         TestCommand(*modules).main(args)
 
 @command(args=(CommandArgument("staging_dir", help="A path prepended to installed files"),
-              _prefix_arg, _clean_arg))
+               _prefix_arg, _clean_arg))
 def install(staging_dir="", prefix=None, clean=False):
     check_project()
 
@@ -209,7 +209,7 @@ def modules(remote=False, recursive=False):
     run(command)
 
 @command(help="Generate shell settings for the project environment",
-        description="Source the output from your shell.  For example:\n\n\n  $ source <(plano env)")
+         description="Source the output from your shell.  For example:\n\n\n  $ source <(plano env)")
 def env():
     check_project()
 
@@ -460,8 +460,8 @@ Or use the special filename "all" to generate all of them.
 """.format("\n  ".join(_project_files))
 
 @command(help="Generate standard project files", description=_description,
-        args=[CommandArgument("filename", help="Which file to generate"),
-              CommandArgument("stdout", help="Print to stdout instead of writing the file directly")])
+         args=(CommandArgument("filename", help="Which file to generate"),
+               CommandArgument("stdout", help="Print to stdout instead of writing the file directly")))
 def generate(filename, stdout=False):
     assert project.name
 

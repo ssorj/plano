@@ -1174,7 +1174,7 @@ def command(_function=None, extends=None, name=None, help=None, description=None
                 debug("  {0}", arg)
 
             PlanoCommand._commands[self.name] = self
-            self.command = None
+            self.parent_command = None
 
         def _process_args(self, input_args):
             input_args_by_name = {}
@@ -1209,11 +1209,11 @@ def command(_function=None, extends=None, name=None, help=None, description=None
         def __call__(self, *args, **kwargs):
             debug("Running {0} {1} {2}".format(self, args, kwargs))
 
-            assert self.command is not None
+            assert self.parent_command is not None
 
-            self.command.running_commands.append(self)
+            self.parent_command.running_commands.append(self)
 
-            dashes = "--" * len(self.command.running_commands)
+            dashes = "--" * len(self.parent_command.running_commands)
             display_args = list(self.get_display_args(args, kwargs))
 
             with console_color("magenta", file=_sys.stderr):
@@ -1233,10 +1233,10 @@ def command(_function=None, extends=None, name=None, help=None, description=None
 
             cprint("<{0} {1}".format(dashes, self.name), color="magenta", file=_sys.stderr)
 
-            self.command.running_commands.pop()
+            self.parent_command.running_commands.pop()
 
-            if self.command.running_commands:
-                name = self.command.running_commands[-1].name
+            if self.parent_command.running_commands:
+                name = self.parent_command.running_commands[-1].name
 
                 cprint("{0} [{1}]".format(dashes[:-1], name), color="magenta", file=_sys.stderr)
 
@@ -1406,7 +1406,7 @@ class PlanoCommand(object):
         subparsers = self.parser.add_subparsers(title="commands", dest="command")
 
         for command in PlanoCommand._commands.values():
-            command.command = self
+            command.parent_command = self
 
             description = nvl(command.description, command.help)
             subparser = subparsers.add_parser(command.name, help=command.help, description=description,
