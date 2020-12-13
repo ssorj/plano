@@ -1171,6 +1171,7 @@ def target(_function=None, extends=None, name=None, help=None, description=None,
                 debug("  {0}", arg)
 
             PlanoCommand._targets[self.name] = self
+            self.command = None
 
         def _process_args(self, input_args):
             input_args_by_name = {}
@@ -1205,9 +1206,11 @@ def target(_function=None, extends=None, name=None, help=None, description=None,
         def __call__(self, *args, **kwargs):
             debug("Running {0} {1} {2}".format(self, args, kwargs))
 
-            PlanoCommand._running_targets.append(self)
+            assert self.command is not None
 
-            dashes = "--" * len(PlanoCommand._running_targets)
+            self.command.running_targets.append(self)
+
+            dashes = "--" * len(self.command.running_targets)
             display_args = list(self.get_display_args(args, kwargs))
 
             with console_color("magenta", file=_sys.stderr):
@@ -1227,10 +1230,10 @@ def target(_function=None, extends=None, name=None, help=None, description=None,
 
             cprint("<{0} {1}".format(dashes, self.name), color="magenta", file=_sys.stderr)
 
-            PlanoCommand._running_targets.pop()
+            self.command.running_targets.pop()
 
-            if PlanoCommand._running_targets:
-                name = PlanoCommand._running_targets[-1].name
+            if self.command.running_targets:
+                name = self.command.running_targets[-1].name
 
                 cprint("{0} [{1}]".format(dashes[:-1], name), color="magenta", file=_sys.stderr)
 
@@ -1316,7 +1319,6 @@ def import_target(module, name, chosen_name=None):
 
 class PlanoCommand(object):
     _targets = _collections.OrderedDict()
-    _running_targets = list()
 
     _default_target_name = None
     _default_target_args = None
@@ -1324,7 +1326,6 @@ class PlanoCommand(object):
 
     def __init__(self):
         PlanoCommand._targets.clear()
-        PlanoCommand._running_targets = list() # Python 3 has clear()
 
         description = "Run targets defined as Python functions"
 
@@ -1342,6 +1343,8 @@ class PlanoCommand(object):
                                      help=_argparse.SUPPRESS)
 
         self.parser = _argparse.ArgumentParser(prog="plano", parents=(self.pre_parser,), add_help=False)
+
+        self.running_targets = list()
 
     def init(self, args):
         pre_args, _ = self.pre_parser.parse_known_args(args)
@@ -1400,6 +1403,8 @@ class PlanoCommand(object):
         subparsers = self.parser.add_subparsers(title="targets", dest="target")
 
         for target in PlanoCommand._targets.values():
+            target.command = self
+
             description = nvl(target.description, target.help)
             subparser = subparsers.add_parser(target.name, help=target.help, description=description,
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)
