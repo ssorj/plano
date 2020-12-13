@@ -88,6 +88,16 @@ test-ubuntu:
 	${DOCKER_COMMAND} build -f scripts/test-ubuntu.dockerfile -t plano-test-ubuntu .
 	${DOCKER_COMMAND} run --rm plano-test-ubuntu
 
+.PHONY: test-bootstrap
+test-bootstrap:
+	${DOCKER_COMMAND} build -f scripts/test-bootstrap.dockerfile -t plano-test-bootstrap .
+	${DOCKER_COMMAND} run --rm plano-test-bootstrap
+
+.PHONY: debug-bootstrap
+debug-bootstrap:
+	${DOCKER_COMMAND} build -f scripts/test-bootstrap.dockerfile -t plano-test-bootstrap .
+	${DOCKER_COMMAND} run --rm -it plano-test-bootstrap /bin/bash
+
 .PHONY: coverage
 coverage:
 	coverage run scripts/test
