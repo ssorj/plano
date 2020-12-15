@@ -454,11 +454,11 @@ def test_path_operations(session):
     assert result == "../b", result
 
     path = "/a/b"
-    result = get_path_url(path)
+    result = get_file_url(path)
     assert result == "file:/a/b", result
 
     with working_dir("asub"):
-        result = get_path_url("afile")
+        result = get_file_url("afile")
         assert result == "file:{0}/afile".format(get_current_dir()), result
 
     path = "/alpha/beta.ext"
