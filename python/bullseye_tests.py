@@ -85,6 +85,7 @@ def test_command_test(session):
         _invoke("test", "--verbose")
         _invoke("test", "--list")
         _invoke("test", "--include", "test_hello")
+        _invoke("test", "--clean")
 
 def test_command_install(session):
     with _test_project():

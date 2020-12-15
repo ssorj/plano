@@ -774,46 +774,47 @@ def test_plano_command(session):
         raise TestSkipped("The plano command is not supported on Python 2")
 
     with working_dir():
-        command = PlanoCommand()
-        command.main([])
+        PlanoCommand().main([])
 
     with working_dir():
         write("Planofile", "garbage")
-        command = PlanoCommand()
+
         try:
-            command.main([])
+            PlanoCommand().main([])
             assert False
         except SystemExit:
             pass
 
     with working_dir():
-        write(".planofile", "import_command('bullseye', 'modules')\n")
-        append(".planofile", "import_command('bullseye', 'clean', chosen_name='cleanx')\n")
-        append(".planofile", "import_command('bullseye', 'build')\n")
-        append(".planofile", "remove_command('build')\n")
+        write("afile", "import_command('bullseye', 'modules')\n")
+        append("afile", "import_command('bullseye', 'clean', chosen_name='cleanx')\n")
+        append("afile", "import_command('bullseye', 'build')\n")
+        append("afile", "remove_command('build')\n")
 
-        command = PlanoCommand()
-        command.main(["--help"])
+        PlanoCommand("afile").main(["--help"])
 
         assert "modules" in PlanoCommand._commands, PlanoCommand._commands
         assert "cleanx" in PlanoCommand._commands, PlanoCommand._commands
         assert "build" not in PlanoCommand._commands, PlanoCommand._commands
 
-    def invoke(*args):
-        command = PlanoCommand()
-        command.main(["--verbose", "-f", "scripts/test.planofile"] + list(args))
-
-    if not PYTHON2:
-        invoke()
-        invoke("--quiet")
-        invoke("--init-only")
-
     try:
-        command = PlanoCommand()
-        command.main(["-f", "no-such-file"])
+        PlanoCommand("no-such-file").main([])
         assert False
     except SystemExit:
         pass
+
+    try:
+        PlanoCommand().main(["-f", "no-such-file"])
+        assert False
+    except SystemExit:
+        pass
+
+    def invoke(*args):
+        PlanoCommand().main(["--verbose", "-f", "scripts/test.planofile"] + list(args))
+
+    invoke()
+    invoke("--quiet")
+    invoke("--init-only")
 
     invoke("build")
     invoke("install")

@@ -1327,7 +1327,9 @@ class PlanoCommand(object):
     _default_command_args = None
     _default_command_kwargs = None
 
-    def __init__(self):
+    def __init__(self, planofile=None):
+        self.planofile = planofile
+
         PlanoCommand._commands.clear()
 
         description = "Run commands defined as Python functions"
@@ -1380,9 +1382,13 @@ class PlanoCommand(object):
             self.command_kwargs = {}
 
     def _load_config(self, planofile):
+        if self.planofile is not None and not exists(self.planofile):
+            exit("File '{0}' not found", self.planofile)
+
         if planofile is not None and not exists(planofile):
             exit("File '{0}' not found", planofile)
 
+        planofile = nvl(self.planofile, planofile)
         planofile = nvl(planofile, "Planofile")
 
         if not exists(planofile):

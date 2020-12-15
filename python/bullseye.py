@@ -127,8 +127,8 @@ def build(prefix=None, clean=False):
             copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
 @command(args=(CommandArgument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
-              CommandArgument("list_", help="Print the test names and exit", option_name="list"),
-              _verbose_arg, _clean_arg))
+               CommandArgument("list_", help="Print the test names and exit", option_name="list"),
+               _verbose_arg, _clean_arg))
 def test(include=None, list_=False, verbose=False, clean=False):
     check_project()
     check_module("commandant")
@@ -147,7 +147,7 @@ def test(include=None, list_=False, verbose=False, clean=False):
         from plano import _import_module
         modules = [_import_module(x) for x in project.test_modules]
 
-        if not modules:
+        if not modules: # pragma: nocover
             notice("No tests found")
             return
 
@@ -193,8 +193,8 @@ def clean():
     remove(find(".", "*.pyc"))
 
 @command(help="Update Git submodules",
-        args=[CommandArgument("remote", help="Get remote commits"),
-              CommandArgument("recursive", help="Update modules recursively")])
+         args=(CommandArgument("remote", help="Get remote commits"),
+               CommandArgument("recursive", help="Update modules recursively")))
 def modules(remote=False, recursive=False):
     check_program("git")
 
