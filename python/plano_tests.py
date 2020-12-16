@@ -457,7 +457,7 @@ def test_path_operations(session):
     result = get_file_url(path)
     assert result == "file:/a/b", result
 
-    with working_dir("asub"):
+    with working_dir():
         result = get_file_url("afile")
         assert result == "file:{0}/afile".format(get_current_dir()), result
 
