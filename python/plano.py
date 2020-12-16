@@ -1255,7 +1255,7 @@ def command(_function=None, extends=None, name=None, help=None, description=None
                 else:
                     value = literal(value)
 
-                yield "{0}={1}".format(arg.option_name, value)
+                yield "{0}={1}".format(arg.display_name, value)
 
         def get_call_args(self, function, args, kwargs):
             names, _, _, defaults = _inspect.getargspec(function)
@@ -1277,10 +1277,10 @@ def command(_function=None, extends=None, name=None, help=None, description=None
         return Command(_function)
 
 class CommandArgument(object):
-    def __init__(self, name, option_name=None, metavar=None, type=None, help=None, default=None):
+    def __init__(self, name, display_name=None, metavar=None, type=None, help=None, default=None):
         self.name = name
-        self.option_name = nvl(option_name, self.name.replace("_", "-"))
-        self.metavar = nvl(metavar, self.name.replace("_", "-").upper())
+        self.display_name = nvl(display_name, self.name.replace("_", "-"))
+        self.metavar = nvl(metavar, self.display_name.upper())
         self.type = type
         self.help = help
         self.default = default
@@ -1420,7 +1420,7 @@ class PlanoCommand(object):
 
             for arg in command.args:
                 if arg.has_default_value:
-                    flag = "--{0}".format(arg.option_name)
+                    flag = "--{0}".format(arg.display_name)
                     help = arg.help
 
                     if arg.default not in (None, False):
@@ -1435,7 +1435,7 @@ class PlanoCommand(object):
                         subparser.add_argument(flag, dest=arg.name, default=arg.default_value, metavar=arg.metavar,
                                                type=arg.type, help=help)
                 else:
-                    subparser.add_argument(arg.option_name, metavar=arg.metavar, type=arg.type, help=arg.help)
+                    subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
 
             # Patch the default help text
             try:

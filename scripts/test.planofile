@@ -30,11 +30,11 @@ def run_(trouble=False):
         raise Exception("Trouble")
 
 @command(help="Print messages to the console",
-         args=(CommandArgument("message", help="The message to print"),
+         args=(CommandArgument("mess_age", help="The message to print", display_name="message"),
                CommandArgument("count", help="Print the message COUNT times"),
                CommandArgument("extra", default=1)))
-def echo(message, count=1, extra=None):
-    print("Echoing (message={0}, count={1})".format(message, count))
+def echo(mess_age, count=1, extra=None):
+    print("Echoing (message={0}, count={1})".format(mess_age, count))
 
     for i in range(count):
-       print(message)
+       print(mess_age)
