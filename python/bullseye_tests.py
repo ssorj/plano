@@ -29,15 +29,14 @@ class _test_project(working_dir):
         return dir
 
 def _invoke(*args):
-    command = PlanoCommand()
-    command.main(["--verbose", "-f", join(_test_project_dir, "Planofile")] + list(args))
+    PlanoCommand().main(["--verbose", "-f", join(_test_project_dir, "Planofile")] + list(args))
 
 def open_test_session(session):
     if session.verbose:
         enable_logging(level="debug")
 
 def test_project_env(session):
-    project.name = "ALPHABET"
+    project.name = "alphabet"
 
     with project_env():
         assert "ALPHABET_HOME" in ENV, ENV

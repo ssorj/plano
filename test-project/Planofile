@@ -1,13 +1,13 @@
-import bullseye
-
-if not bullseye.PlanoCommand._commands:
-    if PYTHON2:
-        reload(bullseye)
-    else:
-        import importlib
-        importlib.reload(bullseye)
-
 from bullseye import *
+
+# These are here to defeat import caching
+build = import_command("bullseye", "build")
+test = import_command("bullseye", "test")
+install = import_command("bullseye", "install")
+clean = import_command("bullseye", "clean")
+generate = import_command("bullseye", "generate")
+modules = import_command("bullseye", "modules")
+env = import_command("bullseye", "env")
 
 project.name = "chucker"
 project.extra_source_dirs = ["files"]
@@ -15,6 +15,8 @@ project.build_deps = ["flipper"]
 project.test_modules = ["chucker_tests"]
 
 _result_file = "build/result.json"
+
+set_default_command("build", prefix="/tmp/alpha")
 
 @command(extends=build)
 def build():
@@ -33,3 +35,16 @@ def install():
     data = read_json(_result_file)
     data["installed"] = True
     write_json(_result_file, data)
+
+@command(help="Print a message to the console",
+         args=(CommandArgument("message_", help="The message to print", display_name="message"),
+               CommandArgument("count", help="Print the message COUNT times"),
+               CommandArgument("extra", default=1)))
+def echo(message_, count=1, extra=None, trouble=False):
+    print("Echoing (message={0}, count={1})".format(message_, count))
+
+    if trouble:
+        raise Exception("Trouble")
+
+    for i in range(count):
+       print(message_)

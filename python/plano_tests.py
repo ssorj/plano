@@ -769,6 +769,18 @@ def test_unique_id_operations(session):
     result = get_unique_id(16)
     assert len(result) == 32
 
+_test_project_dir = get_absolute_path("test-project")
+_result_file = "build/result.json"
+
+class _test_project(working_dir):
+    def __enter__(self):
+        dir = super(_test_project, self).__enter__()
+        copy(_test_project_dir, ".", inside=False)
+        return dir
+
+def _invoke(*args):
+    PlanoCommand().main(["--verbose", "-f", join(_test_project_dir, "Planofile")] + list(args))
+
 def test_plano_command(session):
     if PYTHON2:
         raise TestSkipped("The plano command is not supported on Python 2")
@@ -809,54 +821,56 @@ def test_plano_command(session):
     except SystemExit:
         pass
 
-    def invoke(*args):
-        PlanoCommand().main(["--verbose", "-f", "scripts/test.planofile"] + list(args))
+    with _test_project():
+        _invoke()
+        _invoke("--help")
+        _invoke("--quiet")
+        _invoke("--init-only")
 
-    invoke()
-    invoke("--quiet")
-    invoke("--init-only")
+        _invoke("build")
+        _invoke("install")
+        _invoke("clean")
 
-    invoke("build")
-    invoke("install")
-    invoke("clean")
-    invoke("run")
+        try:
+            _invoke("build", "--help")
+            assert False
+        except SystemExit:
+            pass
 
-    invoke("--help")
+        try:
+            _invoke("no-such-command")
+            assert False
+        except SystemExit:
+            pass
 
-    try:
-        invoke("build", "--help")
-        assert False
-    except SystemExit:
-        pass
+        try:
+            _invoke("no-such-command", "--help")
+            assert False
+        except SystemExit:
+            pass
 
-    try:
-        invoke("no-such-command")
-        assert False
-    except SystemExit:
-        pass
+        try:
+            _invoke("--help", "no-such-command")
+            assert False
+        except SystemExit:
+            pass
 
-    try:
-        invoke("no-such-command", "--help")
-        assert False
-    except SystemExit:
-        pass
+        try:
+            _invoke("echo")
+            assert False
+        except SystemExit:
+            pass
 
-    try:
-        invoke("--help", "no-such-command")
-        assert False
-    except SystemExit:
-        pass
+        try:
+            _invoke("echo", "Hello", "--trouble")
+            assert False
+        except Exception as e:
+            assert str(e) == "Trouble", str(e)
 
-    try:
-        invoke("run", "--trouble")
-        assert False
-    except Exception as e:
-        assert str(e) == "Trouble", str(e)
+        _invoke("echo", "Hello", "--count", "5")
 
-    invoke("echo", "Hello", "--count", "5")
-
-    try:
-        invoke("echo", "Hello", "--count", "not-an-int")
-        assert False
-    except SystemExit:
-        pass
+        try:
+            _invoke("echo", "Hello", "--count", "not-an-int")
+            assert False
+        except SystemExit:
+            pass
