@@ -1149,23 +1149,21 @@ _command_help = {
     "test":     "Run the tests",
 }
 
-def command(_function=None, name=None, extends=None, help=None, description=None, args=None):
+def command(_function=None, extends=None, name=None, args=None, help=None, description=None):
     class Command(object):
         def __init__(self, function):
             self.function = function
-            self.name = nvl(name, function.__name__.replace("_", "-"))
             self.extends = extends
+            self.name = nvl(name, function.__name__.replace("_", "-"))
 
             if self.extends is None:
+                self.args = self.process_args(args)
                 self.help = nvl(help, _command_help.get(self.name))
                 self.description = description
-                self.args = self.process_args(args)
             else:
-                assert args is None # For now, no override
-
+                self.args = self.extends.args
                 self.help = nvl(help, self.extends.help)
                 self.description = nvl(description, self.extends.description)
-                self.args = self.extends.args
 
             debug("Adding {0}", self)
 
@@ -1188,14 +1186,14 @@ def command(_function=None, name=None, extends=None, help=None, description=None
                     arg = CommandArgument(param.name)
 
                 if param.default is not param.empty:
-                    arg.has_default = True
+                    arg.optional = True
                     arg.default = param.default
 
                 if arg.type is None and arg.default not in (None, False):
                     arg.type = type(arg.default)
 
                 if param.kind is param.VAR_POSITIONAL:
-                    arg.has_multiple = True
+                    arg.multiple = True
 
                 output_args.append(arg)
 
@@ -1220,15 +1218,11 @@ def command(_function=None, name=None, extends=None, help=None, description=None
                 eprint()
 
             if self.extends is not None:
-                try:
-                    self.extends.function(*args, **kwargs)
-                except TypeError:
-                    self.extends.function()
+                call_args, call_kwargs = self.extends.get_call_args(args, kwargs)
+                self.extends.function(*call_args, **call_kwargs)
 
-            try:
-                self.function(*args, **kwargs)
-            except TypeError:
-                self.function()
+            call_args, call_kwargs = self.get_call_args(args, kwargs)
+            self.function(*call_args, **call_kwargs)
 
             cprint("<{0} {1}".format(dashes, self.name), color="magenta", file=_sys.stderr)
 
@@ -1240,20 +1234,14 @@ def command(_function=None, name=None, extends=None, help=None, description=None
                 cprint("{0} [{1}]".format(dashes[:-1], name), color="magenta", file=_sys.stderr)
 
         def get_display_args(self, args, kwargs):
-            for i, arg in enumerate(self.args):
-                if arg.has_default:
-                    break
-
-                if arg.has_multiple:
+            for i, arg in enumerate((x for x in self.args if not x.optional)):
+                if arg.multiple:
                     for va in args[i:]:
                         yield literal(va)
                 else:
                     yield literal(args[i])
 
-            for arg in self.args:
-                if not arg.has_default:
-                    continue
-
+            for arg in (x for x in self.args if x.optional):
                 value = kwargs.get(arg.name, arg.default)
 
                 if value == arg.default:
@@ -1265,6 +1253,27 @@ def command(_function=None, name=None, extends=None, help=None, description=None
                     value = literal(value)
 
                 yield "{0}={1}".format(arg.display_name, value)
+
+        def get_call_args(self, args, kwargs):
+            sig = _inspect.signature(self.function)
+            call_args = list()
+            call_kwargs = dict()
+
+            for i, param in enumerate(sig.parameters.values()):
+                if param.kind is param.POSITIONAL_ONLY:
+                    call_args.append(args[i])
+                elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is param.empty:
+                    call_args.append(args[i])
+                elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is not param.empty:
+                    call_kwargs[param.name] = kwargs.get(param.name, param.default)
+                elif param.kind is param.VAR_POSITIONAL:
+                    call_args.extend(args[i:])
+                elif param.kind is param.KEYWORD_ONLY:
+                    call_kwargs[param.name] = kwargs.get(param.name, param.default)
+                else:
+                    raise NotImplementedError(param.kind)
+
+            return call_args, call_kwargs
 
         def __repr__(self):
             return "command '{0}'".format(self.name)
@@ -1283,8 +1292,8 @@ class CommandArgument(object):
         self.help = help
         self.default = default
 
-        self.has_default = False
-        self.has_multiple = False
+        self.optional = False
+        self.multiple = False
 
     def __repr__(self):
         return "argument '{0}' ({1})".format(self.name, literal(self.default))
@@ -1380,32 +1389,25 @@ class PlanoCommand(object):
             self.command_kwargs = dict()
 
             for arg in self.command.args:
-                if arg.has_default:
+                if arg.optional:
                     self.command_kwargs[arg.name] = getattr(args, arg.name)
-                elif arg.has_multiple:
+                elif arg.multiple:
                     self.command_args.extend(getattr(args, arg.name))
                 else:
                     self.command_args.append(getattr(args, arg.name))
 
     def _load_config(self, planofile):
-        def find(dir):
-            for name in ("Planofile", ".planofile"):
-                path = join(dir, name)
-
-                if is_file(path):
-                    return path
-
         if planofile is None:
             planofile = self.planofile
 
         if planofile is not None and is_dir(planofile):
-            planofile = find(planofile)
+            planofile = self._find_planofile(planofile)
 
         if planofile is not None and not is_file(planofile):
             exit("Planofile '{0}' not found", planofile)
 
         if planofile is None:
-            planofile = find(get_current_dir())
+            planofile = self._find_planofile(get_current_dir())
 
         if planofile is None:
             return
@@ -1421,6 +1423,13 @@ class PlanoCommand(object):
             error(e)
             exit("Failure loading '{0}': {1}", planofile, str(e))
 
+    def _find_planofile(self, dir):
+        for name in ("Planofile", ".planofile"):
+            path = join(dir, name)
+
+            if is_file(path):
+                return path
+
     def _process_commands(self):
         subparsers = self.parser.add_subparsers(title="commands", dest="command")
 
@@ -1430,7 +1439,7 @@ class PlanoCommand(object):
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)
 
             for arg in command.args:
-                if arg.has_default:
+                if arg.optional:
                     flag = "--{0}".format(arg.display_name)
                     help = arg.help
 
@@ -1444,7 +1453,7 @@ class PlanoCommand(object):
                         subparser.add_argument(flag, dest=arg.name, default=arg.default, action="store_true", help=help)
                     else:
                         subparser.add_argument(flag, dest=arg.name, default=arg.default, metavar=arg.metavar, type=arg.type, help=help)
-                elif arg.has_multiple:
+                elif arg.multiple:
                     subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help, nargs="*")
                 else:
                     subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)

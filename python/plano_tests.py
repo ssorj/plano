@@ -887,5 +887,4 @@ def test_plano_command(session):
         result = read_json("hats.json")
         assert result == ["ballcap", "bowler"], result
 
-        # _invoke("all-your-base-command")
-        # _invoke("all-your-base-command", "to us")
+        _invoke("extended-command", "a", "b", "--omega", "z")

@@ -55,9 +55,9 @@ def habberdash(first, *middle, last="bowler"):
     write_json("hats.json", data)
 
 @command
-def base_command():
-    pass
+def base_command(alpha, beta, omega="x"):
+    print("base", alpha, beta, omega)
 
 @command(extends=base_command)
-def all_your_base_command(belonging):
-    pass
+def extended_command(alpha, omega="y"):
+    print("extended", alpha, omega)
