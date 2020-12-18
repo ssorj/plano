@@ -874,3 +874,5 @@ def test_plano_command(session):
             assert False
         except SystemExit:
             pass
+
+        _invoke("habberdash", "m1", "m2")

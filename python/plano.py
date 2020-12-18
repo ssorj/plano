@@ -72,6 +72,7 @@ STDERR = _sys.stderr
 DEVNULL = _os.devnull
 
 PYTHON2 = _sys.version_info[0] == 2
+PYTHON3 = _sys.version_info[0] == 3
 
 ## Logging operations
 
@@ -1177,30 +1178,26 @@ def command(_function=None, extends=None, name=None, help=None, description=None
             self.parent_command = None
 
         def _process_args(self, input_args):
-            input_args_by_name = {}
-
-            if input_args is not None:
-                input_args_by_name = dict(zip([x.name for x in input_args], input_args))
-
+            input_args_by_name = {x.name: x for x in nvl(input_args, ())}
             output_args = list()
-            names, _, _, defaults = _inspect.getargspec(self.function)
-            defaults = dict(zip(reversed(names), reversed(nvl(defaults, []))))
 
-            for name in names:
+            sig = _inspect.signature(self.function)
+
+            for param in sig.parameters.values():
                 try:
-                    arg = input_args_by_name[name]
+                    arg = input_args_by_name[param.name]
                 except KeyError:
-                    arg = CommandArgument(name)
+                    arg = CommandArgument(param.name)
 
-                if name in defaults:
+                if param.default is not param.empty:
                     arg.has_default_value = True
+                    arg.default_value = param.default
 
-                    if defaults[name] is not None:
-                        arg.default_value = defaults[name]
+                if arg.type is None and arg.default_value not in (None, False):
+                    arg.type = type(arg.default_value)
 
-                if arg.default_value not in (None, False):
-                    if arg.type is None:
-                        arg.type = type(arg.default_value)
+                if param.kind is param.VAR_POSITIONAL:
+                    arg.has_multiple_values = True
 
                 output_args.append(arg)
 
@@ -1225,11 +1222,15 @@ def command(_function=None, extends=None, name=None, help=None, description=None
                 eprint()
 
             if self.extends is not None:
-                call_args = self.get_call_args(self.extends.function, args, kwargs)
-                self.extends.function(*call_args)
+                try:
+                    self.extends.function(*args, **kwargs)
+                except TypeError:
+                    self.extends.function()
 
-            call_args = self.get_call_args(self.function, args, kwargs)
-            self.function(*call_args)
+            try:
+                self.function(*args, **kwargs)
+            except TypeError:
+                self.function()
 
             cprint("<{0} {1}".format(dashes, self.name), color="magenta", file=_sys.stderr)
 
@@ -1242,12 +1243,22 @@ def command(_function=None, extends=None, name=None, help=None, description=None
 
         def get_display_args(self, args, kwargs):
             for i, arg in enumerate(self.args):
-                try:
-                    value = args[i]
-                except IndexError:
-                    value = kwargs.get(arg.name, arg.default_value)
+                if arg.has_default_value:
+                    break
 
-                if arg.default_value == value:
+                if arg.has_multiple_values:
+                    for va in args[i:]:
+                        yield literal(va)
+                else:
+                    yield literal(args[i])
+
+            for arg in self.args:
+                if not arg.has_default_value:
+                    continue
+
+                value = kwargs.get(arg.name, arg.default_value)
+
+                if value == arg.default_value:
                     continue
 
                 if value in (True, False):
@@ -1256,17 +1267,6 @@ def command(_function=None, extends=None, name=None, help=None, description=None
                     value = literal(value)
 
                 yield "{0}={1}".format(arg.display_name, value)
-
-        def get_call_args(self, function, args, kwargs):
-            names, _, _, defaults = _inspect.getargspec(function)
-            defaults = dict(zip(reversed(names), reversed(nvl(defaults, []))))
-
-            for i, name in enumerate(names):
-                try:
-                    yield args[i]
-                except IndexError:
-                    assert name in defaults, (name, defaults)
-                    yield kwargs.get(name, defaults[name])
 
         def __repr__(self):
             return "command '{0}'".format(self.name)
@@ -1277,19 +1277,21 @@ def command(_function=None, extends=None, name=None, help=None, description=None
         return Command(_function)
 
 class CommandArgument(object):
-    def __init__(self, name, display_name=None, metavar=None, type=None, help=None, default=None):
+    def __init__(self, name, display_name=None, type=None, metavar=None, help=None, default=None):
         self.name = name
         self.display_name = nvl(display_name, self.name.replace("_", "-"))
-        self.metavar = nvl(metavar, self.display_name.upper())
         self.type = type
+        self.metavar = nvl(metavar, self.display_name.upper())
         self.help = help
         self.default = default
 
+        self.has_multiple_values = False
         self.has_default_value = False
+
         self.default_value = None
 
     def __repr__(self):
-        return "argument '{0}' (default_value={1})".format(self.name, literal(self.default_value))
+        return "argument '{0}' ({1})".format(self.name, literal(self.default_value))
 
 def get_command(name):
     return PlanoCommand._commands[name]
@@ -1378,8 +1380,16 @@ class PlanoCommand(object):
             self.command_kwargs = PlanoCommand._default_command_kwargs
         else:
             self.command = get_command(args.command)
-            self.command_args = [getattr(args, arg.name) for arg in self.command.args]
-            self.command_kwargs = {}
+            self.command_args = list()
+            self.command_kwargs = dict()
+
+            for arg in self.command.args:
+                if arg.has_default_value:
+                    self.command_kwargs[arg.name] = getattr(args, arg.name)
+                elif arg.has_multiple_values:
+                    self.command_args.extend(getattr(args, arg.name))
+                else:
+                    self.command_args.append(getattr(args, arg.name))
 
     def _load_config(self, planofile):
         if self.planofile is not None and not exists(self.planofile):
@@ -1435,7 +1445,12 @@ class PlanoCommand(object):
                         subparser.add_argument(flag, dest=arg.name, default=arg.default_value, metavar=arg.metavar,
                                                type=arg.type, help=help)
                 else:
-                    subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
+                    nargs = None
+
+                    if arg.has_multiple_values:
+                        nargs = "*"
+
+                    subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help, nargs=nargs)
 
             # Patch the default help text
             try:

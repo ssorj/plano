@@ -19,10 +19,15 @@
 #
 
 from commandant import TestCommand
+from plano import PYTHON3
 
-import bullseye_tests
 import plano_tests
 
 if __name__ == "__main__":
-    command = TestCommand(plano_tests, bullseye_tests)
-    command.main()
+    test_modules = [plano_tests]
+
+    if PYTHON3:
+        import bullseye_tests
+        test_modules.append(bullseye_tests)
+
+    TestCommand(*test_modules).main()
