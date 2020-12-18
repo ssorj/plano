@@ -50,10 +50,6 @@ def echo(message_, count=1, extra=None, trouble=False):
        print(message_)
 
 @command
-def habberdash(first, *middle, last="last"):
-    print(first)
-
-    for m in middle:
-        print(m)
-
-    print(last)
+def habberdash(first, *middle, last="bowler"):
+    data = [first, *middle, last]
+    write_json("hats.json", data)

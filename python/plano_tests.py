@@ -875,4 +875,14 @@ def test_plano_command(session):
         except SystemExit:
             pass
 
-        _invoke("habberdash", "m1", "m2")
+        _invoke("habberdash", "ballcap", "fedora", "hardhat", "--last", "turban")
+        result = read_json("hats.json")
+        assert result == ["ballcap", "fedora", "hardhat", "turban"], result
+
+        _invoke("habberdash", "ballcap", "--last", "turban")
+        result = read_json("hats.json")
+        assert result == ["ballcap", "turban"], result
+
+        _invoke("habberdash", "ballcap")
+        result = read_json("hats.json")
+        assert result == ["ballcap", "bowler"], result

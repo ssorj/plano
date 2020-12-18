@@ -1444,13 +1444,10 @@ class PlanoCommand(object):
                     else:
                         subparser.add_argument(flag, dest=arg.name, default=arg.default_value, metavar=arg.metavar,
                                                type=arg.type, help=help)
+                elif arg.has_multiple_values:
+                    subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help, nargs="*")
                 else:
-                    nargs = None
-
-                    if arg.has_multiple_values:
-                        nargs = "*"
-
-                    subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help, nargs=nargs)
+                    subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
 
             # Patch the default help text
             try:
