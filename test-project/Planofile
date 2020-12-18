@@ -53,3 +53,11 @@ def echo(message_, count=1, extra=None, trouble=False):
 def habberdash(first, *middle, last="bowler"):
     data = [first, *middle, last]
     write_json("hats.json", data)
+
+@command
+def base_command():
+    pass
+
+@command(extends=base_command)
+def all_your_base_command(belonging):
+    pass

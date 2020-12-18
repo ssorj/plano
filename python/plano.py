@@ -1149,22 +1149,20 @@ _command_help = {
     "test":     "Run the tests",
 }
 
-def command(_function=None, extends=None, name=None, help=None, description=None, args=None):
+def command(_function=None, name=None, extends=None, help=None, description=None, args=None):
     class Command(object):
         def __init__(self, function):
             self.function = function
+            self.name = nvl(name, function.__name__.replace("_", "-"))
             self.extends = extends
 
             if self.extends is None:
-                self.name = nvl(name, function.__name__.replace("_", "-"))
                 self.help = nvl(help, _command_help.get(self.name))
                 self.description = description
                 self.args = self.process_args(args)
             else:
-                assert name is None
                 assert args is None # For now, no override
 
-                self.name = self.extends.name
                 self.help = nvl(help, self.extends.help)
                 self.description = nvl(description, self.extends.description)
                 self.args = self.extends.args
@@ -1390,19 +1388,26 @@ class PlanoCommand(object):
                     self.command_args.append(getattr(args, arg.name))
 
     def _load_config(self, planofile):
-        if self.planofile is not None and not exists(self.planofile):
-            exit("File '{0}' not found", self.planofile)
+        def find(dir):
+            for name in ("Planofile", ".planofile"):
+                path = join(dir, name)
 
-        if planofile is not None and not exists(planofile):
-            exit("File '{0}' not found", planofile)
+                if is_file(path):
+                    return path
 
-        planofile = nvl(self.planofile, planofile)
-        planofile = nvl(planofile, "Planofile")
+        if planofile is None:
+            planofile = self.planofile
 
-        if not exists(planofile):
-            planofile = ".planofile"
+        if planofile is not None and is_dir(planofile):
+            planofile = find(planofile)
 
-        if not exists(planofile):
+        if planofile is not None and not is_file(planofile):
+            exit("Planofile '{0}' not found", planofile)
+
+        if planofile is None:
+            planofile = find(get_current_dir())
+
+        if planofile is None:
             return
 
         debug("Loading '{0}'", planofile)
@@ -1421,9 +1426,7 @@ class PlanoCommand(object):
 
         for command in PlanoCommand._commands.values():
             command.parent_command = self
-
-            description = nvl(command.description, command.help)
-            subparser = subparsers.add_parser(command.name, help=command.help, description=description,
+            subparser = subparsers.add_parser(command.name, help=command.help, description=nvl(command.description, command.help),
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)
 
             for arg in command.args:

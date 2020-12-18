@@ -779,7 +779,7 @@ class _test_project(working_dir):
         return dir
 
 def _invoke(*args):
-    PlanoCommand().main(["--verbose", "-f", join(_test_project_dir, "Planofile")] + list(args))
+    PlanoCommand().main(["--verbose", "-f", _test_project_dir] + list(args))
 
 def test_plano_command(session):
     if PYTHON2:
@@ -886,3 +886,6 @@ def test_plano_command(session):
         _invoke("habberdash", "ballcap")
         result = read_json("hats.json")
         assert result == ["ballcap", "bowler"], result
+
+        # _invoke("all-your-base-command")
+        # _invoke("all-your-base-command", "to us")
