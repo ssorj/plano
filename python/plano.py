@@ -1159,7 +1159,7 @@ def command(_function=None, extends=None, name=None, help=None, description=None
                 self.name = nvl(name, function.__name__.replace("_", "-"))
                 self.help = nvl(help, _command_help.get(self.name))
                 self.description = description
-                self.args = self._process_args(args)
+                self.args = self.process_args(args)
             else:
                 assert name is None
                 assert args is None # For now, no override
@@ -1177,27 +1177,27 @@ def command(_function=None, extends=None, name=None, help=None, description=None
             PlanoCommand._commands[self.name] = self
             self.parent_command = None
 
-        def _process_args(self, input_args):
-            input_args_by_name = {x.name: x for x in nvl(input_args, ())}
+        def process_args(self, input_args):
+            input_args = {x.name: x for x in nvl(input_args, ())}
             output_args = list()
 
             sig = _inspect.signature(self.function)
 
             for param in sig.parameters.values():
                 try:
-                    arg = input_args_by_name[param.name]
+                    arg = input_args[param.name]
                 except KeyError:
                     arg = CommandArgument(param.name)
 
                 if param.default is not param.empty:
-                    arg.has_default_value = True
-                    arg.default_value = param.default
+                    arg.has_default = True
+                    arg.default = param.default
 
-                if arg.type is None and arg.default_value not in (None, False):
-                    arg.type = type(arg.default_value)
+                if arg.type is None and arg.default not in (None, False):
+                    arg.type = type(arg.default)
 
                 if param.kind is param.VAR_POSITIONAL:
-                    arg.has_multiple_values = True
+                    arg.has_multiple = True
 
                 output_args.append(arg)
 
@@ -1243,22 +1243,22 @@ def command(_function=None, extends=None, name=None, help=None, description=None
 
         def get_display_args(self, args, kwargs):
             for i, arg in enumerate(self.args):
-                if arg.has_default_value:
+                if arg.has_default:
                     break
 
-                if arg.has_multiple_values:
+                if arg.has_multiple:
                     for va in args[i:]:
                         yield literal(va)
                 else:
                     yield literal(args[i])
 
             for arg in self.args:
-                if not arg.has_default_value:
+                if not arg.has_default:
                     continue
 
-                value = kwargs.get(arg.name, arg.default_value)
+                value = kwargs.get(arg.name, arg.default)
 
-                if value == arg.default_value:
+                if value == arg.default:
                     continue
 
                 if value in (True, False):
@@ -1285,13 +1285,11 @@ class CommandArgument(object):
         self.help = help
         self.default = default
 
-        self.has_multiple_values = False
-        self.has_default_value = False
-
-        self.default_value = None
+        self.has_default = False
+        self.has_multiple = False
 
     def __repr__(self):
-        return "argument '{0}' ({1})".format(self.name, literal(self.default_value))
+        return "argument '{0}' ({1})".format(self.name, literal(self.default))
 
 def get_command(name):
     return PlanoCommand._commands[name]
@@ -1384,9 +1382,9 @@ class PlanoCommand(object):
             self.command_kwargs = dict()
 
             for arg in self.command.args:
-                if arg.has_default_value:
+                if arg.has_default:
                     self.command_kwargs[arg.name] = getattr(args, arg.name)
-                elif arg.has_multiple_values:
+                elif arg.has_multiple:
                     self.command_args.extend(getattr(args, arg.name))
                 else:
                     self.command_args.append(getattr(args, arg.name))
@@ -1429,7 +1427,7 @@ class PlanoCommand(object):
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)
 
             for arg in command.args:
-                if arg.has_default_value:
+                if arg.has_default:
                     flag = "--{0}".format(arg.display_name)
                     help = arg.help
 
@@ -1439,12 +1437,11 @@ class PlanoCommand(object):
                         else:
                             help += " (default {0})".format(literal(arg.default))
 
-                    if arg.default_value is False:
-                        subparser.add_argument(flag, dest=arg.name, default=arg.default_value, action="store_true", help=help)
+                    if arg.default is False:
+                        subparser.add_argument(flag, dest=arg.name, default=arg.default, action="store_true", help=help)
                     else:
-                        subparser.add_argument(flag, dest=arg.name, default=arg.default_value, metavar=arg.metavar,
-                                               type=arg.type, help=help)
-                elif arg.has_multiple_values:
+                        subparser.add_argument(flag, dest=arg.name, default=arg.default, metavar=arg.metavar, type=arg.type, help=help)
+                elif arg.has_multiple:
                     subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help, nargs="*")
                 else:
                     subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
