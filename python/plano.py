@@ -1174,10 +1174,9 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
             self.parent_command = None
 
         def process_args(self, input_args):
+            sig = _inspect.signature(self.function)
             input_args = {x.name: x for x in nvl(input_args, ())}
             output_args = list()
-
-            sig = _inspect.signature(self.function)
 
             for param in sig.parameters.values():
                 try:
@@ -1185,15 +1184,22 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                 except KeyError:
                     arg = CommandArgument(param.name)
 
-                if param.default is not param.empty:
-                    arg.optional = True
+                if param.kind is param.POSITIONAL_ONLY:
+                    arg.positional = True
+                elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is param.empty:
+                    arg.positional = True
+                elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is not param.empty:
                     arg.default = param.default
-
-                if arg.type is None and arg.default not in (None, False):
-                    arg.type = type(arg.default)
-
-                if param.kind is param.VAR_POSITIONAL:
+                elif param.kind is param.VAR_POSITIONAL:
+                    arg.positional = True
                     arg.multiple = True
+                elif param.kind is param.KEYWORD_ONLY:
+                    arg.default = param.default
+                else:
+                    raise NotImplementedError(param.kind)
+
+                if arg.type is None and arg.default not in (None, False): # XXX why false?
+                    arg.type = type(arg.default)
 
                 output_args.append(arg)
 
@@ -1234,14 +1240,14 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                 cprint("{0} [{1}]".format(dashes[:-1], name), color="magenta", file=_sys.stderr)
 
         def get_display_args(self, args, kwargs):
-            for i, arg in enumerate((x for x in self.args if not x.optional)):
+            for i, arg in enumerate((x for x in self.args if x.positional)):
                 if arg.multiple:
                     for va in args[i:]:
                         yield literal(va)
                 else:
                     yield literal(args[i])
 
-            for arg in (x for x in self.args if x.optional):
+            for arg in (x for x in self.args if not x.positional):
                 value = kwargs.get(arg.name, arg.default)
 
                 if value == arg.default:
@@ -1292,7 +1298,7 @@ class CommandArgument(object):
         self.help = help
         self.default = default
 
-        self.optional = False
+        self.positional = False
         self.multiple = False
 
     def __repr__(self):
@@ -1389,12 +1395,13 @@ class PlanoCommand(object):
             self.command_kwargs = dict()
 
             for arg in self.command.args:
-                if arg.optional:
-                    self.command_kwargs[arg.name] = getattr(args, arg.name)
-                elif arg.multiple:
-                    self.command_args.extend(getattr(args, arg.name))
+                if arg.positional:
+                    if arg.multiple:
+                        self.command_args.extend(getattr(args, arg.name))
+                    else:
+                        self.command_args.append(getattr(args, arg.name))
                 else:
-                    self.command_args.append(getattr(args, arg.name))
+                    self.command_kwargs[arg.name] = getattr(args, arg.name)
 
     def _load_config(self, planofile):
         if planofile is None:
@@ -1439,7 +1446,12 @@ class PlanoCommand(object):
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)
 
             for arg in command.args:
-                if arg.optional:
+                if arg.positional:
+                    if arg.multiple:
+                        subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help, nargs="*")
+                    else:
+                        subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
+                else:
                     flag = "--{0}".format(arg.display_name)
                     help = arg.help
 
@@ -1453,10 +1465,6 @@ class PlanoCommand(object):
                         subparser.add_argument(flag, dest=arg.name, default=arg.default, action="store_true", help=help)
                     else:
                         subparser.add_argument(flag, dest=arg.name, default=arg.default, metavar=arg.metavar, type=arg.type, help=help)
-                elif arg.multiple:
-                    subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help, nargs="*")
-                else:
-                    subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
 
             # Patch the default help text
             try:
