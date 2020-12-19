@@ -1206,11 +1206,13 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                 elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is param.empty:
                     arg.positional = True
                 elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is not param.empty:
+                    arg.optional = True
                     arg.default = param.default
                 elif param.kind is param.VAR_POSITIONAL:
                     arg.positional = True
                     arg.multiple = True
                 elif param.kind is param.KEYWORD_ONLY:
+                    arg.optional = True
                     arg.default = param.default
                 else: # pragma: nocover
                     raise NotImplementedError(param.kind)
@@ -1263,7 +1265,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                     if arg.multiple:
                         for va in args[i:]:
                             yield literal(va)
-                    elif arg.default is not None:
+                    elif arg.optional:
                         value = args[i]
 
                         if value == arg.default:
@@ -1329,6 +1331,8 @@ class CommandArgument(object):
         self.short_option = short_option
         self.default = default
         self.positional = positional
+
+        self.optional = False
         self.multiple = False
 
     def __repr__(self):
@@ -1484,7 +1488,7 @@ class PlanoCommand(object):
                 if arg.positional:
                     if arg.multiple:
                         subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help, nargs="*")
-                    elif arg.default is not None:
+                    elif arg.optional:
                         subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help, nargs="?", default=arg.default)
                     else:
                         subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
