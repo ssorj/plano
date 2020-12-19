@@ -1375,7 +1375,7 @@ class PlanoCommand(object):
         self.pre_parser.add_argument("--init-only", action="store_true",
                                      help=_argparse.SUPPRESS)
 
-        self.parser = _argparse.ArgumentParser(prog="plano", parents=(self.pre_parser,), add_help=False)
+        self.parser = _argparse.ArgumentParser(parents=(self.pre_parser,), add_help=False)
 
         self.running_commands = list()
 
