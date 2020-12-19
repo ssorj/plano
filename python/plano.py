@@ -1489,11 +1489,14 @@ class PlanoCommand(object):
                     else:
                         subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
                 else:
-                    flag_args = ["--{0}".format(arg.display_name)]
-                    help = arg.help
+                    flag_args = list()
 
                     if arg.short_option is not None:
                         flag_args.append("-{0}".format(arg.short_option))
+
+                    flag_args.append("--{0}".format(arg.display_name))
+
+                    help = arg.help
 
                     if arg.default not in (None, False):
                         if help is None:
