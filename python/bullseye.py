@@ -131,7 +131,7 @@ def build(prefix=None, clean=False):
                _verbose_arg, _clean_arg))
 def test(include=None, list_=False, verbose=False, clean=False):
     check_project()
-    check_module("commandant")
+    check_modules("commandant")
 
     from commandant import TestCommand
 
@@ -196,7 +196,7 @@ def clean():
          args=(CommandArgument("remote", help="Get remote commits"),
                CommandArgument("recursive", help="Update modules recursively")))
 def modules(remote=False, recursive=False):
-    check_program("git")
+    check_programs("git")
 
     command = ["git", "submodule", "update", "--init"]
 

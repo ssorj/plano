@@ -137,14 +137,52 @@ def test_environment_operations(session):
     result = which("echo")
     assert result, result
 
+    with working_dir():
+        touch("adir/afile")
+
+        check_exists("adir")
+        check_exists("adir/afile")
+        check_dirs("adir")
+        check_files("adir/afile")
+
+        try:
+            check_exists("adir/notafile")
+            assert False
+        except PlanoException:
+            pass
+
+        try:
+            check_files("adir/afile", "adir/notafile")
+            assert False
+        except PlanoException:
+            pass
+
+        try:
+            check_files("adir")
+            assert False
+        except PlanoException:
+            pass
+
+        try:
+            check_dirs("not-there", "nnoott")
+            assert False
+        except PlanoException:
+            pass
+
+        try:
+            check_dirs("adir/afile")
+            assert False
+        except PlanoException:
+            pass
+
     try:
-        check_program("not-there")
+        check_programs("not-there", "also-not-extant")
         assert False
     except PlanoException:
         pass
 
     try:
-        check_module("not_there")
+        check_modules("not_there", "nope_not_at_all")
         assert False
     except PlanoException:
         pass

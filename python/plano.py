@@ -329,13 +329,30 @@ def which(program_name):
         if _os.access(program, _os.X_OK):
             return program
 
-def check_module(module_name):
-    if _pkgutil.find_loader(module_name) is None:
-        raise PlanoException("Module '{0}' is not found".format(module_name))
+def check_exists(*paths):
+    for path in paths:
+        if not exists(path):
+            raise PlanoException("File or directory '{0}' is not found".format(path))
 
-def check_program(program_name):
-    if which(program_name) is None:
-        raise PlanoException("Program '{0}' is not found".format(program_name))
+def check_files(*files):
+    for file in files:
+        if not is_file(file):
+            raise PlanoException("File '{0}' is not found".format(file))
+
+def check_dirs(*dirs):
+    for dir in dirs:
+        if not is_dir(dir):
+            raise PlanoException("Directory '{0}' is not found".format(dir))
+
+def check_modules(*modules):
+    for module in modules:
+        if _pkgutil.find_loader(module) is None:
+            raise PlanoException("Module '{0}' is not found".format(module))
+
+def check_programs(*programs):
+    for program in programs:
+        if which(program) is None:
+            raise PlanoException("Program '{0}' is not found".format(program))
 
 ## IO operations
 
@@ -440,7 +457,7 @@ def emit_json(data):
 ## HTTP operations
 
 def _run_curl(method, url, content=None, content_file=None, content_type=None, output_file=None, insecure=False):
-    check_program("curl")
+    check_programs("curl")
 
     options = [
         "-sf",
@@ -980,7 +997,7 @@ def get_time():
 ## Archive operations
 
 def make_archive(input_dir, output_file=None, quiet=False):
-    check_program("tar")
+    check_programs("tar")
 
     archive_stem = get_base_name(input_dir)
 
@@ -995,7 +1012,7 @@ def make_archive(input_dir, output_file=None, quiet=False):
     return output_file
 
 def extract_archive(input_file, output_dir=None, quiet=False):
-    check_program("tar")
+    check_programs("tar")
 
     if output_dir is None:
         output_dir = get_current_dir()
