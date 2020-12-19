@@ -47,7 +47,7 @@ def extended_command(alpha, omega="y"):
 @command(help="Print a message to the console",
          args=(CommandArgument("message_", help="The message to print", display_name="message"),
                CommandArgument("count", help="Print the message COUNT times"),
-               CommandArgument("extra", default=1)))
+               CommandArgument("extra", default=1, short_option="e")))
 def echo(message_, count=1, extra=None, trouble=False):
     print("Echoing (message={0}, count={1})".format(message_, count))
 

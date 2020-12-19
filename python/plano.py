@@ -1320,12 +1320,13 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
         return Command(_function)
 
 class CommandArgument(object):
-    def __init__(self, name, display_name=None, type=None, metavar=None, help=None, default=None, positional=False):
+    def __init__(self, name, display_name=None, type=None, metavar=None, help=None, short_option=None, default=None, positional=False):
         self.name = name
         self.display_name = nvl(display_name, self.name.replace("_", "-"))
         self.type = type
         self.metavar = nvl(metavar, self.display_name.upper())
         self.help = help
+        self.short_option = short_option
         self.default = default
         self.positional = positional
         self.multiple = False
@@ -1376,7 +1377,7 @@ class PlanoCommand(object):
 
         description = "Run commands defined as Python functions"
 
-        self.pre_parser = _argparse.ArgumentParser(description=description, add_help=False)
+        self.pre_parser = _argparse.ArgumentParser(description=description, add_help=False, allow_abbrev=False)
 
         self.pre_parser.add_argument("-h", "--help", action="store_true",
                                      help="Show this help message and exit")
@@ -1392,7 +1393,7 @@ class PlanoCommand(object):
         self.pre_parser.add_argument("--init-only", action="store_true",
                                      help=_argparse.SUPPRESS)
 
-        self.parser = _argparse.ArgumentParser(parents=(self.pre_parser,), add_help=False)
+        self.parser = _argparse.ArgumentParser(parents=(self.pre_parser,), add_help=False, allow_abbrev=False)
 
         self.running_commands = list()
 
@@ -1488,8 +1489,11 @@ class PlanoCommand(object):
                     else:
                         subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
                 else:
-                    flag = "--{0}".format(arg.display_name)
+                    flag_args = ["--{0}".format(arg.display_name)]
                     help = arg.help
+
+                    if arg.short_option is not None:
+                        flag_args.append("-{0}".format(arg.short_option))
 
                     if arg.default not in (None, False):
                         if help is None:
@@ -1498,9 +1502,9 @@ class PlanoCommand(object):
                             help += " (default {0})".format(literal(arg.default))
 
                     if arg.default is False:
-                        subparser.add_argument(flag, dest=arg.name, default=arg.default, action="store_true", help=help)
+                        subparser.add_argument(*flag_args, dest=arg.name, default=arg.default, action="store_true", help=help)
                     else:
-                        subparser.add_argument(flag, dest=arg.name, default=arg.default, metavar=arg.metavar, type=arg.type, help=help)
+                        subparser.add_argument(*flag_args, dest=arg.name, default=arg.default, metavar=arg.metavar, type=arg.type, help=help)
 
             # Patch the default help text
             try:
