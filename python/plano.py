@@ -1359,12 +1359,15 @@ class PlanoCommand(object):
 
         description = "Run commands defined as Python functions"
 
-        self.pre_parser = _argparse.ArgumentParser(prog="plano", description=description, add_help=False)
+        self.pre_parser = _argparse.ArgumentParser(description=description, add_help=False)
 
         self.pre_parser.add_argument("-h", "--help", action="store_true",
                                      help="Show this help message and exit")
-        self.pre_parser.add_argument("-f", "--file",
-                                     help="Load commands from FILE (default 'Planofile' or '.planofile')")
+
+        if self.planofile is None:
+            self.pre_parser.add_argument("-f", "--file",
+                                         help="Load commands from FILE (default 'Planofile' or '.planofile')")
+
         self.pre_parser.add_argument("--verbose", action="store_true",
                                      help="Print detailed logging to the console")
         self.pre_parser.add_argument("--quiet", action="store_true",
@@ -1387,7 +1390,7 @@ class PlanoCommand(object):
 
         self.init_only = pre_args.init_only
 
-        self._load_config(pre_args.file)
+        self._load_config(getattr(pre_args, "file", None))
         self._process_commands()
 
         args = self.parser.parse_args(args)
