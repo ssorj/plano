@@ -855,6 +855,8 @@ def test_plano_command(session):
         except SystemExit:
             pass
 
+        _invoke("extended-command", "a", "b", "--omega", "z")
+
         try:
             _invoke("echo")
             assert False
@@ -875,16 +877,26 @@ def test_plano_command(session):
         except SystemExit:
             pass
 
-        _invoke("habberdash", "ballcap", "fedora", "hardhat", "--last", "turban")
-        result = read_json("hats.json")
+        _invoke("haberdash", "ballcap", "fedora", "hardhat", "--last", "turban")
+        result = read_json("haberdash.json")
         assert result == ["ballcap", "fedora", "hardhat", "turban"], result
 
-        _invoke("habberdash", "ballcap", "--last", "turban")
-        result = read_json("hats.json")
+        _invoke("haberdash", "ballcap", "--last", "turban")
+        result = read_json("haberdash.json")
         assert result == ["ballcap", "turban"], result
 
-        _invoke("habberdash", "ballcap")
-        result = read_json("hats.json")
+        _invoke("haberdash", "ballcap")
+        result = read_json("haberdash.json")
         assert result == ["ballcap", "bowler"], result
 
-        _invoke("extended-command", "a", "b", "--omega", "z")
+        _invoke("balderdash", "bunk", "poppycock")
+        result = read_json("balderdash.json")
+        assert result == ["bunk", "poppycock", "rubbish"], result
+
+        _invoke("balderdash", "bunk")
+        result = read_json("balderdash.json")
+        assert result == ["bunk", "malarkey", "rubbish"], result
+
+        _invoke("balderdash", "bunk", "--other", "bollocks")
+        result = read_json("balderdash.json")
+        assert result == ["bunk", "malarkey", "bollocks"], result

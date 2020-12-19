@@ -36,6 +36,14 @@ def install():
     data["installed"] = True
     write_json(_result_file, data)
 
+@command
+def base_command(alpha, beta, omega="x"):
+    print("base", alpha, beta, omega)
+
+@command(extends=base_command)
+def extended_command(alpha, omega="y"):
+    print("extended", alpha, omega)
+
 @command(help="Print a message to the console",
          args=(CommandArgument("message_", help="The message to print", display_name="message"),
                CommandArgument("count", help="Print the message COUNT times"),
@@ -50,14 +58,11 @@ def echo(message_, count=1, extra=None, trouble=False):
        print(message_)
 
 @command
-def habberdash(first, *middle, last="bowler"):
+def haberdash(first, *middle, last="bowler"):
     data = [first, *middle, last]
-    write_json("hats.json", data)
+    write_json("haberdash.json", data)
 
-@command
-def base_command(alpha, beta, omega="x"):
-    print("base", alpha, beta, omega)
-
-@command(extends=base_command)
-def extended_command(alpha, omega="y"):
-    print("extended", alpha, omega)
+@command(args=(CommandArgument("optional", default="malarkey"),))
+def balderdash(required, optional, other="rubbish"):
+    data = [required, optional, other]
+    write_json("balderdash.json", data)

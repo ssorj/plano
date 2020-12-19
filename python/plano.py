@@ -1184,7 +1184,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                 except KeyError:
                     arg = CommandArgument(param.name)
 
-                if param.kind is param.POSITIONAL_ONLY:
+                if param.kind is param.POSITIONAL_ONLY: # pragma: nocover
                     arg.positional = True
                 elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is param.empty:
                     arg.positional = True
@@ -1195,7 +1195,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                     arg.multiple = True
                 elif param.kind is param.KEYWORD_ONLY:
                     arg.default = param.default
-                else:
+                else: # pragma: nocover
                     raise NotImplementedError(param.kind)
 
                 if arg.type is None and arg.default not in (None, False): # XXX why false?
@@ -1245,6 +1245,13 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                     if arg.multiple:
                         for va in args[i:]:
                             yield literal(va)
+                    elif arg.default is not None:
+                        value = args[i]
+
+                        if value == arg.default:
+                            continue
+
+                        yield literal(value)
                     else:
                         yield literal(args[i])
                 else:
@@ -1266,7 +1273,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
             call_kwargs = dict()
 
             for i, param in enumerate(sig.parameters.values()):
-                if param.kind is param.POSITIONAL_ONLY:
+                if param.kind is param.POSITIONAL_ONLY: # pragma: nocover
                     call_args.append(args[i])
                 elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is param.empty:
                     call_args.append(args[i])
@@ -1276,7 +1283,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                     call_args.extend(args[i:])
                 elif param.kind is param.KEYWORD_ONLY:
                     call_kwargs[param.name] = kwargs.get(param.name, param.default)
-                else:
+                else: # pragma: nocover
                     raise NotImplementedError(param.kind)
 
             return call_args, call_kwargs
@@ -1442,13 +1449,17 @@ class PlanoCommand(object):
 
         for command in PlanoCommand._commands.values():
             command.parent_command = self
-            subparser = subparsers.add_parser(command.name, help=command.help, description=nvl(command.description, command.help),
+
+            subparser = subparsers.add_parser(command.name, help=command.help,
+                                              description=nvl(command.description, command.help),
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)
 
             for arg in command.args:
                 if arg.positional:
                     if arg.multiple:
                         subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help, nargs="*")
+                    elif arg.default is not None:
+                        subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help, nargs="?", default=arg.default)
                     else:
                         subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
                 else:
