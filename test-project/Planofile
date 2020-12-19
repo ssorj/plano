@@ -62,7 +62,7 @@ def haberdash(first, *middle, last="bowler"):
     data = [first, *middle, last]
     write_json("haberdash.json", data)
 
-@command(args=(CommandArgument("optional", default="malarkey"),))
-def balderdash(required, optional, other="rubbish"):
+@command(args=(CommandArgument("optional", positional=True),))
+def balderdash(required, optional="malarkey", other="rubbish"):
     data = [required, optional, other]
     write_json("balderdash.json", data)

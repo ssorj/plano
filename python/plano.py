@@ -1167,7 +1167,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
 
             debug("Adding {0}", self)
 
-            for arg in self.args:
+            for arg in self.args.values():
                 debug("  {0}", arg)
 
             PlanoCommand._commands[self.name] = self
@@ -1176,7 +1176,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
         def process_args(self, input_args):
             sig = _inspect.signature(self.function)
             input_args = {x.name: x for x in nvl(input_args, ())}
-            output_args = list()
+            output_args = _collections.OrderedDict()
 
             for param in sig.parameters.values():
                 try:
@@ -1201,7 +1201,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                 if arg.type is None and arg.default not in (None, False): # XXX why false?
                     arg.type = type(arg.default)
 
-                output_args.append(arg)
+                output_args[arg.name] = arg
 
             return output_args
 
@@ -1228,6 +1228,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                 self.extends.function(*call_args, **call_kwargs)
 
             call_args, call_kwargs = self.get_call_args(args, kwargs)
+
             self.function(*call_args, **call_kwargs)
 
             cprint("<{0} {1}".format(dashes, self.name), color="magenta", file=_sys.stderr)
@@ -1240,7 +1241,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                 cprint("{0} [{1}]".format(dashes[:-1], name), color="magenta", file=_sys.stderr)
 
         def get_display_args(self, args, kwargs):
-            for i, arg in enumerate(self.args):
+            for i, arg in enumerate(self.args.values()):
                 if arg.positional:
                     if arg.multiple:
                         for va in args[i:]:
@@ -1278,7 +1279,12 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                 elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is param.empty:
                     call_args.append(args[i])
                 elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is not param.empty:
-                    call_kwargs[param.name] = kwargs.get(param.name, param.default)
+                    command_arg = self.args[param.name]
+
+                    if command_arg.positional:
+                        call_args.append(args[i])
+                    else:
+                        call_kwargs[param.name] = kwargs.get(param.name, param.default)
                 elif param.kind is param.VAR_POSITIONAL:
                     call_args.extend(args[i:])
                 elif param.kind is param.KEYWORD_ONLY:
@@ -1297,15 +1303,14 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
         return Command(_function)
 
 class CommandArgument(object):
-    def __init__(self, name, display_name=None, type=None, metavar=None, help=None, default=None):
+    def __init__(self, name, display_name=None, type=None, metavar=None, help=None, default=None, positional=False):
         self.name = name
         self.display_name = nvl(display_name, self.name.replace("_", "-"))
         self.type = type
         self.metavar = nvl(metavar, self.display_name.upper())
         self.help = help
         self.default = default
-
-        self.positional = False
+        self.positional = positional
         self.multiple = False
 
     def __repr__(self):
@@ -1401,7 +1406,7 @@ class PlanoCommand(object):
             self.command_args = list()
             self.command_kwargs = dict()
 
-            for arg in self.command.args:
+            for arg in self.command.args.values():
                 if arg.positional:
                     if arg.multiple:
                         self.command_args.extend(getattr(args, arg.name))
@@ -1454,7 +1459,7 @@ class PlanoCommand(object):
                                               description=nvl(command.description, command.help),
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)
 
-            for arg in command.args:
+            for arg in command.args.values():
                 if arg.positional:
                     if arg.multiple:
                         subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help, nargs="*")
