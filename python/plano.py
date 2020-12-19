@@ -1240,25 +1240,25 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                 cprint("{0} [{1}]".format(dashes[:-1], name), color="magenta", file=_sys.stderr)
 
         def get_display_args(self, args, kwargs):
-            for i, arg in enumerate((x for x in self.args if x.positional)):
-                if arg.multiple:
-                    for va in args[i:]:
-                        yield literal(va)
+            for i, arg in enumerate(self.args):
+                if arg.positional:
+                    if arg.multiple:
+                        for va in args[i:]:
+                            yield literal(va)
+                    else:
+                        yield literal(args[i])
                 else:
-                    yield literal(args[i])
+                    value = kwargs.get(arg.name, arg.default)
 
-            for arg in (x for x in self.args if not x.positional):
-                value = kwargs.get(arg.name, arg.default)
+                    if value == arg.default:
+                        continue
 
-                if value == arg.default:
-                    continue
+                    if value in (True, False):
+                        value = str(value).lower()
+                    else:
+                        value = literal(value)
 
-                if value in (True, False):
-                    value = str(value).lower()
-                else:
-                    value = literal(value)
-
-                yield "{0}={1}".format(arg.display_name, value)
+                    yield "{0}={1}".format(arg.display_name, value)
 
         def get_call_args(self, args, kwargs):
             sig = _inspect.signature(self.function)
