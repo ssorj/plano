@@ -74,100 +74,57 @@ DEVNULL = _os.devnull
 PYTHON2 = _sys.version_info[0] == 2
 PYTHON3 = _sys.version_info[0] == 3
 
-## Logging operations
+## Archive operations
 
-_logging_levels = (
-    "debug",
-    "notice",
-    "warn",
-    "error",
-)
+def make_archive(input_dir, output_file=None, quiet=False):
+    check_programs("tar")
 
-_debug = _logging_levels.index("debug")
-_notice = _logging_levels.index("notice")
-_warn = _logging_levels.index("warn")
-_error = _logging_levels.index("error")
+    archive_stem = get_base_name(input_dir)
 
-_logging_output = None
-_logging_threshold = _notice
+    if output_file is None:
+        output_file = "{0}.tar.gz".format(join(get_current_dir(), archive_stem))
 
-def enable_logging(level="warn", output=None):
-    if level == "warning":
-        level = "warn"
+    _log(quiet, "Making archive '{0}' from dir '{1}'", output_file, input_dir)
 
-    assert level in _logging_levels
+    with working_dir(get_parent_dir(input_dir)):
+        run("tar -czf {0} {1}".format(output_file, archive_stem))
 
-    global _logging_threshold
-    _logging_threshold = _logging_levels.index(level)
+    return output_file
 
-    if is_string(output):
-        output = open(output, "w")
+def extract_archive(input_file, output_dir=None, quiet=False):
+    check_programs("tar")
 
-    global _logging_output
-    _logging_output = output
+    if output_dir is None:
+        output_dir = get_current_dir()
 
-def disable_logging():
-    global _logging_threshold
-    _logging_threshold = 4
+    _log(quiet, "Extracting archive '{0}' to dir '{1}'", input_file, output_dir)
 
-def fail(message, *args):
-    error(message, *args)
+    input_file = get_absolute_path(input_file)
 
-    if isinstance(message, BaseException):
-        raise message
+    with working_dir(output_dir):
+        run("tar -xf {0}".format(input_file))
 
-    raise PlanoException(message.format(*args))
+    return output_dir
 
-def error(message, *args):
-    _print_message("Error", message, args)
+def rename_archive(input_file, new_archive_stem, quiet=False):
+    _log(quiet, "Renaming archive '{0}' with stem '{1}'", input_file, new_archive_stem)
 
-def warn(message, *args):
-    if _logging_threshold <= _warn:
-        _print_message("Warning", message, args)
+    output_dir = get_absolute_path(get_parent_dir(input_file))
+    output_file = "{0}.tar.gz".format(join(output_dir, new_archive_stem))
 
-def notice(message, *args):
-    if _logging_threshold <= _notice:
-        _print_message(None, message, args)
+    input_file = get_absolute_path(input_file)
 
-def debug(message, *args):
-    if _logging_threshold <= _debug:
-        _print_message("Debug", message, args)
+    with working_dir():
+        extract_archive(input_file)
 
-def _print_message(category, message, args):
-    out = nvl(_logging_output, _sys.stderr)
+        input_name = list_dir()[0]
+        input_dir = move(input_name, new_archive_stem)
 
-    if isinstance(message, BaseException) and hasattr(message, "__traceback__"):
-        print(_format_message(category, "Exception:", []), file=out)
-        _traceback.print_exception(type(message), message, message.__traceback__, file=out)
-    else:
-        message = _format_message(category, message, args)
-        print(message, file=out)
+        make_archive(input_dir, output_file=output_file)
 
-    out.flush()
+    remove(input_file)
 
-def _format_message(category, message, args):
-    if not is_string(message):
-        message = str(message)
-
-    if args:
-        message = message.format(*args)
-
-    if len(message) > 0 and message[0].islower():
-        message = message[0].upper() + message[1:]
-
-    if category:
-        message = "{0}: {1}".format(category, message)
-
-    program = get_program_name()
-    message = "{0}: {1}".format(program, message)
-
-    return message
-
-def _log(quiet, message, *args):
-    if quiet:
-        debug(message, *args)
-    else:
-        notice(message, *args)
+    return output_file
 
 ## Console operations
 
@@ -224,87 +181,147 @@ def cprint(*args, **kwargs):
     with console_color(color, bright=bright, file=file):
         print(*args, **kwargs)
 
-## Path operations
+## Environment operations
 
-def get_absolute_path(path):
-    return _os.path.abspath(path)
+class working_env(object):
+    def __init__(self, **env_vars):
+        self.env_vars = env_vars
+        self.prev_env_vars = dict()
 
-def normalize_path(path):
-    return _os.path.normpath(path)
+    def __enter__(self):
+        for name, value in self.env_vars.items():
+            if name in ENV:
+                self.prev_env_vars[name] = ENV[name]
 
-def get_real_path(path):
-    return _os.path.realpath(path)
+            ENV[name] = str(value)
 
-def get_relative_path(path, start=None):
-    return _os.path.relpath(path, start=start)
+    def __exit__(self, exc_type, exc_value, traceback):
+        for name, value in self.env_vars.items():
+            if name in self.prev_env_vars:
+                ENV[name] = self.prev_env_vars[name]
+            else:
+                del ENV[name]
 
-def get_file_url(path):
-    return "file:{0}".format(get_absolute_path(path))
+## Directory operations
 
-def exists(path):
-    return _os.path.lexists(path)
+def find(dirs=None, include="*", exclude=()):
+    if dirs is None:
+        dirs = "."
 
-def is_absolute(path):
-    return _os.path.isabs(path)
+    if is_string(dirs):
+        dirs = (dirs,)
 
-def is_dir(path):
-    return _os.path.isdir(path)
+    if is_string(include):
+        include = (include,)
 
-def is_file(path):
-    return _os.path.isfile(path)
+    if is_string(exclude):
+        exclude = (exclude,)
 
-def is_link(path):
-    return _os.path.islink(path)
+    found = set()
 
-def join(*paths):
-    return _os.path.join(*paths)
+    for dir in dirs:
+        for root, dir_names, file_names in _os.walk(dir):
+            names = dir_names + file_names
 
-def split(path):
-    return _os.path.split(path)
+            for include_pattern in include:
+                names = _fnmatch.filter(names, include_pattern)
 
-def split_extension(path):
-    return _os.path.splitext(path)
+                for exclude_pattern in exclude:
+                    for name in _fnmatch.filter(names, exclude_pattern):
+                        names.remove(name)
 
-def get_parent_dir(path):
-    path = normalize_path(path)
-    parent, child = split(path)
+                if root.startswith("./"):
+                    root = remove_prefix(root, "./")
+                elif root == ".":
+                    root = ""
 
-    return parent
+                found.update([join(root, x) for x in names])
 
-def get_base_name(path):
-    path = normalize_path(path)
-    parent, name = split(path)
+    return sorted(found)
 
-    return name
+def make_dir(dir, quiet=False):
+    if dir == "":
+        return dir
 
-def get_name_stem(file):
-    name = get_base_name(file)
+    if not exists(dir):
+        _log(quiet, "Making directory '{0}'", dir)
+        _os.makedirs(dir)
 
-    if name.endswith(".tar.gz"):
-        name = name[:-3]
+    return dir
 
-    stem, ext = split_extension(name)
+def make_parent_dir(path, quiet=False):
+    return make_dir(get_parent_dir(path), quiet=quiet)
 
-    return stem
+# Returns the current working directory so you can change it back
+def change_dir(dir, quiet=False):
+    _log(quiet, "Changing directory to '{0}'", dir)
 
-def get_name_extension(file):
-    name = get_base_name(file)
-    stem, ext = split_extension(name)
+    prev_dir = get_current_dir()
 
-    return ext
+    if not dir:
+        return prev_dir
 
-def get_program_name(command=None):
-    if command is None:
-        args = ARGS
-    else:
-        args = command.split()
+    _os.chdir(dir)
 
-    for arg in args:
-        if "=" not in arg:
-            return get_base_name(arg)
+    return prev_dir
 
-def get_file_size(file):
-    return _os.path.getsize(file)
+def list_dir(dir=None, include="*", exclude=()):
+    if dir is None:
+        dir = get_current_dir()
+
+    assert is_dir(dir)
+
+    if is_string(include):
+        include = (include,)
+
+    if is_string(exclude):
+        exclude = (exclude,)
+
+    names = _os.listdir(dir)
+
+    for include_pattern in include:
+        names = _fnmatch.filter(names, include_pattern)
+
+        for exclude_pattern in exclude:
+            for name in _fnmatch.filter(names, exclude_pattern):
+                names.remove(name)
+
+    return sorted(names)
+
+# No args constructor gets a temp dir
+class working_dir(object):
+    def __init__(self, dir=None, quiet=False):
+        self.dir = dir
+        self.prev_dir = None
+        self.remove = False
+        self.quiet = quiet
+
+        if self.dir is None:
+            self.dir = make_temp_dir()
+            self.remove = True
+
+    def __enter__(self):
+        if self.dir == ".":
+            return
+
+        _log(self.quiet, "Entering directory '{0}'", get_absolute_path(self.dir))
+
+        make_dir(self.dir, quiet=True)
+
+        self.prev_dir = change_dir(self.dir, quiet=True)
+
+        return self.dir
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.dir == ".":
+            return
+
+        _log(self.quiet, "Returning to directory '{0}'", get_absolute_path(self.prev_dir))
+
+        change_dir(self.prev_dir, quiet=True)
+
+        if self.remove:
+            remove(self.dir, quiet=True)
 
 ## Environment operations
 
@@ -361,6 +378,67 @@ def check_programs(*programs):
     for program in programs:
         if which(program) is None:
             raise PlanoException("Program '{0}' is not found".format(program))
+
+## File operations
+
+def touch(file, quiet=False):
+    _log(quiet, "Touching '{0}'", file)
+
+    try:
+        _os.utime(file, None)
+    except OSError:
+        append(file, "")
+
+    return file
+
+# symlinks=True - Preserve symlinks
+# inside=True - Place from_path inside to_path if to_path is a directory
+def copy(from_path, to_path, symlinks=True, inside=True, quiet=False):
+    _log(quiet, "Copying '{0}' to '{1}'", from_path, to_path)
+
+    if is_dir(to_path) and inside:
+        to_path = join(to_path, get_base_name(from_path))
+    else:
+        make_parent_dir(to_path, quiet=True)
+
+    if is_dir(from_path):
+        for name in list_dir(from_path):
+            copy(join(from_path, name), join(to_path, name), symlinks=symlinks, inside=False, quiet=True)
+
+        _shutil.copystat(from_path, to_path)
+    elif is_link(from_path) and symlinks:
+        make_link(to_path, read_link(from_path), quiet=True)
+    else:
+        _shutil.copy2(from_path, to_path)
+
+    return to_path
+
+# inside=True - Place from_path inside to_path if to_path is a directory
+def move(from_path, to_path, inside=True, quiet=False):
+    _log(quiet, "Moving '{0}' to '{1}'", from_path, to_path)
+
+    to_path = copy(from_path, to_path, inside=inside, quiet=True)
+    remove(from_path, quiet=True)
+
+    return to_path
+
+def remove(paths, quiet=False):
+    if is_string(paths):
+        paths = (paths,)
+
+    for path in paths:
+        if not exists(path):
+            continue
+
+        _log(quiet, "Removing '{0}'", path)
+
+        if is_dir(path):
+            _shutil.rmtree(path, ignore_errors=True)
+        else:
+            _os.remove(path)
+
+def get_file_size(file):
+    return _os.path.getsize(file)
 
 ## IO operations
 
@@ -537,143 +615,7 @@ def http_post_file(url, content_file, content_type=None, output_file=None, insec
 def http_post_json(url, data, insecure=False):
     return parse_json(http_post(url, emit_json(data), content_type="application/json", insecure=insecure))
 
-## Temp operations
-
-def get_temp_dir():
-    return _tempfile.gettempdir()
-
-def get_user_temp_dir():
-    try:
-        return ENV["XDG_RUNTIME_DIR"]
-    except KeyError:
-        return join(get_temp_dir(), get_user())
-
-def make_temp_file(suffix="", dir=None):
-    if dir is None:
-        dir = get_temp_dir()
-
-    return _tempfile.mkstemp(prefix="plano-", suffix=suffix, dir=dir)[1]
-
-def make_temp_dir(suffix="", dir=None):
-    if dir is None:
-        dir = get_temp_dir()
-
-    return _tempfile.mkdtemp(prefix="plano-", suffix=suffix, dir=dir)
-
-class temp_file(object):
-    def __init__(self, suffix="", dir=None):
-        self.file = make_temp_file(suffix=suffix, dir=dir)
-
-    def __enter__(self):
-        return self.file
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        remove(self.file, quiet=True)
-
-# No args constructor gets a temp dir
-class working_dir(object):
-    def __init__(self, dir=None, quiet=False):
-        self.dir = dir
-        self.prev_dir = None
-        self.remove = False
-        self.quiet = quiet
-
-        if self.dir is None:
-            self.dir = make_temp_dir()
-            self.remove = True
-
-    def __enter__(self):
-        if self.dir == ".":
-            return
-
-        _log(self.quiet, "Entering directory '{0}'", get_absolute_path(self.dir))
-
-        make_dir(self.dir, quiet=True)
-
-        self.prev_dir = change_dir(self.dir, quiet=True)
-
-        return self.dir
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if self.dir == ".":
-            return
-
-        _log(self.quiet, "Returning to directory '{0}'", get_absolute_path(self.prev_dir))
-
-        change_dir(self.prev_dir, quiet=True)
-
-        if self.remove:
-            remove(self.dir, quiet=True)
-
-## Unique ID operations
-
-# Length in bytes, renders twice as long in hex
-def get_unique_id(bytes=16):
-    assert bytes >= 1
-    assert bytes <= 16
-
-    uuid_bytes = _uuid.uuid4().bytes
-    uuid_bytes = uuid_bytes[:bytes]
-
-    return _binascii.hexlify(uuid_bytes).decode("utf-8")
-
-## File operations
-
-def touch(file, quiet=False):
-    _log(quiet, "Touching '{0}'", file)
-
-    try:
-        _os.utime(file, None)
-    except OSError:
-        append(file, "")
-
-    return file
-
-# symlinks=True - Preserve symlinks
-# inside=True - Place from_path inside to_path if to_path is a directory
-def copy(from_path, to_path, symlinks=True, inside=True, quiet=False):
-    _log(quiet, "Copying '{0}' to '{1}'", from_path, to_path)
-
-    if is_dir(to_path) and inside:
-        to_path = join(to_path, get_base_name(from_path))
-    else:
-        make_parent_dir(to_path, quiet=True)
-
-    if is_dir(from_path):
-        for name in list_dir(from_path):
-            copy(join(from_path, name), join(to_path, name), symlinks=symlinks, inside=False, quiet=True)
-
-        _shutil.copystat(from_path, to_path)
-    elif is_link(from_path) and symlinks:
-        make_link(to_path, read_link(from_path), quiet=True)
-    else:
-        _shutil.copy2(from_path, to_path)
-
-    return to_path
-
-# inside=True - Place from_path inside to_path if to_path is a directory
-def move(from_path, to_path, inside=True, quiet=False):
-    _log(quiet, "Moving '{0}' to '{1}'", from_path, to_path)
-
-    to_path = copy(from_path, to_path, inside=inside, quiet=True)
-    remove(from_path, quiet=True)
-
-    return to_path
-
-def remove(paths, quiet=False):
-    if is_string(paths):
-        paths = (paths,)
-
-    for path in paths:
-        if not exists(path):
-            continue
-
-        _log(quiet, "Removing '{0}'", path)
-
-        if is_dir(path):
-            _shutil.rmtree(path, ignore_errors=True)
-        else:
-            _os.remove(path)
+## Link operations
 
 def make_link(path, linked_path, quiet=False):
     _log(quiet, "Making link '{0}' to '{1}'", path, linked_path)
@@ -688,108 +630,207 @@ def make_link(path, linked_path, quiet=False):
 def read_link(path):
     return _os.readlink(path)
 
-def find(dirs=None, include="*", exclude=()):
-    if dirs is None:
-        dirs = "."
+## Logging operations
 
-    if is_string(dirs):
-        dirs = (dirs,)
+_logging_levels = (
+    "debug",
+    "notice",
+    "warn",
+    "error",
+)
 
-    if is_string(include):
-        include = (include,)
+_debug = _logging_levels.index("debug")
+_notice = _logging_levels.index("notice")
+_warn = _logging_levels.index("warn")
+_error = _logging_levels.index("error")
 
-    if is_string(exclude):
-        exclude = (exclude,)
+_logging_output = None
+_logging_threshold = _notice
 
-    found = set()
+def enable_logging(level="warn", output=None):
+    if level == "warning":
+        level = "warn"
 
-    for dir in dirs:
-        for root, dir_names, file_names in _os.walk(dir):
-            names = dir_names + file_names
+    assert level in _logging_levels
 
-            for include_pattern in include:
-                names = _fnmatch.filter(names, include_pattern)
+    global _logging_threshold
+    _logging_threshold = _logging_levels.index(level)
 
-                for exclude_pattern in exclude:
-                    for name in _fnmatch.filter(names, exclude_pattern):
-                        names.remove(name)
+    if is_string(output):
+        output = open(output, "w")
 
-                if root.startswith("./"):
-                    root = remove_prefix(root, "./")
-                elif root == ".":
-                    root = ""
+    global _logging_output
+    _logging_output = output
 
-                found.update([join(root, x) for x in names])
+def disable_logging():
+    global _logging_threshold
+    _logging_threshold = 4
 
-    return sorted(found)
+def fail(message, *args):
+    error(message, *args)
 
-def make_dir(dir, quiet=False):
-    if dir == "":
-        return dir
+    if isinstance(message, BaseException):
+        raise message
 
-    if not exists(dir):
-        _log(quiet, "Making directory '{0}'", dir)
-        _os.makedirs(dir)
+    raise PlanoException(message.format(*args))
 
-    return dir
+def error(message, *args):
+    _print_message("Error", message, args)
 
-def make_parent_dir(path, quiet=False):
-    return make_dir(get_parent_dir(path), quiet=quiet)
+def warn(message, *args):
+    if _logging_threshold <= _warn:
+        _print_message("Warning", message, args)
 
-# Returns the current working directory so you can change it back
-def change_dir(dir, quiet=False):
-    _log(quiet, "Changing directory to '{0}'", dir)
+def notice(message, *args):
+    if _logging_threshold <= _notice:
+        _print_message(None, message, args)
 
-    prev_dir = get_current_dir()
+def debug(message, *args):
+    if _logging_threshold <= _debug:
+        _print_message("Debug", message, args)
 
-    if not dir:
-        return prev_dir
+def _print_message(category, message, args):
+    out = nvl(_logging_output, _sys.stderr)
 
-    _os.chdir(dir)
+    if isinstance(message, BaseException) and hasattr(message, "__traceback__"):
+        print(_format_message(category, "Exception:", []), file=out)
+        _traceback.print_exception(type(message), message, message.__traceback__, file=out)
+    else:
+        message = _format_message(category, message, args)
+        print(message, file=out)
 
-    return prev_dir
+    out.flush()
 
-def list_dir(dir=None, include="*", exclude=()):
-    if dir is None:
-        dir = get_current_dir()
+def _format_message(category, message, args):
+    if not is_string(message):
+        message = str(message)
 
-    assert is_dir(dir)
+    if args:
+        message = message.format(*args)
 
-    if is_string(include):
-        include = (include,)
+    if len(message) > 0 and message[0].islower():
+        message = message[0].upper() + message[1:]
 
-    if is_string(exclude):
-        exclude = (exclude,)
+    if category:
+        message = "{0}: {1}".format(category, message)
 
-    names = _os.listdir(dir)
+    program = get_program_name()
+    message = "{0}: {1}".format(program, message)
 
-    for include_pattern in include:
-        names = _fnmatch.filter(names, include_pattern)
+    return message
 
-        for exclude_pattern in exclude:
-            for name in _fnmatch.filter(names, exclude_pattern):
-                names.remove(name)
+def _log(quiet, message, *args):
+    if quiet:
+        debug(message, *args)
+    else:
+        notice(message, *args)
 
-    return sorted(names)
+## Path operations
 
-class working_env(object):
-    def __init__(self, **env_vars):
-        self.env_vars = env_vars
-        self.prev_env_vars = dict()
+def get_absolute_path(path):
+    return _os.path.abspath(path)
 
-    def __enter__(self):
-        for name, value in self.env_vars.items():
-            if name in ENV:
-                self.prev_env_vars[name] = ENV[name]
+def normalize_path(path):
+    return _os.path.normpath(path)
 
-            ENV[name] = str(value)
+def get_real_path(path):
+    return _os.path.realpath(path)
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        for name, value in self.env_vars.items():
-            if name in self.prev_env_vars:
-                ENV[name] = self.prev_env_vars[name]
-            else:
-                del ENV[name]
+def get_relative_path(path, start=None):
+    return _os.path.relpath(path, start=start)
+
+def get_file_url(path):
+    return "file:{0}".format(get_absolute_path(path))
+
+def exists(path):
+    return _os.path.lexists(path)
+
+def is_absolute(path):
+    return _os.path.isabs(path)
+
+def is_dir(path):
+    return _os.path.isdir(path)
+
+def is_file(path):
+    return _os.path.isfile(path)
+
+def is_link(path):
+    return _os.path.islink(path)
+
+def join(*paths):
+    return _os.path.join(*paths)
+
+def split(path):
+    return _os.path.split(path)
+
+def split_extension(path):
+    return _os.path.splitext(path)
+
+def get_parent_dir(path):
+    path = normalize_path(path)
+    parent, child = split(path)
+
+    return parent
+
+def get_base_name(path):
+    path = normalize_path(path)
+    parent, name = split(path)
+
+    return name
+
+def get_name_stem(file):
+    name = get_base_name(file)
+
+    if name.endswith(".tar.gz"):
+        name = name[:-3]
+
+    stem, ext = split_extension(name)
+
+    return stem
+
+def get_name_extension(file):
+    name = get_base_name(file)
+    stem, ext = split_extension(name)
+
+    return ext
+
+def get_program_name(command=None):
+    if command is None:
+        args = ARGS
+    else:
+        args = command.split()
+
+    for arg in args:
+        if "=" not in arg:
+            return get_base_name(arg)
+
+## Port operations
+
+def get_random_port(min=49152, max=65535):
+    return _random.randint(min, max)
+
+def await_port(port, host="", timeout=30, quiet=False):
+    _log(quiet, "Waiting for port {0}", port)
+
+    if is_string(port):
+        port = int(port)
+
+    sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+    sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+
+    start = _time.time()
+
+    try:
+        while True:
+            if sock.connect_ex((host, port)) == 0:
+                return
+
+            sleep(0.1, quiet=True)
+
+            if _time.time() - start > timeout:
+                fail("Timed out waiting for port {0} to open", port)
+    finally:
+        sock.close()
 
 ## Process operations
 
@@ -1006,101 +1047,7 @@ def _default_sigterm_handler(signum, frame):
 
 _signal.signal(_signal.SIGTERM, _default_sigterm_handler)
 
-## Time operations
-
-def sleep(seconds, quiet=False):
-    _log(quiet, "Sleeping for {0} {1}", seconds, plural("second", seconds))
-
-    _time.sleep(seconds)
-
-def get_time():
-    return _time.time()
-
-## Archive operations
-
-def make_archive(input_dir, output_file=None, quiet=False):
-    check_programs("tar")
-
-    archive_stem = get_base_name(input_dir)
-
-    if output_file is None:
-        output_file = "{0}.tar.gz".format(join(get_current_dir(), archive_stem))
-
-    _log(quiet, "Making archive '{0}' from dir '{1}'", output_file, input_dir)
-
-    with working_dir(get_parent_dir(input_dir)):
-        run("tar -czf {0} {1}".format(output_file, archive_stem))
-
-    return output_file
-
-def extract_archive(input_file, output_dir=None, quiet=False):
-    check_programs("tar")
-
-    if output_dir is None:
-        output_dir = get_current_dir()
-
-    _log(quiet, "Extracting archive '{0}' to dir '{1}'", input_file, output_dir)
-
-    input_file = get_absolute_path(input_file)
-
-    with working_dir(output_dir):
-        run("tar -xf {0}".format(input_file))
-
-    return output_dir
-
-def rename_archive(input_file, new_archive_stem, quiet=False):
-    _log(quiet, "Renaming archive '{0}' with stem '{1}'", input_file, new_archive_stem)
-
-    output_dir = get_absolute_path(get_parent_dir(input_file))
-    output_file = "{0}.tar.gz".format(join(output_dir, new_archive_stem))
-
-    input_file = get_absolute_path(input_file)
-
-    with working_dir():
-        extract_archive(input_file)
-
-        input_name = list_dir()[0]
-        input_dir = move(input_name, new_archive_stem)
-
-        make_archive(input_dir, output_file=output_file)
-
-    remove(input_file)
-
-    return output_file
-
-def get_random_port(min=49152, max=65535):
-    return _random.randint(min, max)
-
-def await_port(port, host="", timeout=30, quiet=False):
-    _log(quiet, "Waiting for port {0}", port)
-
-    if is_string(port):
-        port = int(port)
-
-    sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
-    sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
-
-    start = _time.time()
-
-    try:
-        while True:
-            if sock.connect_ex((host, port)) == 0:
-                return
-
-            sleep(0.1, quiet=True)
-
-            if _time.time() - start > timeout:
-                fail("Timed out waiting for port {0} to open", port)
-    finally:
-        sock.close()
-
 ## String operations
-
-def is_string(value):
-    try:
-        return isinstance(value, basestring)
-    except NameError:
-        return isinstance(value, str)
 
 def replace(string, expr, replacement, count=0):
     return _re.sub(expr, replacement, string, count)
@@ -1122,12 +1069,6 @@ def remove_suffix(string, suffix):
         string = string[:-len(suffix)]
 
     return string
-
-def nvl(value, replacement):
-    if value is None:
-        return replacement
-
-    return value
 
 def shorten(string, max, ellipsis=""):
     assert max is None or isinstance(max, int)
@@ -1160,12 +1101,6 @@ def plural(noun, count=0, plural=None):
 
     return plural
 
-def literal(value):
-    if is_string(value):
-        return "'{0}'".format(value)
-
-    return str(value)
-
 def base64_encode(string):
     return _base64.b64encode(string)
 
@@ -1177,6 +1112,81 @@ def url_encode(string):
 
 def url_decode(string):
     return _urlparse.unquote_plus(string)
+
+## Temp operations
+
+def get_temp_dir():
+    return _tempfile.gettempdir()
+
+def get_user_temp_dir():
+    try:
+        return ENV["XDG_RUNTIME_DIR"]
+    except KeyError:
+        return join(get_temp_dir(), get_user())
+
+def make_temp_file(suffix="", dir=None):
+    if dir is None:
+        dir = get_temp_dir()
+
+    return _tempfile.mkstemp(prefix="plano-", suffix=suffix, dir=dir)[1]
+
+def make_temp_dir(suffix="", dir=None):
+    if dir is None:
+        dir = get_temp_dir()
+
+    return _tempfile.mkdtemp(prefix="plano-", suffix=suffix, dir=dir)
+
+class temp_file(object):
+    def __init__(self, suffix="", dir=None):
+        self.file = make_temp_file(suffix=suffix, dir=dir)
+
+    def __enter__(self):
+        return self.file
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        remove(self.file, quiet=True)
+
+## Time operations
+
+def sleep(seconds, quiet=False):
+    _log(quiet, "Sleeping for {0} {1}", seconds, plural("second", seconds))
+
+    _time.sleep(seconds)
+
+def get_time():
+    return _time.time()
+
+## Unique ID operations
+
+# Length in bytes, renders twice as long in hex
+def get_unique_id(bytes=16):
+    assert bytes >= 1
+    assert bytes <= 16
+
+    uuid_bytes = _uuid.uuid4().bytes
+    uuid_bytes = uuid_bytes[:bytes]
+
+    return _binascii.hexlify(uuid_bytes).decode("utf-8")
+
+## Value operations
+
+def is_string(value):
+    try:
+        return isinstance(value, basestring)
+    except NameError:
+        return isinstance(value, str)
+
+def nvl(value, replacement):
+    if value is None:
+        return replacement
+
+    return value
+
+def literal(value):
+    if is_string(value):
+        return "'{0}'".format(value)
+
+    return str(value)
 
 ## Commands
 

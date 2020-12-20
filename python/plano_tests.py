@@ -115,7 +115,7 @@ def test_dir_operations(session):
         assert curr_dir == prev_dir, (curr_dir, prev_dir)
         assert new_curr_dir == new_prev_dir, (new_curr_dir, new_prev_dir)
 
-def test_environment_operations(session):
+def test_env_operations(session):
     result = join_path_var("a", "b", "c", "a")
     assert result == "a:b:c", result
 
@@ -274,6 +274,10 @@ def test_file_operations(session):
         remove([epsilon_file_3, epsilon_file_4])
         assert not exists(epsilon_file_3)
         assert not exists(epsilon_file_4)
+
+        file = write("xes", "x" * 10)
+        result = get_file_size(file)
+        assert result == 10, result
 
 def test_http_operations(session):
     class Handler(_http.BaseHTTPRequestHandler):
@@ -556,11 +560,6 @@ def test_path_operations(session):
     result = get_program_name("X=Y alpha beta")
     assert result == "alpha", result
 
-    with working_dir():
-        file = write("xes", "x" * 10)
-        result = get_file_size(file)
-        assert result == 10, result
-
 def test_port_operations(session):
     result = get_random_port()
     assert result >= 49152 and result <= 65535, result
@@ -719,12 +718,6 @@ def test_string_operations(session):
     result = remove_suffix("exterior", "nal")
     assert result == "exterior"
 
-    result = nvl(None, "a")
-    assert result == "a", result
-
-    result = nvl("b", "a")
-    assert result == "b", result
-
     result = shorten("abc", 2)
     assert result == "ab", result
 
@@ -758,12 +751,6 @@ def test_string_operations(session):
     result = plural("terminus", 2, "termini")
     assert result == "termini", result
 
-    result = literal("x")
-    assert result == "'x'", result
-
-    result = literal(1)
-    assert result == "1", result
-
     encoded_result = base64_encode(b"abc")
     decoded_result = base64_decode(encoded_result)
     assert decoded_result == b"abc", decoded_result
@@ -771,15 +758,6 @@ def test_string_operations(session):
     encoded_result = url_encode("abc=123&yeah!")
     decoded_result = url_decode(encoded_result)
     assert decoded_result == "abc=123&yeah!", decoded_result
-
-    try:
-        proc = start("sleep 1")
-        from plano import _default_sigterm_handler
-        _default_sigterm_handler(_signal.SIGTERM, None)
-    except SystemExit:
-        pass
-    finally:
-        stop(proc)
 
 def test_temp_operations(session):
     temp_dir = get_temp_dir()
@@ -814,6 +792,15 @@ def test_time_operations(session):
 
     assert get_time() - start_time > 0.1
 
+    try:
+        proc = start("sleep 1")
+        from plano import _default_sigterm_handler
+        _default_sigterm_handler(_signal.SIGTERM, None)
+    except SystemExit:
+        pass
+    finally:
+        stop(proc)
+
 def test_unique_id_operations(session):
     id1 = get_unique_id()
     id2 = get_unique_id()
@@ -825,6 +812,21 @@ def test_unique_id_operations(session):
 
     result = get_unique_id(16)
     assert len(result) == 32
+
+def test_value_operations(session):
+    # is_string
+
+    result = nvl(None, "a")
+    assert result == "a", result
+
+    result = nvl("b", "a")
+    assert result == "b", result
+
+    result = literal("x")
+    assert result == "'x'", result
+
+    result = literal(1)
+    assert result == "1", result
 
 _test_project_dir = get_absolute_path("test-project")
 _result_file = "build/result.json"
