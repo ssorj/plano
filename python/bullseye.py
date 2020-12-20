@@ -209,23 +209,43 @@ def modules(remote=False, recursive=False):
     run(command)
 
 @command(help="Generate shell settings for the project environment",
-         description="Source the output from your shell.  For example:\n\n\n  $ source <(plano env)")
-def env():
+         description="Source the output from your shell.  For example:\n\n\n  $ source <(plano env)",
+         args=(CommandArgument("undo", help="Generate settings that restore the previous environment"),))
+def env(undo=False):
     check_project()
 
+    project_dir = get_current_dir() # XXX Needs some checking
     home_var = "{0}_HOME".format(project.name.upper().replace("-", "_"))
-    home_dir = join("$PWD", project.build_dir, project.name)
+    old_home_var = "OLD_{0}".format(home_var)
+    home_dir = join(project_dir, project.build_dir, project.name)
+
+    if undo:
+        print("[[ ${0} ]] && export {1}=${2} && unset {3}".format(old_home_var, home_var, old_home_var, old_home_var))
+        print("[[ $OLD_PATH ]] && export PATH=$OLD_PATH && unset OLD_PATH")
+        print("[[ $OLD_PYTHONPATH ]] && export PYTHONPATH=$OLD_PYTHONPATH && unset OLD_PYTHONPATH")
+
+        return
+
+    print("[[ ${0} ]] && export {1}=${2}".format(home_var, old_home_var, home_var))
+    print("[[ $PATH ]] && export OLD_PATH=$PATH")
+    print("[[ $PYTHONPATH ]] && export OLD_PYTHONPATH=$PYTHONPATH")
 
     print("export {0}={1}".format(home_var, home_dir))
-    print("export PATH={0}:$PATH".format(join("$PWD", project.build_dir, "bin")))
 
-    python_path = [
-        join("${0}".format(home_var), project.source_dir),
-        join("$PWD", project.source_dir),
-        "$PYTHONPATH",
+    path = [
+        join(project_dir, project.build_dir, "bin"),
+        ENV.get("PATH", ""),
     ]
 
-    print("export PYTHONPATH={0}".format(":".join(python_path)))
+    print("export PATH={0}".format(join_path_var(*path)))
+
+    python_path = [
+        join(home_dir, project.source_dir),
+        join(project_dir, project.source_dir),
+        ENV.get("PYTHONPATH", ""),
+    ]
+
+    print("export PYTHONPATH={0}".format(join_path_var(*python_path)))
 
 _project_files = _collections.OrderedDict()
 

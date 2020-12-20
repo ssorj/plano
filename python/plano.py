@@ -308,6 +308,10 @@ def get_file_size(file):
 
 ## Environment operations
 
+def join_path_var(*paths):
+    items = _collections.OrderedDict.fromkeys(paths)
+    return PATH_VAR_SEP.join(items)
+
 def get_current_dir():
     return _os.getcwd()
 
@@ -328,6 +332,11 @@ def which(program_name):
 
         if _os.access(program, _os.X_OK):
             return program
+
+def check_env(*vars):
+    for var in vars:
+        if var not in ENV:
+            raise PlanoException("Environment variable '{0}' is not set".format(var))
 
 def check_exists(*paths):
     for path in paths:

@@ -116,6 +116,7 @@ def test_command_clean(session):
 def test_command_env(session):
     with _test_project():
         _invoke("env")
+        _invoke("env", "--undo")
 
 def test_command_modules(session):
     with _test_project():

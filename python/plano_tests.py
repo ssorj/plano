@@ -116,6 +116,9 @@ def test_dir_operations(session):
         assert new_curr_dir == new_prev_dir, (new_curr_dir, new_prev_dir)
 
 def test_environment_operations(session):
+    result = join_path_var("a", "b", "c", "a")
+    assert result == "a:b:c", result
+
     curr_dir = get_current_dir()
 
     with working_dir("."):
@@ -139,6 +142,15 @@ def test_environment_operations(session):
 
     with working_dir():
         touch("adir/afile")
+
+        with working_env(YES_I_AM_SET=1):
+            check_env("YES_I_AM_SET")
+
+            try:
+                check_env("YES_I_AM_SET", "NO_I_AM_NOT")
+                assert False
+            except PlanoException:
+                pass
 
         check_exists("adir")
         check_exists("adir/afile")
