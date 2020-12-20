@@ -694,8 +694,8 @@ def find(dirs=None, include="*", exclude=()):
 
                 if root.startswith("./"):
                     root = remove_prefix(root, "./")
-                elif root.startswith("."):
-                    root = remove_prefix(root, ".")
+                elif root == ".":
+                    root = ""
 
                 found.update([join(root, x) for x in names])
 
