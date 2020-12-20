@@ -1183,10 +1183,26 @@ def nvl(value, replacement):
     return value
 
 def literal(value):
-    if is_string(value):
-        return "'{0}'".format(value)
+    return repr(value)
 
-    return str(value)
+class Namespace(object):
+    def __init__(self, **kwargs):
+        for name in kwargs:
+            setattr(self, name, kwargs[name])
+
+    def __eq__(self, other):
+        return vars(self) == vars(other)
+
+    def __contains__(self, key):
+        return key in self.__dict__
+
+    def __repr__(self):
+        kwargs = list()
+
+        for name, value in self.__dict__.items():
+            kwargs.append("{0}={1}".format(name, literal(value)))
+
+        return "{0}({1})".format(self.__class__.__name__, ", ".join(kwargs))
 
 ## Commands
 

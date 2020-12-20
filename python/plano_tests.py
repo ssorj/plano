@@ -814,7 +814,8 @@ def test_unique_id_operations(session):
     assert len(result) == 32
 
 def test_value_operations(session):
-    # is_string
+    assert is_string("a")
+    assert not is_string(1)
 
     result = nvl(None, "a")
     assert result == "a", result
@@ -827,6 +828,16 @@ def test_value_operations(session):
 
     result = literal(1)
     assert result == "1", result
+
+    result = Namespace(a=1, b=2)
+    assert result.a == 1, result
+    assert result.b == 2, result
+    assert "a" in result, result
+    assert "c" not in result, result
+    repr(result)
+
+    other = Namespace(a=1, b=2, c=3)
+    assert result != other, (result, other)
 
 _test_project_dir = get_absolute_path("test-project")
 _result_file = "build/result.json"
