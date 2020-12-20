@@ -1426,13 +1426,15 @@ class PlanoCommand(object):
     def init(self, args):
         pre_args, _ = self.pre_parser.parse_known_args(args)
 
-        if pre_args.verbose:
+        self.verbose = pre_args.verbose
+        self.quiet = pre_args.quiet
+        self.init_only = pre_args.init_only
+
+        if self.verbose:
             enable_logging(level="debug")
 
-        if pre_args.quiet:
+        if self.quiet:
             disable_logging()
-
-        self.init_only = pre_args.init_only
 
         self._load_config(getattr(pre_args, "file", None))
         self._process_commands()
@@ -1549,7 +1551,13 @@ class PlanoCommand(object):
         if self.init_only:
             return
 
-        self.command(*self.command_args, **self.command_kwargs)
+        try:
+            self.command(*self.command_args, **self.command_kwargs)
+        except PlanoException as e:
+            if self.verbose:
+                raise e
+
+            exit(str(e))
 
         elapsed = _time.time() - start
 
