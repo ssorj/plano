@@ -407,6 +407,13 @@ def test_io_operations(session):
         file_c = touch("c")
         assert is_file(file_c), file_c
 
+def test_iterable_operations(session):
+    result = unique([1, 1, 1, 2, 2, 3])
+    assert result == [1, 2, 3], result
+
+    result = skip([1, "", 2, None, 3])
+    assert result == [1, 2, 3], result
+
 def test_json_operations(session):
     with working_dir():
         input_data = {

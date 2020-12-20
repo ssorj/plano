@@ -309,8 +309,7 @@ def get_file_size(file):
 ## Environment operations
 
 def join_path_var(*paths):
-    items = _collections.OrderedDict.fromkeys(paths)
-    return PATH_VAR_SEP.join(items)
+    return PATH_VAR_SEP.join(unique(skip(paths)))
 
 def get_current_dir():
     return _os.getcwd()
@@ -442,6 +441,20 @@ def tail_lines(file, n):
             pos *= 2
 
         return lines[-n:]
+
+## Iterable operations
+
+def unique(iterable):
+    return list(_collections.OrderedDict.fromkeys(iterable).keys())
+
+def skip(iterable, values=(None, "")):
+    items = list()
+
+    for item in iterable:
+        if item not in values:
+            items.append(item)
+
+    return items
 
 ## JSON operations
 
