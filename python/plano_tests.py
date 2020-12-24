@@ -823,12 +823,6 @@ def test_value_operations(session):
     result = nvl("b", "a")
     assert result == "b", result
 
-    result = literal("x")
-    assert result == "'x'", result
-
-    result = literal(1)
-    assert result == "1", result
-
     result = Namespace(a=1, b=2)
     assert result.a == 1, result
     assert result.b == 2, result

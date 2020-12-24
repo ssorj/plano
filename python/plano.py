@@ -839,7 +839,7 @@ def get_process_id():
 
 def _format_command(command):
     if is_string(command):
-        return literal(command)
+        return repr(command)
 
     return command
 
@@ -1182,9 +1182,6 @@ def nvl(value, replacement):
 
     return value
 
-def literal(value):
-    return repr(value)
-
 class Namespace(object):
     def __init__(self, **kwargs):
         for name in kwargs:
@@ -1200,7 +1197,7 @@ class Namespace(object):
         kwargs = list()
 
         for name, value in self.__dict__.items():
-            kwargs.append("{0}={1}".format(name, literal(value)))
+            kwargs.append("{0}={1}".format(name, repr(value)))
 
         return "{0}({1})".format(self.__class__.__name__, ", ".join(kwargs))
 
@@ -1324,16 +1321,16 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                 if arg.positional:
                     if arg.multiple:
                         for va in args[i:]:
-                            yield literal(va)
+                            yield repr(va)
                     elif arg.optional:
                         value = args[i]
 
                         if value == arg.default:
                             continue
 
-                        yield literal(value)
+                        yield repr(value)
                     else:
-                        yield literal(args[i])
+                        yield repr(args[i])
                 else:
                     value = kwargs.get(arg.name, arg.default)
 
@@ -1343,7 +1340,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                     if value in (True, False):
                         value = str(value).lower()
                     else:
-                        value = literal(value)
+                        value = repr(value)
 
                     yield "{0}={1}".format(arg.display_name, value)
 
@@ -1396,7 +1393,7 @@ class CommandArgument(object):
         self.multiple = False
 
     def __repr__(self):
-        return "argument '{0}' ({1})".format(self.name, literal(self.default))
+        return "argument '{0}' ({1})".format(self.name, repr(self.default))
 
 def set_default_command(name, *args, **kwargs):
     PlanoCommand._default_command_name = name
@@ -1541,9 +1538,9 @@ class PlanoCommand(object):
 
                     if arg.default not in (None, False):
                         if help is None:
-                            help = "Default value is {0}".format(literal(arg.default))
+                            help = "Default value is {0}".format(repr(arg.default))
                         else:
-                            help += " (default {0})".format(literal(arg.default))
+                            help += " (default {0})".format(repr(arg.default))
 
                     if arg.default is False:
                         subparser.add_argument(*flag_args, dest=arg.name, default=arg.default, action="store_true", help=help)
