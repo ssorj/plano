@@ -1272,6 +1272,9 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
             return output_args
 
         def attach(self, container):
+            if self.extends:
+                self.extends.attach(container)
+
             self.container = container
             self.container.commands[self.name] = self
 
@@ -1455,15 +1458,15 @@ class PlanoCommand(object):
             return
 
         if args.command is None:
-            self.command = self.commands[PlanoCommand._default_command_name]
+            self.selected_command = self.commands[PlanoCommand._default_command_name]
             self.command_args = PlanoCommand._default_command_args
             self.command_kwargs = PlanoCommand._default_command_kwargs
         else:
-            self.command = self.commands[args.command]
+            self.selected_command = self.commands[args.command]
             self.command_args = list()
             self.command_kwargs = dict()
 
-            for arg in self.command.args.values():
+            for arg in self.selected_command.args.values():
                 if arg.positional:
                     if arg.multiple:
                         self.command_args.extend(getattr(args, arg.name))
@@ -1501,9 +1504,6 @@ class PlanoCommand(object):
 
         for command in globals().values():
             if callable(command) and hasattr(command, "attach"):
-                if command.extends is not None:
-                    command.extends.attach(self)
-
                 command.attach(self)
 
     def _find_planofile(self, dir):
@@ -1565,7 +1565,7 @@ class PlanoCommand(object):
             return
 
         try:
-            self.command(*self.command_args, **self.command_kwargs)
+            self.selected_command(*self.command_args, **self.command_kwargs)
         except PlanoException as e:
             if self.verbose:
                 raise e
