@@ -1201,7 +1201,7 @@ class Namespace(object):
 
         return "{0}({1})".format(self.__class__.__name__, ", ".join(kwargs))
 
-## Commands
+## Command operations
 
 _command_help = {
     "build":    "Build artifacts from source",
@@ -1227,7 +1227,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                 self.help = nvl(help, self.extends.help)
                 self.description = nvl(description, self.extends.description)
 
-            debug("Adding {0}", self)
+            debug("Defining {0}", self)
 
             for arg in self.args.values():
                 debug("  {0}", arg)
@@ -1272,13 +1272,15 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
             if self.extends:
                 self.extends.attach(container)
 
+            debug("Attaching {0} to {1}".format(self, container))
+
             self.container = container
-            self.container.commands[self.name] = self
+            self.container.attached_commands[self.name] = self
 
         def __call__(self, *args, **kwargs):
-            assert self.container is not None
+            assert self.container is not None, self
 
-            command = self.container.commands[self.name]
+            command = self.container.attached_commands[self.name]
 
             if command is not self:
                 command(*args, **kwargs)
@@ -1428,7 +1430,7 @@ class PlanoCommand(object):
 
         self.parser = _argparse.ArgumentParser(parents=(self.pre_parser,), add_help=False, allow_abbrev=False)
 
-        self.commands = _collections.OrderedDict()
+        self.attached_commands = _collections.OrderedDict()
         self.running_commands = list()
 
     def init(self, args):
@@ -1455,11 +1457,11 @@ class PlanoCommand(object):
             return
 
         if args.command is None:
-            self.selected_command = self.commands[PlanoCommand._default_command_name]
+            self.selected_command = self.attached_commands[PlanoCommand._default_command_name]
             self.command_args = PlanoCommand._default_command_args
             self.command_kwargs = PlanoCommand._default_command_kwargs
         else:
-            self.selected_command = self.commands[args.command]
+            self.selected_command = self.attached_commands[args.command]
             self.command_args = list()
             self.command_kwargs = dict()
 
@@ -1499,9 +1501,9 @@ class PlanoCommand(object):
             error(e)
             exit("Failure loading '{0}': {1}", planofile, str(e))
 
-        for command in globals().values():
-            if callable(command) and hasattr(command, "attach"):
-                command.attach(self)
+        for var in globals().values():
+            if callable(var) and hasattr(var, "attach"):
+                var.attach(self)
 
     def _find_planofile(self, dir):
         for name in ("Planofile", ".planofile"):
@@ -1513,7 +1515,7 @@ class PlanoCommand(object):
     def _process_commands(self):
         subparsers = self.parser.add_subparsers(title="commands", dest="command")
 
-        for command in self.commands.values():
+        for command in self.attached_commands.values():
             subparser = subparsers.add_parser(command.name, help=command.help,
                                               description=nvl(command.description, command.help),
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)
@@ -1573,6 +1575,37 @@ class PlanoCommand(object):
 
         cprint("OK", color="green", file=_sys.stderr, end="")
         cprint(" ({0:.2f}s)".format(elapsed), color="magenta", file=_sys.stderr)
+
+## Test operations
+
+def test(_function=None, name=None):
+    class Test(object):
+        def __init__(self, function):
+            self.function = function
+            self.name = nvl(name, self.function.__name__)
+            self.module = _inspect.getmodule(self.function)
+
+            if not hasattr(self.module, "_plano_tests"):
+                self.module._plano_tests = list()
+
+            self.module._plano_tests.append(self)
+
+        def __call__(self, test_run):
+            return self.function(test_run)
+
+        def __repr__(self):
+            return "test '{0}:{1}'".format("XXX", self.name)
+
+    if _function is None:
+        return Test
+    else:
+        return Test(_function)
+
+def run_tests(module):
+    test_run = object()
+
+    for test in module._plano_tests:
+        test(test_run)
 
 if __name__ == "__main__": # pragma: nocover
     command = PlanoCommand()
