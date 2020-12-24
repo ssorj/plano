@@ -1,14 +1,5 @@
 from bullseye import *
 
-# These are here to defeat import caching
-build = import_command("bullseye", "build")
-test = import_command("bullseye", "test")
-install = import_command("bullseye", "install")
-clean = import_command("bullseye", "clean")
-generate = import_command("bullseye", "generate")
-modules = import_command("bullseye", "modules")
-env = import_command("bullseye", "env")
-
 project.name = "chucker"
 project.extra_source_dirs = ["files"]
 project.build_deps = ["flipper"]
@@ -20,11 +11,15 @@ set_default_command("build", prefix="/tmp/alpha")
 
 @command(extends=build)
 def build():
+    notice("Extended building")
+
     data = {"built": True}
     write_json(_result_file, data)
 
 @command(extends=test)
 def test():
+    notice("Extended testing")
+
     if exists(_result_file):
         data = read_json(_result_file)
         data["tested"] = True
@@ -32,6 +27,8 @@ def test():
 
 @command(extends=install)
 def install():
+    notice("Extended installing")
+
     data = read_json(_result_file)
     data["installed"] = True
     write_json(_result_file, data)

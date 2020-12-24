@@ -73,15 +73,15 @@ def configure_file(input_file, output_file, substitutions, quiet=False):
     return output_file
 
 _prefix_arg = CommandArgument("prefix", help="The base path for installed files", default=_default_prefix)
-_clean_arg = CommandArgument("clean", help="Clean before starting")
+_clean_arg = CommandArgument("clean_", help="Clean before starting", display_name="clean")
 _verbose_arg = CommandArgument("verbose", help="Print detailed logging to the console")
 
 @command(args=(_prefix_arg, _clean_arg))
-def build(prefix=None, clean=False):
+def build(prefix=None, clean_=False):
     check_project()
 
-    if clean:
-        run_command("clean")
+    if clean_:
+        clean()
 
     build_file = join(project.build_dir, "build.json")
     build_data = {}
@@ -129,19 +129,17 @@ def build(prefix=None, clean=False):
 @command(args=(CommandArgument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
                CommandArgument("list_", help="Print the test names and exit", display_name="list"),
                _verbose_arg, _clean_arg))
-def test(include=None, list_=False, verbose=False, clean=False):
+def test(include=None, list_=False, verbose=False, clean_=False):
     check_project()
     check_modules("commandant")
 
     from commandant import TestCommand
 
-    if clean:
-        run_command("clean")
+    if clean_:
+        clean()
 
     if not list_:
-        run_command("build")
-
-    run_command("build", clean=clean)
+        build()
 
     with project_env():
         from plano import _import_module
@@ -166,10 +164,10 @@ def test(include=None, list_=False, verbose=False, clean=False):
 
 @command(args=(CommandArgument("staging_dir", help="A path prepended to installed files"),
                _prefix_arg, _clean_arg))
-def install(staging_dir="", prefix=None, clean=False):
+def install(staging_dir="", prefix=None, clean_=False):
     check_project()
 
-    run_command("build", prefix=prefix, clean=clean)
+    build(prefix=prefix, clean_=clean_)
 
     assert is_dir(project.build_dir), list_dir()
 

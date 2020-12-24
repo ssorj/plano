@@ -1235,8 +1235,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
             for arg in self.args.values():
                 debug("  {0}", arg)
 
-            PlanoCommand._commands[self.name] = self
-            self.parent_command = None
+            self.container = None
 
         def process_args(self, input_args):
             sig = _inspect.signature(self.function)
@@ -1272,14 +1271,24 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
 
             return output_args
 
+        def attach(self, container):
+            self.container = container
+            self.container.commands[self.name] = self
+
         def __call__(self, *args, **kwargs):
+            assert self.container is not None
+
+            command = self.container.commands[self.name]
+
+            if command is not self:
+                command(*args, **kwargs)
+                return
+
             debug("Running {0} {1} {2}".format(self, args, kwargs))
 
-            assert self.parent_command is not None
+            self.container.running_commands.append(self)
 
-            self.parent_command.running_commands.append(self)
-
-            dashes = "--" * len(self.parent_command.running_commands)
+            dashes = "--" * len(self.container.running_commands)
             display_args = list(self.get_display_args(args, kwargs))
 
             with console_color("magenta", file=_sys.stderr):
@@ -1300,10 +1309,10 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
 
             cprint("<{0} {1}".format(dashes, self.name), color="magenta", file=_sys.stderr)
 
-            self.parent_command.running_commands.pop()
+            self.container.running_commands.pop()
 
-            if self.parent_command.running_commands:
-                name = self.parent_command.running_commands[-1].name
+            if self.container.running_commands:
+                name = self.container.running_commands[-1].name
 
                 cprint("{0} [{1}]".format(dashes[:-1], name), color="magenta", file=_sys.stderr)
 
@@ -1386,46 +1395,18 @@ class CommandArgument(object):
     def __repr__(self):
         return "argument '{0}' ({1})".format(self.name, literal(self.default))
 
-def get_command(name):
-    return PlanoCommand._commands[name]
-
-def remove_command(name):
-    del PlanoCommand._commands[name]
-
 def set_default_command(name, *args, **kwargs):
     PlanoCommand._default_command_name = name
     PlanoCommand._default_command_args = args
     PlanoCommand._default_command_kwargs = kwargs
 
-def run_command(name, *args, **kwargs):
-    get_command(name)(*args, **kwargs)
-
-def import_command(module, name, chosen_name=None):
-    if chosen_name is None:
-        chosen_name = name
-
-    commands = _collections.OrderedDict(PlanoCommand._commands)
-
-    try:
-        module = _import_module(module)
-        command = getattr(module, name)
-        commands[chosen_name] = command
-    finally:
-        PlanoCommand._commands = commands
-
-    return command
-
 class PlanoCommand(object):
-    _commands = _collections.OrderedDict()
-
     _default_command_name = None
     _default_command_args = None
     _default_command_kwargs = None
 
     def __init__(self, planofile=None):
         self.planofile = planofile
-
-        PlanoCommand._commands.clear()
 
         description = "Run commands defined as Python functions"
 
@@ -1447,6 +1428,7 @@ class PlanoCommand(object):
 
         self.parser = _argparse.ArgumentParser(parents=(self.pre_parser,), add_help=False, allow_abbrev=False)
 
+        self.commands = _collections.OrderedDict()
         self.running_commands = list()
 
     def init(self, args):
@@ -1473,11 +1455,11 @@ class PlanoCommand(object):
             return
 
         if args.command is None:
-            self.command = get_command(PlanoCommand._default_command_name)
+            self.command = self.commands[PlanoCommand._default_command_name]
             self.command_args = PlanoCommand._default_command_args
             self.command_kwargs = PlanoCommand._default_command_kwargs
         else:
-            self.command = get_command(args.command)
+            self.command = self.commands[args.command]
             self.command_args = list()
             self.command_kwargs = dict()
 
@@ -1517,6 +1499,13 @@ class PlanoCommand(object):
             error(e)
             exit("Failure loading '{0}': {1}", planofile, str(e))
 
+        for command in globals().values():
+            if callable(command) and hasattr(command, "attach"):
+                if command.extends is not None:
+                    command.extends.attach(self)
+
+                command.attach(self)
+
     def _find_planofile(self, dir):
         for name in ("Planofile", ".planofile"):
             path = join(dir, name)
@@ -1527,9 +1516,7 @@ class PlanoCommand(object):
     def _process_commands(self):
         subparsers = self.parser.add_subparsers(title="commands", dest="command")
 
-        for command in PlanoCommand._commands.values():
-            command.parent_command = self
-
+        for command in self.commands.values():
             subparser = subparsers.add_parser(command.name, help=command.help,
                                               description=nvl(command.description, command.help),
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)

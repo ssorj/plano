@@ -867,18 +867,6 @@ def test_plano_command(session):
         except SystemExit:
             pass
 
-    with working_dir():
-        write("afile", "import_command('bullseye', 'modules')\n")
-        append("afile", "import_command('bullseye', 'clean', chosen_name='cleanx')\n")
-        append("afile", "import_command('bullseye', 'build')\n")
-        append("afile", "remove_command('build')\n")
-
-        PlanoCommand("afile").main(["--help"])
-
-        assert "modules" in PlanoCommand._commands, PlanoCommand._commands
-        assert "cleanx" in PlanoCommand._commands, PlanoCommand._commands
-        assert "build" not in PlanoCommand._commands, PlanoCommand._commands
-
     try:
         PlanoCommand("no-such-file").main([])
         assert False
