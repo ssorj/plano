@@ -1317,7 +1317,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
             if self.container.running_commands:
                 name = self.container.running_commands[-1].name
 
-                cprint("{0} [{1}]".format(dashes[:-1], name), color="magenta", file=_sys.stderr)
+                cprint("{0}| {1}".format(dashes[:-2], name), color="magenta", file=_sys.stderr)
 
         def get_display_args(self, args, kwargs):
             for i, arg in enumerate(self.args.values()):
