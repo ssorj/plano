@@ -104,7 +104,3 @@ coverage:
 	coverage report
 	coverage html
 	@echo file:${CURDIR}/htmlcov/index.html
-
-.PHONY: modules
-modules:
-	git submodule update --init

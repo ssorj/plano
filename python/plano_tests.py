@@ -28,14 +28,10 @@ try:
 except ImportError: # pragma: nocover
     import BaseHTTPServer as _http
 
-from commandant import TestSkipped
 from plano import *
 
-def open_test_session(session):
-    if session.verbose:
-        enable_logging(level="debug")
-
-def test_archive_operations(session):
+@test
+def test_archive_operations():
     with working_dir():
         make_dir("some-dir")
         touch("some-dir/some-file")
@@ -54,7 +50,8 @@ def test_archive_operations(session):
         assert is_dir("something-else")
         assert is_file("something-else/some-file")
 
-def test_console_operations(session):
+@test
+def test_console_operations():
     eprint("Here's a story")
     eprint("About a", "man named Brady")
 
@@ -68,7 +65,8 @@ def test_console_operations(session):
 
     cprint("CRITICAL ALERT", color="red", bright=True)
 
-def test_dir_operations(session):
+@test
+def test_dir_operations():
     with working_dir():
         test_dir = make_dir("some-dir")
         test_file_1 = touch(join(test_dir, "some-file-1"))
@@ -115,7 +113,8 @@ def test_dir_operations(session):
         assert curr_dir == prev_dir, (curr_dir, prev_dir)
         assert new_curr_dir == new_prev_dir, (new_curr_dir, new_prev_dir)
 
-def test_env_operations(session):
+@test
+def test_env_operations():
     result = join_path_var("a", "b", "c", "a")
     assert result == "a:b:c", result
 
@@ -205,7 +204,8 @@ def test_env_operations(session):
         with working_env(SOME_VAR=2):
             assert ENV["SOME_VAR"] == "2", ENV.get("SOME_VAR")
 
-def test_file_operations(session):
+@test
+def test_file_operations():
     with working_dir():
         alpha_dir = make_dir("alpha-dir")
         alpha_file = touch(join(alpha_dir, "alpha-file"))
@@ -279,7 +279,8 @@ def test_file_operations(session):
         result = get_file_size(file)
         assert result == 10, result
 
-def test_http_operations(session):
+@test
+def test_http_operations():
     class Handler(_http.BaseHTTPRequestHandler):
         def do_GET(self):
             self.send_response(200)
@@ -363,7 +364,8 @@ def test_http_operations(session):
         server.server_close()
         server_thread.join()
 
-def test_io_operations(session):
+@test
+def test_io_operations():
     with working_dir():
         input_ = "some-text\n"
         file_a = write("a", input_)
@@ -411,14 +413,16 @@ def test_io_operations(session):
         file_c = touch("c")
         assert is_file(file_c), file_c
 
-def test_iterable_operations(session):
+@test
+def test_iterable_operations():
     result = unique([1, 1, 1, 2, 2, 3])
     assert result == [1, 2, 3], result
 
     result = skip([1, "", 2, None, 3])
     assert result == [1, 2, 3], result
 
-def test_json_operations(session):
+@test
+def test_json_operations():
     with working_dir():
         input_data = {
             "alpha": [1, 2, 3],
@@ -436,7 +440,8 @@ def test_json_operations(session):
         assert input_data == parsed_data, (input_data, parsed_data)
         assert json == emitted_json, (json, emitted_json)
 
-def test_link_operations(session):
+@test
+def test_link_operations():
     with working_dir():
         make_dir("some-dir")
         path = get_absolute_path(touch("some-dir/some-file"))
@@ -446,7 +451,8 @@ def test_link_operations(session):
             linked_path = read_link(link)
             assert linked_path == path, (linked_path, path)
 
-def test_logging_operations(session):
+@test
+def test_logging_operations():
     with temp_file() as f:
         disable_logging()
 
@@ -483,7 +489,8 @@ def test_logging_operations(session):
         finally:
             enable_logging()
 
-def test_path_operations(session):
+@test
+def test_path_operations():
     with working_dir("/"):
         curr_dir = get_current_dir()
         assert curr_dir == "/", curr_dir
@@ -560,7 +567,8 @@ def test_path_operations(session):
     result = get_program_name("X=Y alpha beta")
     assert result == "alpha", result
 
-def test_port_operations(session):
+@test
+def test_port_operations():
     result = get_random_port()
     assert result >= 49152 and result <= 65535, result
 
@@ -581,7 +589,8 @@ def test_port_operations(session):
     except PlanoException:
         pass
 
-def test_process_operations(session):
+@test
+def test_process_operations():
     result = get_process_id()
     assert result, result
 
@@ -693,7 +702,8 @@ def test_process_operations(session):
             except PlanoException:
                 pass
 
-def test_string_operations(session):
+@test
+def test_string_operations():
     result = replace("ab", "a", "b")
     assert result == "bb", result
 
@@ -759,7 +769,8 @@ def test_string_operations(session):
     decoded_result = url_decode(encoded_result)
     assert decoded_result == "abc=123&yeah!", decoded_result
 
-def test_temp_operations(session):
+@test
+def test_temp_operations():
     temp_dir = get_temp_dir()
 
     result = make_temp_file()
@@ -785,7 +796,8 @@ def test_temp_operations(session):
     user_temp_dir = get_user_temp_dir()
     assert user_temp_dir, user_temp_dir
 
-def test_time_operations(session):
+@test
+def test_time_operations():
     start_time = get_time()
 
     sleep(0.1)
@@ -801,7 +813,8 @@ def test_time_operations(session):
     finally:
         stop(proc)
 
-def test_unique_id_operations(session):
+@test
+def test_unique_id_operations():
     id1 = get_unique_id()
     id2 = get_unique_id()
 
@@ -813,7 +826,8 @@ def test_unique_id_operations(session):
     result = get_unique_id(16)
     assert len(result) == 32
 
-def test_value_operations(session):
+@test
+def test_value_operations():
     assert is_string("a")
     assert not is_string(1)
 
@@ -833,21 +847,21 @@ def test_value_operations(session):
     other = Namespace(a=1, b=2, c=3)
     assert result != other, (result, other)
 
-_test_project_dir = get_absolute_path("test-project")
-_result_file = "build/result.json"
+test_project_dir = get_absolute_path("test-project")
 
-class _test_project(working_dir):
+class test_project(working_dir):
     def __enter__(self):
-        dir = super(_test_project, self).__enter__()
-        copy(_test_project_dir, ".", inside=False)
+        dir = super(test_project, self).__enter__()
+        copy(test_project_dir, ".", inside=False)
         return dir
 
-def _invoke(*args):
-    PlanoCommand().main(["--verbose", "-f", _test_project_dir] + list(args))
+def run_plano(*args):
+    PlanoCommand().main(["--verbose", "-f", test_project_dir] + list(args))
 
-def test_plano_command(session):
+@test
+def test_plano_command():
     if PYTHON2:
-        raise TestSkipped("The plano command is not supported on Python 2")
+        raise PlanoTestSkipped("The plano command is not supported on Python 2")
 
     with working_dir():
         PlanoCommand().main([])
@@ -873,82 +887,82 @@ def test_plano_command(session):
     except SystemExit:
         pass
 
-    with _test_project():
-        _invoke()
-        _invoke("--help")
-        _invoke("--quiet")
-        _invoke("--init-only")
+    with test_project():
+        run_plano()
+        run_plano("--help")
+        run_plano("--quiet")
+        run_plano("--init-only")
 
-        _invoke("build")
-        _invoke("install")
-        _invoke("clean")
+        run_plano("build")
+        run_plano("install")
+        run_plano("clean")
 
         try:
-            _invoke("build", "--help")
+            run_plano("build", "--help")
             assert False
         except SystemExit:
             pass
 
         try:
-            _invoke("no-such-command")
+            run_plano("no-such-command")
             assert False
         except SystemExit:
             pass
 
         try:
-            _invoke("no-such-command", "--help")
+            run_plano("no-such-command", "--help")
             assert False
         except SystemExit:
             pass
 
         try:
-            _invoke("--help", "no-such-command")
+            run_plano("--help", "no-such-command")
             assert False
         except SystemExit:
             pass
 
-        _invoke("extended-command", "a", "b", "--omega", "z")
+        run_plano("extended-command", "a", "b", "--omega", "z")
 
         try:
-            _invoke("echo")
+            run_plano("echo")
             assert False
         except SystemExit:
             pass
 
         try:
-            _invoke("echo", "Hello", "--trouble")
+            run_plano("echo", "Hello", "--trouble")
             assert False
         except Exception as e:
             assert str(e) == "Trouble", str(e)
 
-        _invoke("echo", "Hello", "--count", "5")
+        run_plano("echo", "Hello", "--count", "5")
 
         try:
-            _invoke("echo", "Hello", "--count", "not-an-int")
+            run_plano("echo", "Hello", "--count", "not-an-int")
             assert False
         except SystemExit:
             pass
 
-        _invoke("haberdash", "ballcap", "fedora", "hardhat", "--last", "turban")
+        run_plano("haberdash", "ballcap", "fedora", "hardhat", "--last", "turban")
         result = read_json("haberdash.json")
         assert result == ["ballcap", "fedora", "hardhat", "turban"], result
 
-        _invoke("haberdash", "ballcap", "--last", "turban")
+        run_plano("haberdash", "ballcap", "--last", "turban")
         result = read_json("haberdash.json")
         assert result == ["ballcap", "turban"], result
 
-        _invoke("haberdash", "ballcap")
+        run_plano("haberdash", "ballcap")
         result = read_json("haberdash.json")
         assert result == ["ballcap", "bowler"], result
 
-        _invoke("balderdash", "bunk", "poppycock")
+        run_plano("balderdash", "bunk", "poppycock")
         result = read_json("balderdash.json")
         assert result == ["bunk", "poppycock", "rubbish"], result
 
-        _invoke("balderdash", "bunk")
+        run_plano("balderdash", "bunk")
         result = read_json("balderdash.json")
         assert result == ["bunk", "malarkey", "rubbish"], result
 
-        _invoke("balderdash", "bunk", "--other", "bollocks")
+        run_plano("balderdash", "bunk", "--other", "bollocks")
         result = read_json("balderdash.json")
         assert result == ["bunk", "malarkey", "bollocks"], result

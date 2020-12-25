@@ -129,11 +129,8 @@ def build(prefix=None, clean_=False):
 @command(args=(CommandArgument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
                CommandArgument("list_", help="Print the test names and exit", display_name="list"),
                _verbose_arg, _clean_arg))
-def test(include=None, list_=False, verbose=False, clean_=False):
+def test(include="*", list_=False, verbose=False, clean_=False):
     check_project()
-    check_modules("commandant")
-
-    from commandant import TestCommand
 
     if clean_:
         clean()
@@ -152,15 +149,10 @@ def test(include=None, list_=False, verbose=False, clean_=False):
         args = list()
 
         if list_:
-            args.append("--list")
+            print_tests(modules)
+            return
 
-        if verbose:
-            args.append("--verbose")
-
-        if include is not None:
-            args.append(include)
-
-        TestCommand(*modules).main(args)
+        run_tests(modules, include=include, verbose=verbose)
 
 @command(args=(CommandArgument("staging_dir", help="A path prepended to installed files"),
                _prefix_arg, _clean_arg))

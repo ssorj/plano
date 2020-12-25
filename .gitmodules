@@ -1,3 +1,0 @@
-[submodule "modules/commandant"]
-	path = modules/commandant
-	url = https://github.com/ssorj/commandant.git

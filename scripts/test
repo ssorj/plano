@@ -18,16 +18,14 @@
 # under the License.
 #
 
-from commandant import TestCommand
-from plano import PYTHON3
-
-import plano_tests
+from plano import *
 
 if __name__ == "__main__":
+    import plano_tests
     test_modules = [plano_tests]
 
     if PYTHON3:
         import bullseye_tests
         test_modules.append(bullseye_tests)
 
-    TestCommand(*test_modules).main()
+    TestCommand(test_modules).main()

@@ -1321,7 +1321,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
             debug("Defining {0}", self)
 
             for arg in self.args.values():
-                debug("  {0}", arg)
+                debug("  {0}", str(arg).capitalize())
 
             self.container = None
 
@@ -1363,7 +1363,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
             if self.extends:
                 self.extends.attach(container)
 
-            debug("Attaching {0} to {1}".format(self, container))
+            debug("Attaching {0}", self)
 
             self.container = container
             self.container.attached_commands[self.name] = self
@@ -1585,14 +1585,16 @@ class PlanoCommand(object):
 
         _sys.path.insert(0, join(get_parent_dir(planofile), "python"))
 
+        scope = dict(globals())
+
         try:
             with open(planofile) as f:
-                exec(f.read(), globals())
+                exec(f.read(), scope)
         except Exception as e:
             error(e)
             exit("Failure loading '{0}': {1}", planofile, str(e))
 
-        for var in globals().values():
+        for var in scope.values():
             if callable(var) and hasattr(var, "attach"):
                 var.attach(self)
 
@@ -1647,25 +1649,22 @@ class PlanoCommand(object):
                 pass
 
     def main(self, args=None):
-        start = _time.time()
+        with Timer() as timer:
+            self.init(args)
 
-        self.init(args)
+            if self.init_only:
+                return
 
-        if self.init_only:
-            return
+            try:
+                self.selected_command(*self.command_args, **self.command_kwargs)
+            except PlanoException as e:
+                if self.verbose:
+                    raise e
 
-        try:
-            self.selected_command(*self.command_args, **self.command_kwargs)
-        except PlanoException as e:
-            if self.verbose:
-                raise e
-
-            exit(str(e))
-
-        elapsed = _time.time() - start
+                exit(str(e))
 
         cprint("OK", color="green", file=_sys.stderr, end="")
-        cprint(" ({0:.2f}s)".format(elapsed), color="magenta", file=_sys.stderr)
+        cprint(" ({0})".format(format_duration(timer.elapsed_time)), color="magenta", file=_sys.stderr)
 
 ## Test operations
 
@@ -1685,7 +1684,7 @@ def test(_function=None, name=None, timeout=None):
 
         def __call__(self, test_run):
             try:
-                self.function(test_run)
+                self.function()
             except SystemExit as e:
                 error(e)
                 raise Exception("System exit with code {0}".format(e))
@@ -1698,67 +1697,119 @@ def test(_function=None, name=None, timeout=None):
     else:
         return Test(_function)
 
-def print_tests(module):
-    for test in module._plano_tests:
-        print(test)
+def print_tests(modules):
+    if _inspect.ismodule(modules):
+        modules = (modules,)
 
-def run_tests(module, verbose=False):
-    test_run = TestRun()
+    for module in modules:
+        for test in module._plano_tests:
+            print(test)
 
-    for test in module._plano_tests:
-        test_run.tests.append(test)
+def run_tests(modules, include="*", exclude=(), test_timeout=300, verbose=False, quiet=False):
+    if _inspect.ismodule(modules):
+        modules = (modules,)
 
-        if verbose:
-            _run_test_verbosely(test_run, test)
-        else:
-            _run_test(test_run, test)
+    if is_string(include):
+        include = (include,)
 
-def _run_test(test_run, test):
-    print("{0:.<72} ".format(test.name + " "), end="")
+    if is_string(exclude):
+        exclude = (exclude,)
+
+    test_run = TestRun(test_timeout=test_timeout)
+
+    for module in modules:
+        _log(quiet, "Running tests from module {0} ({1})", repr(module.__name__), repr(module.__file__))
+
+        if not hasattr(module, "_plano_tests"):
+            warn("Module {0} has no tests", repr(module.__name__))
+            continue
+
+        for test in module._plano_tests:
+            for include_pattern in include:
+                if _fnmatch.fnmatchcase(test.name, include_pattern):
+                    break
+            else:
+                debug(quiet, "{0} is not included", test)
+                continue
+
+            for exclude_pattern in exclude:
+                if _fnmatch.fnmatchcase(test.name, exclude_pattern):
+                    debug("{0} is excluded", test)
+                    continue
+
+            test_run.tests.append(test)
+
+            if verbose:
+                _run_test_verbosely(test_run, test)
+            else:
+                _run_test(test_run, test)
+
+    total = len(test_run.tests)
+    skipped = len(test_run.skipped_tests)
+    failed = len(test_run.failed_tests)
+
+    if total == 0:
+        raise PlanoException("No tests ran")
+
+    if failed == 0:
+        _log(quiet, "RESULT: All tests passed ({0} skipped)".format(skipped))
+    else:
+        _log(quiet, "RESULT: {0} {1} failed ({2} skipped)".format(failed, plural("test", failed), skipped))
+
+def _run_test(test_run, test, quiet=False):
+    if not quiet:
+        print("{0:.<72} ".format(test.name + " "), end="")
+
+    timeout = nvl(test.timeout, test_run.test_timeout)
 
     with temp_file() as output_file:
         try:
             with output_redirected(output_file, quiet=True):
-                with Timer(timeout=test.timeout) as timer:
+                with Timer(timeout=timeout) as timer:
                     test(test_run)
         except KeyboardInterrupt:
             raise
         except PlanoTestSkipped as e:
-            test_run.skipped_tests.append(function)
+            test_run.skipped_tests.append(test)
 
-            print("SKIPPED {0:>6}".format(format_duration(timer.elapsed_time)))
-            print("Reason: {0}".format(str(e)))
+            if not quiet:
+                print("SKIPPED {0:>6}".format(format_duration(timer.elapsed_time)))
+                print("Reason: {0}".format(str(e)))
         except Exception as e:
             test_run.failed_tests.append(test)
 
-            print("FAILED  {0:>6}".format(format_duration(timer.elapsed_time)))
-            print("--- Error ---")
+            if not quiet:
+                print("FAILED  {0:>6}".format(format_duration(timer.elapsed_time)))
+                print("--- Error ---")
 
-            if isinstance(e, PlanoTimeoutError):
-                print("> Test timed out")
-            elif isinstance(e, _subprocess.CalledProcessError):
-                print("> {0}".format(str(e)))
-            else:
-                lines = _traceback.format_exc().rstrip().split("\n")
-                lines = ["> {0}".format(x) for x in lines]
+                if isinstance(e, PlanoTimeoutError):
+                    print("> Test timed out")
+                elif isinstance(e, _subprocess.CalledProcessError):
+                    print("> {0}".format(str(e)))
+                else:
+                    lines = _traceback.format_exc().rstrip().split("\n")
+                    lines = ["> {0}".format(x) for x in lines]
 
-                print("\n".join(lines))
+                    print("\n".join(lines))
 
-            print("--- Output ---")
+                print("--- Output ---")
 
-            with open(output_file, "r") as out:
-                for line in out:
-                    print("> {0}".format(line), end="")
+                with open(output_file, "r") as out:
+                    for line in out:
+                        print("> {0}".format(line), end="")
         else:
             test_run.passed_tests.append(test)
 
-            print("PASSED  {0:>6}".format(format_duration(timer.elapsed_time)))
+            if not quiet:
+                print("PASSED  {0:>6}".format(format_duration(timer.elapsed_time)))
 
 def _run_test_verbosely(test_run, test):
     notice("Running {0}", test)
 
+    timeout = nvl(test.timeout, test_run.test_timeout)
+
     try:
-        with Timer(timeout=test.timeout) as timer:
+        with Timer(timeout=timeout) as timer:
             try:
                 test(test_run)
             except SystemExit as e:
@@ -1790,12 +1841,72 @@ class PlanoTestSkipped(Exception):
     pass
 
 class TestRun(object):
-    def __init__(self):
+    def __init__(self, test_timeout=None):
         self.tests = list()
+        self.skipped_tests = list()
         self.failed_tests = list()
         self.passed_tests = list()
 
-        self.default_test_timeout = 60 * 5
+        self.test_timeout = test_timeout
+
+class TestCommand(object):
+    def __init__(self, test_modules):
+        self.test_modules = test_modules
+
+        if _inspect.ismodule(self.test_modules):
+            self.test_modules = (self.test_modules,)
+
+        self.parser = _argparse.ArgumentParser(formatter_class=_argparse.RawDescriptionHelpFormatter)
+        self.parser.add_argument("-l", "--list", action="store_true",
+                                 help="Print the test names and exit")
+        self.parser.add_argument("include", metavar="PATTERN", nargs="*",
+                                 help="Run only tests with names matching PATTERN. " \
+                                 "This option can be repeated.", default=("*",))
+        self.parser.add_argument("-e", "--exclude", metavar="PATTERN", action="append", default=(),
+                                 help="Do not run tests with names matching PATTERN. " \
+                                 "This option can be repeated.")
+        self.parser.add_argument("--iterations", metavar="COUNT", type=int, default=1,
+                                 help="Run the tests COUNT times (default 1)")
+        self.parser.add_argument("--timeout", metavar="SECONDS", type=int, default=300,
+                                 help="Fail any test running longer than SECONDS (default 300)")
+        self.parser.add_argument("--verbose", action="store_true",
+                                 help="Print detailed logging to the console")
+        self.parser.add_argument("--quiet", action="store_true",
+                                 help="Print no logging to the console")
+        self.parser.add_argument("--init-only", action="store_true",
+                                 help=_argparse.SUPPRESS)
+
+    def init(self, args):
+        args = self.parser.parse_args(args)
+
+        self.list_only = args.list
+        self.include_patterns = args.include
+        self.exclude_patterns = args.exclude
+        self.iterations = args.iterations
+        self.timeout = args.timeout
+        self.verbose = args.verbose
+        self.quiet = args.quiet
+        self.init_only = args.init_only
+
+    def main(self, args=None):
+        self.init(args)
+
+        if self.init_only:
+            return
+
+        try:
+            if self.list_only:
+                print_tests(self.test_modules)
+                return
+
+            for i in range(self.iterations):
+                run_tests(self.test_modules, include=self.include_patterns, exclude=self.exclude_patterns,
+                          test_timeout=self.timeout, verbose=self.verbose, quiet=self.quiet)
+        except PlanoException as e:
+            if self.verbose:
+                raise e
+
+            exit(str(e))
 
 if __name__ == "__main__": # pragma: nocover
     PlanoCommand().main()
