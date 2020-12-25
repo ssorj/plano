@@ -130,7 +130,7 @@ def test_command_modules():
         try:
             run_plano("modules", "--remote", "--recursive")
             assert False
-        except PlanoException:
+        except SystemExit:
             pass
 
 @test
