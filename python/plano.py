@@ -181,26 +181,47 @@ def cprint(*args, **kwargs):
     with console_color(color, bright=bright, file=file):
         print(*args, **kwargs)
 
-## Environment operations
+class output_redirected(object):
+    def __init__(self, output=None, stdout=None, stderr=None, quiet=False):
+        self.output = output
+        self.stdout = stdout
+        self.stderr = stderr
+        self.quiet = quiet
 
-class working_env(object):
-    def __init__(self, **env_vars):
-        self.env_vars = env_vars
-        self.prev_env_vars = dict()
+        if self.output is not None:
+            self.stdout, self.stderr = self.output, self.output
+
+        assert self.stdout is not None
+        assert self.stderr is not None
+
+        self.old_stdout = _sys.stdout
+        self.old_stderr = _sys.stderr
 
     def __enter__(self):
-        for name, value in self.env_vars.items():
-            if name in ENV:
-                self.prev_env_vars[name] = ENV[name]
+        _log(self.quiet, "Redirecting output to file {0}", repr(self.output))
 
-            ENV[name] = str(value)
+        stdout, stderr = self.stdout, self.stderr
+
+        if is_string(stdout):
+            stdout = open(stdout, "w")
+
+        if is_string(stderr):
+            stderr = open(stderr, "w")
+
+        if stdout is None:
+            stdout = _sys.stdout
+
+        if stderr is None:
+            stderr = _sys.stderr
+
+        flush()
+
+        _sys.stdout, _sys.stderr = stdout, stderr
 
     def __exit__(self, exc_type, exc_value, traceback):
-        for name, value in self.env_vars.items():
-            if name in self.prev_env_vars:
-                ENV[name] = self.prev_env_vars[name]
-            else:
-                del ENV[name]
+        flush()
+
+        _sys.stdout, _sys.stderr = self.old_stdout, self.old_stderr
 
 ## Directory operations
 
@@ -378,6 +399,25 @@ def check_programs(*programs):
     for program in programs:
         if which(program) is None:
             raise PlanoException("Program '{0}' is not found".format(program))
+
+class working_env(object):
+    def __init__(self, **env_vars):
+        self.env_vars = env_vars
+        self.prev_env_vars = dict()
+
+    def __enter__(self):
+        for name, value in self.env_vars.items():
+            if name in ENV:
+                self.prev_env_vars[name] = ENV[name]
+
+            ENV[name] = str(value)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        for name, value in self.env_vars.items():
+            if name in self.prev_env_vars:
+                ENV[name] = self.prev_env_vars[name]
+            else:
+                del ENV[name]
 
 ## File operations
 
@@ -1156,6 +1196,57 @@ def sleep(seconds, quiet=False):
 def get_time():
     return _time.time()
 
+def format_duration(duration):
+    if duration > 240:
+        return "{0:.0f}m".format(duration / 60)
+
+    if duration > 60:
+        return "{0:.0f}s".format(duration)
+
+    return "{0:.1f}s".format(duration)
+
+class Timer(object):
+    def __init__(self, timeout=None):
+        self.timeout = timeout
+
+        self.start_time = None
+        self.stop_time = None
+
+    def start(self):
+        self.start_time = get_time()
+
+        if self.timeout is not None:
+            _signal.signal(_signal.SIGALRM, self.raise_timeout)
+            _signal.alarm(self.timeout)
+
+    def stop(self):
+        self.stop_time = get_time()
+
+        if self.timeout is not None:
+            _signal.alarm(0)
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.stop()
+
+    @property
+    def elapsed_time(self):
+        assert self.start_time is not None
+
+        if self.stop_time is None:
+            return get_time() - self.start_time
+        else:
+            return self.stop_time - self.start_time
+
+    def raise_timeout(self, *args):
+        raise PlanoTimeoutError()
+
+class PlanoTimeoutError(PlanoException):
+    pass
+
 ## Unique ID operations
 
 # Length in bytes, renders twice as long in hex
@@ -1578,11 +1669,13 @@ class PlanoCommand(object):
 
 ## Test operations
 
-def test(_function=None, name=None):
+def test(_function=None, name=None, timeout=None):
     class Test(object):
         def __init__(self, function):
             self.function = function
             self.name = nvl(name, self.function.__name__)
+            self.timeout = timeout
+
             self.module = _inspect.getmodule(self.function)
 
             if not hasattr(self.module, "_plano_tests"):
@@ -1591,22 +1684,118 @@ def test(_function=None, name=None):
             self.module._plano_tests.append(self)
 
         def __call__(self, test_run):
-            return self.function(test_run)
+            try:
+                self.function(test_run)
+            except SystemExit as e:
+                error(e)
+                raise Exception("System exit with code {0}".format(e))
 
         def __repr__(self):
-            return "test '{0}:{1}'".format("XXX", self.name)
+            return "test '{0}:{1}'".format(self.module.__name__, self.name)
 
     if _function is None:
         return Test
     else:
         return Test(_function)
 
-def run_tests(module):
-    test_run = object()
+def print_tests(module):
+    for test in module._plano_tests:
+        print(test)
+
+def run_tests(module, verbose=False):
+    test_run = TestRun()
 
     for test in module._plano_tests:
-        test(test_run)
+        test_run.tests.append(test)
+
+        if verbose:
+            _run_test_verbosely(test_run, test)
+        else:
+            _run_test(test_run, test)
+
+def _run_test(test_run, test):
+    print("{0:.<72} ".format(test.name + " "), end="")
+
+    with temp_file() as output_file:
+        try:
+            with output_redirected(output_file, quiet=True):
+                with Timer(timeout=test.timeout) as timer:
+                    test(test_run)
+        except KeyboardInterrupt:
+            raise
+        except PlanoTestSkipped as e:
+            test_run.skipped_tests.append(function)
+
+            print("SKIPPED {0:>6}".format(format_duration(timer.elapsed_time)))
+            print("Reason: {0}".format(str(e)))
+        except Exception as e:
+            test_run.failed_tests.append(test)
+
+            print("FAILED  {0:>6}".format(format_duration(timer.elapsed_time)))
+            print("--- Error ---")
+
+            if isinstance(e, PlanoTimeoutError):
+                print("> Test timed out")
+            elif isinstance(e, _subprocess.CalledProcessError):
+                print("> {0}".format(str(e)))
+            else:
+                lines = _traceback.format_exc().rstrip().split("\n")
+                lines = ["> {0}".format(x) for x in lines]
+
+                print("\n".join(lines))
+
+            print("--- Output ---")
+
+            with open(output_file, "r") as out:
+                for line in out:
+                    print("> {0}".format(line), end="")
+        else:
+            test_run.passed_tests.append(test)
+
+            print("PASSED  {0:>6}".format(format_duration(timer.elapsed_time)))
+
+def _run_test_verbosely(test_run, test):
+    notice("Running {0}", test)
+
+    try:
+        with Timer(timeout=test.timeout) as timer:
+            try:
+                test(test_run)
+            except SystemExit as e:
+                _traceback.print_exc()
+                raise Exception("System exit with code {0}".format(e))
+    except KeyboardInterrupt:
+        raise
+    except PlanoTestSkipped:
+        test_run.skipped_tests.append(test)
+
+        notice("{0} SKIPPED ({1})", test, format_duration(timer.elapsed_time))
+        _traceback.print_exc()
+    except Exception as e:
+        test_run.failed_tests.append(test)
+
+        if isinstance(e, PlanoTimeoutError):
+            error("Test timed out")
+        else:
+            _traceback.print_exc()
+
+        error("{0} FAILED ({1})", test, format_duration(timer.elapsed_time))
+    else:
+        test_run.passed_tests.append(test)
+
+        notice("{0} PASSED ({1})", test, format_duration(timer.elapsed_time))
+
+# XXX
+class PlanoTestSkipped(Exception):
+    pass
+
+class TestRun(object):
+    def __init__(self):
+        self.tests = list()
+        self.failed_tests = list()
+        self.passed_tests = list()
+
+        self.default_test_timeout = 60 * 5
 
 if __name__ == "__main__": # pragma: nocover
-    command = PlanoCommand()
-    command.main()
+    PlanoCommand().main()
