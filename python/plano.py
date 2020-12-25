@@ -1401,35 +1401,40 @@ def _run_test(test_run, test, quiet=False):
             test_run.skipped_tests.append(test)
 
             if not quiet:
-                print("SKIPPED    {0:>6}".format(format_duration(timer.elapsed_time)))
+                _print_test_result("SKIPPED", timer)
                 print("Reason: {0}".format(str(e)))
         except PlanoTimeoutError:
             test_run.failed_tests.append(test)
 
             if not quiet:
-                print("TIMED OUT  {0:>6}".format(format_duration(timer.elapsed_time)))
+                _print_test_result("TIMED OUT", timer)
                 _print_test_output(output_file)
         except Exception as e:
             test_run.failed_tests.append(test)
 
             if not quiet:
-                print("FAILED     {0:>6}".format(format_duration(timer.elapsed_time)))
-                print("--- Error ---")
-
-                if isinstance(e, PlanoProcessError):
-                    print("> {0}".format(str(e)))
-                else:
-                    lines = _traceback.format_exc().rstrip().split("\n")
-                    lines = ["> {0}".format(x) for x in lines]
-
-                    print("\n".join(lines))
-
+                _print_test_result("FAILED", timer)
+                _print_test_error(e)
                 _print_test_output(output_file)
         else:
             test_run.passed_tests.append(test)
 
             if not quiet:
-                print("PASSED     {0:>6}".format(format_duration(timer.elapsed_time)))
+                _print_test_result("PASSED", timer)
+
+def _print_test_result(status, timer):
+    print("{0:<10} {1:>6}".format(status, format_duration(timer.elapsed_time)))
+
+def _print_test_error(e):
+    print("--- Error ---")
+
+    if isinstance(e, PlanoProcessError):
+        print("> {0}".format(str(e)))
+    else:
+        lines = _traceback.format_exc().rstrip().split("\n")
+        lines = ["> {0}".format(x) for x in lines]
+
+        print("\n".join(lines))
 
 def _print_test_output(output_file):
     print("--- Output ---")
@@ -1529,7 +1534,7 @@ class TestCommand(object):
                           test_timeout=self.timeout, verbose=self.verbose, quiet=self.quiet)
         except PlanoException as e:
             if self.verbose:
-                raise e
+                _traceback.print_exc()
 
             exit(str(e))
 

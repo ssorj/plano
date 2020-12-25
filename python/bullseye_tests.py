@@ -32,7 +32,7 @@ class test_project(working_dir):
         return dir
 
 def run_plano(*args):
-    PlanoCommand().main(["--verbose", "-f", join(test_project_dir, "Planofile")] + list(args))
+    PlanoCommand().main(["-f", join(test_project_dir, "Planofile")] + list(args))
 
 @test
 def test_project_env():

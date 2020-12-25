@@ -856,7 +856,7 @@ class test_project(working_dir):
         return dir
 
 def run_plano(*args):
-    PlanoCommand().main(["--verbose", "-f", test_project_dir] + list(args))
+    PlanoCommand().main(["-f", test_project_dir] + list(args))
 
 @test
 def test_plano_command():
