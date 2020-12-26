@@ -127,9 +127,10 @@ def build(prefix=None, clean_=False):
             copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
 @command(args=(CommandArgument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
+               CommandArgument("exclude", help="Do not run tests with names matching PATTERN", metavar="PATTERN"),
                CommandArgument("list_", help="Print the test names and exit", display_name="list"),
                _verbose_arg, _clean_arg))
-def test(include="*", list_=False, verbose=False, clean_=False):
+def test(include="*", exclude=None, list_=False, verbose=False, clean_=False):
     check_project()
 
     if clean_:

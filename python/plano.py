@@ -138,6 +138,8 @@ class BaseCommand(object):
     def main(self, args=None):
         args = self.parse_args(args)
 
+        assert args is None or isinstance(args, _argparse.Namespace), args
+
         self.verbose = args.verbose
         self.quiet = args.quiet
         self.init_only = args.init_only
@@ -1356,12 +1358,13 @@ class Namespace(object):
 
 ## Test operations
 
-def test(_function=None, name=None, timeout=None):
+def test(_function=None, name=None, timeout=None, disabled=False):
     class Test(object):
         def __init__(self, function):
             self.function = function
             self.name = nvl(name, self.function.__name__)
             self.timeout = timeout
+            self.disabled = disabled
 
             self.module = _inspect.getmodule(self.function)
 
@@ -1413,20 +1416,13 @@ def run_tests(modules, include="*", exclude=(), test_timeout=300, verbose=False,
             continue
 
         for test in module._plano_tests:
-            for pattern in include:
-                if _fnmatch.fnmatchcase(test.name, pattern):
-                    break
-            else:
-                debug("{0} is not included", test)
-                continue
+            included = any([_fnmatch.fnmatchcase(test.name, x) for x in include])
+            excluded = any([_fnmatch.fnmatchcase(test.name, x) for x in exclude])
 
-            for pattern in exclude:
-                if _fnmatch.fnmatchcase(test.name, pattern):
-                    debug("{0} is excluded", test)
-                    continue
+            if included and not excluded and not test.disabled:
+                test_run.tests.append(test)
 
-            test_run.tests.append(test)
-
+        for test in test_run.tests:
             if verbose:
                 _run_test_verbosely(test_run, test)
             else:
@@ -1553,9 +1549,9 @@ class TestCommand(BaseCommand):
         self.parser = BaseArgumentParser()
         self.parser.add_argument("-l", "--list", action="store_true",
                                  help="Print the test names and exit")
-        self.parser.add_argument("include", metavar="PATTERN", nargs="*", default=("*",),
+        self.parser.add_argument("include", metavar="PATTERN", nargs="*", default=["*"],
                                  help="Run only tests with names matching PATTERN. This option can be repeated.")
-        self.parser.add_argument("-e", "--exclude", metavar="PATTERN", action="append", default=(),
+        self.parser.add_argument("-e", "--exclude", metavar="PATTERN", action="append", default=[],
                                  help="Do not run tests with names matching PATTERN. This option can be repeated.")
         self.parser.add_argument("--iterations", metavar="COUNT", type=int, default=1,
                                  help="Run the tests COUNT times (default 1)")
@@ -1820,6 +1816,8 @@ class PlanoCommand(BaseCommand):
             return
 
         if args.command is None:
+            pprint(111, PlanoCommand._default_command_name, self.attached_commands, PlanoCommand._default_command_name in self.attached_commands)
+
             self.selected_command = self.attached_commands[PlanoCommand._default_command_name]
             self.command_args = PlanoCommand._default_command_args
             self.command_kwargs = PlanoCommand._default_command_kwargs

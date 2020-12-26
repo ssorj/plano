@@ -30,6 +30,14 @@ except ImportError: # pragma: nocover
 
 from plano import *
 
+test_project_dir = get_absolute_path("test-project")
+
+class test_project(working_dir):
+    def __enter__(self):
+        dir = super(test_project, self).__enter__()
+        copy(test_project_dir, ".", inside=False)
+        return dir
+
 @test
 def test_archive_operations():
     with working_dir():
@@ -837,6 +845,24 @@ def test_temp_operations():
     assert user_temp_dir, user_temp_dir
 
 @test
+def test_test_operations():
+    with test_project():
+        import sys
+
+        old_path = sys.path
+        sys.path.insert(0, "python")
+
+        try:
+            import chucker_tests
+
+            def run_command(*args):
+                TestCommand(chucker_tests).main(args)
+
+            run_command("--verbose", "--exclude", "*badbye")
+        finally:
+            sys.path = old_path
+
+@test
 def test_time_operations():
     start_time = get_time()
 
@@ -913,23 +939,13 @@ def test_value_operations():
     other = Namespace(a=1, b=2, c=3)
     assert result != other, (result, other)
 
-test_project_dir = get_absolute_path("test-project")
-
-class test_project(working_dir):
-    def __enter__(self):
-        dir = super(test_project, self).__enter__()
-        copy(test_project_dir, ".", inside=False)
-        return dir
-
-def run_plano(*args):
-    PlanoCommand().main(["-f", test_project_dir] + list(args))
-
 @test
 def test_plano_command():
     if PYTHON2:
         raise PlanoTestSkipped("The plano command is not supported on Python 2")
 
     with working_dir():
+        PlanoCommand._default_command_name = None # XXX
         PlanoCommand().main([])
 
     with working_dir():
@@ -953,82 +969,85 @@ def test_plano_command():
     except SystemExit:
         pass
 
+    def run_command(*args):
+        PlanoCommand().main(["-f", test_project_dir] + list(args))
+
     with test_project():
-        run_plano()
-        run_plano("--help")
-        run_plano("--quiet")
-        run_plano("--init-only")
+        run_command()
+        run_command("--help")
+        run_command("--quiet")
+        run_command("--init-only")
 
-        run_plano("build")
-        run_plano("install")
-        run_plano("clean")
+        run_command("build")
+        run_command("install")
+        run_command("clean")
 
         try:
-            run_plano("build", "--help")
+            run_command("build", "--help")
             assert False
         except SystemExit:
             pass
 
         try:
-            run_plano("no-such-command")
+            run_command("no-such-command")
             assert False
         except SystemExit:
             pass
 
         try:
-            run_plano("no-such-command", "--help")
+            run_command("no-such-command", "--help")
             assert False
         except SystemExit:
             pass
 
         try:
-            run_plano("--help", "no-such-command")
+            run_command("--help", "no-such-command")
             assert False
         except SystemExit:
             pass
 
-        run_plano("extended-command", "a", "b", "--omega", "z")
+        run_command("extended-command", "a", "b", "--omega", "z")
 
         try:
-            run_plano("echo")
+            run_command("echo")
             assert False
         except SystemExit:
             pass
 
         try:
-            run_plano("echo", "Hello", "--trouble")
+            run_command("echo", "Hello", "--trouble")
             assert False
         except Exception as e:
             assert str(e) == "Trouble", str(e)
 
-        run_plano("echo", "Hello", "--count", "5")
+        run_command("echo", "Hello", "--count", "5")
 
         try:
-            run_plano("echo", "Hello", "--count", "not-an-int")
+            run_command("echo", "Hello", "--count", "not-an-int")
             assert False
         except SystemExit:
             pass
 
-        run_plano("haberdash", "ballcap", "fedora", "hardhat", "--last", "turban")
+        run_command("haberdash", "ballcap", "fedora", "hardhat", "--last", "turban")
         result = read_json("haberdash.json")
         assert result == ["ballcap", "fedora", "hardhat", "turban"], result
 
-        run_plano("haberdash", "ballcap", "--last", "turban")
+        run_command("haberdash", "ballcap", "--last", "turban")
         result = read_json("haberdash.json")
         assert result == ["ballcap", "turban"], result
 
-        run_plano("haberdash", "ballcap")
+        run_command("haberdash", "ballcap")
         result = read_json("haberdash.json")
         assert result == ["ballcap", "bowler"], result
 
-        run_plano("balderdash", "bunk", "poppycock")
+        run_command("balderdash", "bunk", "poppycock")
         result = read_json("balderdash.json")
         assert result == ["bunk", "poppycock", "rubbish"], result
 
-        run_plano("balderdash", "bunk")
+        run_command("balderdash", "bunk")
         result = read_json("balderdash.json")
         assert result == ["bunk", "malarkey", "rubbish"], result
 
-        run_plano("balderdash", "bunk", "--other", "bollocks")
+        run_command("balderdash", "bunk", "--other", "bollocks")
         result = read_json("balderdash.json")
         assert result == ["bunk", "malarkey", "bollocks"], result
