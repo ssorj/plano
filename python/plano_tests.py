@@ -945,7 +945,6 @@ def test_plano_command():
         raise PlanoTestSkipped("The plano command is not supported on Python 2")
 
     with working_dir():
-        PlanoCommand._default_command_name = None # XXX
         PlanoCommand().main([])
 
     with working_dir():

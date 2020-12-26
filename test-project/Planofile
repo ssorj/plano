@@ -7,7 +7,7 @@ project.test_modules = ["chucker_tests"]
 
 _result_file = "build/result.json"
 
-set_default_command("build", prefix="/tmp/alpha")
+plano.set_default_command("build", prefix="/tmp/alpha")
 
 @command(extends=build)
 def build():

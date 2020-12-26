@@ -1422,11 +1422,10 @@ def run_tests(modules, include="*", exclude=(), test_timeout=300, verbose=False,
             if included and not excluded and not test.disabled:
                 test_run.tests.append(test)
 
-        for test in test_run.tests:
-            if verbose:
-                _run_test_verbosely(test_run, test)
-            else:
-                _run_test(test_run, test, quiet=quiet)
+                if verbose:
+                    _run_test_verbosely(test_run, test)
+                else:
+                    _run_test(test_run, test, quiet=quiet)
 
     total = len(test_run.tests)
     skipped = len(test_run.skipped_tests)
@@ -1773,16 +1772,7 @@ class CommandArgument(object):
     def __repr__(self):
         return "argument '{0}' (default {1})".format(self.name, repr(self.default))
 
-def set_default_command(name, *args, **kwargs):
-    PlanoCommand._default_command_name = name
-    PlanoCommand._default_command_args = args
-    PlanoCommand._default_command_kwargs = kwargs
-
 class PlanoCommand(BaseCommand):
-    _default_command_name = None
-    _default_command_args = None
-    _default_command_kwargs = None
-
     def __init__(self, planofile=None):
         self.planofile = planofile
 
@@ -1801,6 +1791,10 @@ class PlanoCommand(BaseCommand):
         self.attached_commands = _collections.OrderedDict()
         self.running_commands = list()
 
+        self.default_command_name = None
+        self.default_command_args = None
+        self.default_command_kwargs = None
+
     def parse_args(self, args):
         pre_args, _ = self.pre_parser.parse_known_args(args)
 
@@ -1810,17 +1804,15 @@ class PlanoCommand(BaseCommand):
         return self.parser.parse_args(args)
 
     def init(self, args):
-        if args.help or args.command is None and PlanoCommand._default_command_name is None:
+        if args.help or args.command is None and self.default_command_name is None:
             self.parser.print_help()
             self.init_only = True
             return
 
         if args.command is None:
-            pprint(111, PlanoCommand._default_command_name, self.attached_commands, PlanoCommand._default_command_name in self.attached_commands)
-
-            self.selected_command = self.attached_commands[PlanoCommand._default_command_name]
-            self.command_args = PlanoCommand._default_command_args
-            self.command_kwargs = PlanoCommand._default_command_kwargs
+            self.selected_command = self.attached_commands[self.default_command_name]
+            self.command_args = self.default_command_args
+            self.command_kwargs = self.default_command_kwargs
         else:
             self.selected_command = self.attached_commands[args.command]
             self.command_args = list()
@@ -1841,6 +1833,11 @@ class PlanoCommand(BaseCommand):
 
         cprint("OK", color="green", file=_sys.stderr, end="")
         cprint(" ({0})".format(format_duration(timer.elapsed_time)), color="magenta", file=_sys.stderr)
+
+    def set_default_command(self, name, *args, **kwargs):
+        self.default_command_name = name
+        self.default_command_args = args
+        self.default_command_kwargs = kwargs
 
     def _load_config(self, planofile):
         if planofile is None:
@@ -1863,6 +1860,7 @@ class PlanoCommand(BaseCommand):
         _sys.path.insert(0, join(get_parent_dir(planofile), "python"))
 
         scope = dict(globals())
+        scope["plano"] = self
 
         try:
             with open(planofile) as f:
