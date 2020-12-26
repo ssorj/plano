@@ -128,9 +128,9 @@ def rename_archive(input_file, new_archive_stem, quiet=False):
 
 ## Command operations
 
-class _BaseCommand(object):
+class BaseCommand(object):
     def main(self, args=None):
-        args = self.parse(args)
+        args = self.parse_args(args)
 
         self.verbose = args.verbose
         self.quiet = args.quiet
@@ -158,7 +158,7 @@ class _BaseCommand(object):
 
                 exit(str(e))
 
-    def parse(self, args):
+    def parse_args(self, args):
         raise NotImplementedError()
 
     def init(self, args):
@@ -167,9 +167,9 @@ class _BaseCommand(object):
     def run(self):
         raise NotImplementedError()
 
-class _BaseCommandParser(_argparse.ArgumentParser):
+class BaseArgumentParser(_argparse.ArgumentParser):
     def __init__(self, **kwargs):
-        super(_BaseCommandParser, self).__init__(**kwargs)
+        super(BaseArgumentParser, self).__init__(**kwargs)
 
         self.allow_abbrev = False
         self.formatter_class = _argparse.RawDescriptionHelpFormatter
@@ -1550,7 +1550,7 @@ class TestRun(object):
 
         self.test_timeout = test_timeout
 
-class TestCommand(_BaseCommand):
+class TestCommand(BaseCommand):
     def __init__(self, test_modules):
         super(TestCommand, self).__init__()
 
@@ -1559,7 +1559,7 @@ class TestCommand(_BaseCommand):
         if _inspect.ismodule(self.test_modules):
             self.test_modules = (self.test_modules,)
 
-        self.parser = _BaseCommandParser()
+        self.parser = BaseArgumentParser()
         self.parser.add_argument("-l", "--list", action="store_true",
                                  help="Print the test names and exit")
         self.parser.add_argument("include", metavar="PATTERN", nargs="*", default=("*",),
@@ -1571,7 +1571,7 @@ class TestCommand(_BaseCommand):
         self.parser.add_argument("--timeout", metavar="SECONDS", type=int, default=300,
                                  help="Fail any test running longer than SECONDS (default 300)")
 
-    def parse(self, args):
+    def parse_args(self, args):
         return self.parser.parse_args(args)
 
     def init(self, args):
@@ -1791,7 +1791,7 @@ def set_default_command(name, *args, **kwargs):
     PlanoCommand._default_command_args = args
     PlanoCommand._default_command_kwargs = kwargs
 
-class PlanoCommand(_BaseCommand):
+class PlanoCommand(BaseCommand):
     _default_command_name = None
     _default_command_args = None
     _default_command_kwargs = None
@@ -1801,7 +1801,7 @@ class PlanoCommand(_BaseCommand):
 
         description = "Run commands defined as Python functions"
 
-        self.pre_parser = _BaseCommandParser(description=description, add_help=False)
+        self.pre_parser = BaseArgumentParser(description=description, add_help=False)
         self.pre_parser.add_argument("-h", "--help", action="store_true",
                                      help="Show this help message and exit")
 
@@ -1814,7 +1814,7 @@ class PlanoCommand(_BaseCommand):
         self.attached_commands = _collections.OrderedDict()
         self.running_commands = list()
 
-    def parse(self, args):
+    def parse_args(self, args):
         pre_args, _ = self.pre_parser.parse_known_args(args)
 
         self._load_config(getattr(pre_args, "file", None))
