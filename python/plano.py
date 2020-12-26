@@ -941,7 +941,7 @@ def _format_command(command):
     if is_string(command):
         return repr(command)
 
-    return command
+    return repr(" ".join(command))
 
 # quiet=False - Don't log at notice level
 # stash=False - No output unless there is an error
@@ -951,7 +951,7 @@ def _format_command(command):
 # stderr=<file> - Send stderr to a file
 # shell=False - XXX
 def start(command, stdin=None, stdout=None, stderr=None, output=None, shell=False, stash=False, quiet=False):
-    _log(quiet, "Starting {0}", _format_command(command))
+    _log(quiet, "Starting command {0}", _format_command(command))
 
     if output is not None:
         stdout, stderr = output, output
@@ -1027,10 +1027,14 @@ def kill(proc, quiet=False):
 def wait(proc, timeout=None, check=False, quiet=False):
     _log(quiet, "Waiting for {0} to exit", proc)
 
-    try:
-        proc.wait(timeout=timeout)
-    except _subprocess.TimeoutExpired:
-        raise PlanoTimeoutExpired()
+    if PYTHON2:
+        assert timeout is None, "The timeout option is not supported on Python 2"
+        proc.wait()
+    else:
+        try:
+            proc.wait(timeout=timeout)
+        except _subprocess.TimeoutExpired:
+            raise PlanoTimeoutExpired()
 
     if proc.exit_code == 0:
         debug("{0} exited normally", proc)
@@ -1053,7 +1057,7 @@ def wait(proc, timeout=None, check=False, quiet=False):
 # input=<string> - Pipe <string> to the process
 def run(command, stdin=None, stdout=None, stderr=None, input=None, output=None,
         stash=False, shell=False, check=True, quiet=False):
-    _log(quiet, "Running {0}", _format_command(command))
+    _log(quiet, "Running command {0}", _format_command(command))
 
     if input is not None:
         assert stdin in (None, _subprocess.PIPE), stdin
@@ -1130,7 +1134,7 @@ class PlanoProcess(_subprocess.Popen):
         kill(self)
 
     def __repr__(self):
-        return "process {0} ({1})".format(self.pid, _format_command(self.args))
+        return "process {0} (command {1})".format(self.pid, _format_command(self.args))
 
 class PlanoProcessError(_subprocess.CalledProcessError, PlanoException):
     def __init__(self, proc):
@@ -1402,7 +1406,7 @@ def run_tests(modules, include="*", exclude=(), test_timeout=300, verbose=False,
     test_run = TestRun(test_timeout=test_timeout)
 
     for module in modules:
-        _log(quiet, "Running tests from module {0} ({1})", repr(module.__name__), repr(module.__file__))
+        _log(quiet, "Running tests from module {0} (file {1})", repr(module.__name__), repr(module.__file__))
 
         if not hasattr(module, "_plano_tests"):
             warn("Module {0} has no tests", repr(module.__name__))
@@ -1771,7 +1775,7 @@ class CommandArgument(object):
         self.multiple = False
 
     def __repr__(self):
-        return "argument '{0}' ({1})".format(self.name, repr(self.default))
+        return "argument '{0}' (default {1})".format(self.name, repr(self.default))
 
 def set_default_command(name, *args, **kwargs):
     PlanoCommand._default_command_name = name

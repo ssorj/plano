@@ -672,13 +672,14 @@ def test_process_operations():
     except PlanoProcessError:
         pass
 
-    proc = start("sleep 10")
+    if PYTHON3:
+        proc = start("sleep 10")
 
-    try:
-        wait(proc, timeout=0.1)
-        assert False
-    except PlanoTimeoutExpired:
-        pass
+        try:
+            wait(proc, timeout=0.1)
+            assert False
+        except PlanoTimeoutExpired:
+            pass
 
     proc = start("echo hello")
     sleep(0.1)
