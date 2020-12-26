@@ -126,6 +126,61 @@ def rename_archive(input_file, new_archive_stem, quiet=False):
 
     return output_file
 
+## Command operations
+
+class _BaseCommand(object):
+    def main(self, args=None):
+        args = self.parse(args)
+
+        self.verbose = args.verbose
+        self.quiet = args.quiet
+        self.init_only = args.init_only
+
+        level = "notice"
+
+        if self.verbose:
+            level = "debug"
+
+        if self.quiet:
+            level = "error"
+
+        with logging_enabled(level=level):
+            self.init(args)
+
+            if self.init_only:
+                return
+
+            try:
+                self.run()
+            except PlanoException as e:
+                if self.verbose:
+                    _traceback.print_exc()
+
+                exit(str(e))
+
+    def parse(self, args):
+        raise NotImplementedError()
+
+    def init(self, args):
+        raise NotImplementedError()
+
+    def run(self):
+        raise NotImplementedError()
+
+class _BaseCommandParser(_argparse.ArgumentParser):
+    def __init__(self, **kwargs):
+        super(_BaseCommandParser, self).__init__(**kwargs)
+
+        self.allow_abbrev = False
+        self.formatter_class = _argparse.RawDescriptionHelpFormatter
+
+        self.add_argument("--verbose", action="store_true",
+                          help="Print detailed logging to the console")
+        self.add_argument("--quiet", action="store_true",
+                          help="Print no logging to the console")
+        self.add_argument("--init-only", action="store_true",
+                          help=_argparse.SUPPRESS)
+
 ## Console operations
 
 def flush():
@@ -677,12 +732,14 @@ _logging_levels = (
     "notice",
     "warn",
     "error",
+    "disabled",
 )
 
 _debug = _logging_levels.index("debug")
 _notice = _logging_levels.index("notice")
 _warn = _logging_levels.index("warn")
 _error = _logging_levels.index("error")
+_disabled = _logging_levels.index("disabled")
 
 _logging_output = None
 _logging_threshold = _notice
@@ -704,7 +761,21 @@ def enable_logging(level="warn", output=None):
 
 def disable_logging():
     global _logging_threshold
-    _logging_threshold = 4
+    _logging_threshold = _disabled
+
+class logging_enabled(object):
+    def __init__(self, level="warn", output=None):
+        self.level = level
+        self.output = output
+
+    def __enter__(self):
+        self.old_level = _logging_levels[_logging_threshold]
+        self.old_output = _logging_output
+
+        enable_logging(level=self.level, output=self.output)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        enable_logging(level=self.old_level, output=self.old_output)
 
 def fail(message, *args):
     error(message, *args)
@@ -1351,15 +1422,15 @@ def run_tests(modules, include="*", exclude=(), test_timeout=300, verbose=False,
             continue
 
         for test in module._plano_tests:
-            for include_pattern in include:
-                if _fnmatch.fnmatchcase(test.name, include_pattern):
+            for pattern in include:
+                if _fnmatch.fnmatchcase(test.name, pattern):
                     break
             else:
                 debug("{0} is not included", test)
                 continue
 
-            for exclude_pattern in exclude:
-                if _fnmatch.fnmatchcase(test.name, exclude_pattern):
+            for pattern in exclude:
+                if _fnmatch.fnmatchcase(test.name, pattern):
                     debug("{0} is excluded", test)
                     continue
 
@@ -1479,66 +1550,47 @@ class TestRun(object):
 
         self.test_timeout = test_timeout
 
-class TestCommand(object):
+class TestCommand(_BaseCommand):
     def __init__(self, test_modules):
+        super(TestCommand, self).__init__()
+
         self.test_modules = test_modules
 
         if _inspect.ismodule(self.test_modules):
             self.test_modules = (self.test_modules,)
 
-        self.parser = _argparse.ArgumentParser(formatter_class=_argparse.RawDescriptionHelpFormatter)
+        self.parser = _BaseCommandParser()
         self.parser.add_argument("-l", "--list", action="store_true",
                                  help="Print the test names and exit")
-        self.parser.add_argument("include", metavar="PATTERN", nargs="*",
-                                 help="Run only tests with names matching PATTERN. " \
-                                 "This option can be repeated.", default=("*",))
+        self.parser.add_argument("include", metavar="PATTERN", nargs="*", default=("*",),
+                                 help="Run only tests with names matching PATTERN. This option can be repeated.")
         self.parser.add_argument("-e", "--exclude", metavar="PATTERN", action="append", default=(),
-                                 help="Do not run tests with names matching PATTERN. " \
-                                 "This option can be repeated.")
+                                 help="Do not run tests with names matching PATTERN. This option can be repeated.")
         self.parser.add_argument("--iterations", metavar="COUNT", type=int, default=1,
                                  help="Run the tests COUNT times (default 1)")
         self.parser.add_argument("--timeout", metavar="SECONDS", type=int, default=300,
                                  help="Fail any test running longer than SECONDS (default 300)")
-        self.parser.add_argument("--verbose", action="store_true",
-                                 help="Print detailed logging to the console")
-        self.parser.add_argument("--quiet", action="store_true",
-                                 help="Print no logging to the console")
-        self.parser.add_argument("--init-only", action="store_true",
-                                 help=_argparse.SUPPRESS)
+
+    def parse(self, args):
+        return self.parser.parse_args(args)
 
     def init(self, args):
-        args = self.parser.parse_args(args)
-
         self.list_only = args.list
         self.include_patterns = args.include
         self.exclude_patterns = args.exclude
         self.iterations = args.iterations
         self.timeout = args.timeout
-        self.verbose = args.verbose
-        self.quiet = args.quiet
-        self.init_only = args.init_only
 
-    def main(self, args=None):
-        self.init(args)
-
-        if self.init_only:
+    def run(self):
+        if self.list_only:
+            print_tests(self.test_modules)
             return
 
-        try:
-            if self.list_only:
-                print_tests(self.test_modules)
-                return
+        for i in range(self.iterations):
+            run_tests(self.test_modules, include=self.include_patterns, exclude=self.exclude_patterns,
+                      test_timeout=self.timeout, verbose=self.verbose, quiet=self.quiet)
 
-            for i in range(self.iterations):
-                run_tests(self.test_modules, include=self.include_patterns, exclude=self.exclude_patterns,
-                          test_timeout=self.timeout, verbose=self.verbose, quiet=self.quiet)
-        except PlanoException as e:
-            if self.verbose:
-                _traceback.print_exc()
-
-            exit(str(e))
-
-## Command operations
+## Plano command operations
 
 _command_help = {
     "build":    "Build artifacts from source",
@@ -1739,7 +1791,7 @@ def set_default_command(name, *args, **kwargs):
     PlanoCommand._default_command_args = args
     PlanoCommand._default_command_kwargs = kwargs
 
-class PlanoCommand(object):
+class PlanoCommand(_BaseCommand):
     _default_command_name = None
     _default_command_args = None
     _default_command_kwargs = None
@@ -1749,8 +1801,7 @@ class PlanoCommand(object):
 
         description = "Run commands defined as Python functions"
 
-        self.pre_parser = _argparse.ArgumentParser(description=description, add_help=False, allow_abbrev=False)
-
+        self.pre_parser = _BaseCommandParser(description=description, add_help=False)
         self.pre_parser.add_argument("-h", "--help", action="store_true",
                                      help="Show this help message and exit")
 
@@ -1758,36 +1809,20 @@ class PlanoCommand(object):
             self.pre_parser.add_argument("-f", "--file",
                                          help="Load commands from FILE (default 'Planofile' or '.planofile')")
 
-        self.pre_parser.add_argument("--verbose", action="store_true",
-                                     help="Print detailed logging to the console")
-        self.pre_parser.add_argument("--quiet", action="store_true",
-                                     help="Print no logging to the console")
-        self.pre_parser.add_argument("--init-only", action="store_true",
-                                     help=_argparse.SUPPRESS)
-
         self.parser = _argparse.ArgumentParser(parents=(self.pre_parser,), add_help=False, allow_abbrev=False)
 
         self.attached_commands = _collections.OrderedDict()
         self.running_commands = list()
 
-    def init(self, args):
+    def parse(self, args):
         pre_args, _ = self.pre_parser.parse_known_args(args)
-
-        self.verbose = pre_args.verbose
-        self.quiet = pre_args.quiet
-        self.init_only = pre_args.init_only
-
-        if self.verbose:
-            enable_logging(level="debug")
-
-        if self.quiet:
-            disable_logging()
 
         self._load_config(getattr(pre_args, "file", None))
         self._process_commands()
 
-        args = self.parser.parse_args(args)
+        return self.parser.parse_args(args)
 
+    def init(self, args):
         if args.help or args.command is None and PlanoCommand._default_command_name is None:
             self.parser.print_help()
             self.init_only = True
@@ -1811,20 +1846,9 @@ class PlanoCommand(object):
                 else:
                     self.command_kwargs[arg.name] = getattr(args, arg.name)
 
-    def main(self, args=None):
+    def run(self):
         with Timer() as timer:
-            self.init(args)
-
-            if self.init_only:
-                return
-
-            try:
-                self.selected_command(*self.command_args, **self.command_kwargs)
-            except PlanoException as e:
-                if self.verbose:
-                    _traceback.print_exc()
-
-                exit(str(e))
+            self.selected_command(*self.command_args, **self.command_kwargs)
 
         cprint("OK", color="green", file=_sys.stderr, end="")
         cprint(" ({0})".format(format_duration(timer.elapsed_time)), color="magenta", file=_sys.stderr)
