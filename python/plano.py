@@ -237,41 +237,20 @@ def cprint(*args, **kwargs):
         print(*args, **kwargs)
 
 class output_redirected(object):
-    def __init__(self, output=None, stdout=None, stderr=None, quiet=False):
+    def __init__(self, output, quiet=False):
         self.output = output
-        self.stdout = stdout
-        self.stderr = stderr
         self.quiet = quiet
 
-        if self.output is not None:
-            self.stdout, self.stderr = self.output, self.output
-
-        assert self.stdout is not None
-        assert self.stderr is not None
-
-        self.old_stdout = _sys.stdout
-        self.old_stderr = _sys.stderr
-
     def __enter__(self):
-        _log(self.quiet, "Redirecting output to file {0}", repr(self.output))
-
-        stdout, stderr = self.stdout, self.stderr
-
-        if is_string(stdout):
-            stdout = open(stdout, "w")
-
-        if is_string(stderr):
-            stderr = open(stderr, "w")
-
-        if stdout is None:
-            stdout = _sys.stdout
-
-        if stderr is None:
-            stderr = _sys.stderr
-
         flush()
 
-        _sys.stdout, _sys.stderr = stdout, stderr
+        _log(self.quiet, "Redirecting output to file {0}", repr(self.output))
+
+        if is_string(self.output):
+            output = open(self.output, "w")
+
+        self.old_stdout, self.old_stderr = _sys.stdout, _sys.stderr
+        _sys.stdout, _sys.stderr = output, output
 
     def __exit__(self, exc_type, exc_value, traceback):
         flush()
