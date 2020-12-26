@@ -19,12 +19,26 @@
 #
 
 from distutils.core import setup
+from distutils.command.build_scripts import build_scripts
+from distutils.file_util import copy_file
+
+class BuildScripts(build_scripts):
+    def run(self):
+        super(BuildScripts, self).run()
+
+        # content = open("bin/plano-self-test.in").read()
+        # content.replace(...)
+        # write to build/scripts-?.?/plano-self-test
 
 setup(name="plano",
       version="1.0.0-SNAPSHOT",
       url="https://github.com/ssorj/plano",
       author="Justin Ross",
       author_email="justin.ross@gmail.com",
+      cmdclass={'build_scripts': BuildScripts},
       py_modules=["plano"],
       package_dir={"": "python"},
+      data_files=[("lib/plano/python", ["python/plano_tests.py",
+                                        "python/bullseye.py",
+                                        "python/bullseye_tests.py"])],
       scripts=["bin/plano", "bin/planosh", "bin/plano-self-test"])
