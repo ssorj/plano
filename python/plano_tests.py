@@ -858,7 +858,20 @@ def test_test_operations():
             def run_command(*args):
                 TestCommand(chucker_tests).main(args)
 
-            run_command("--verbose", "--exclude", "*badbye")
+            run_command("--verbose")
+            run_command("--list")
+
+            try:
+                run_command("--exclude", "*")
+                assert False
+            except SystemExit:
+                pass
+
+            try:
+                run_command("--enable", "*badbye*")
+                assert False
+            except SystemExit:
+                pass
         finally:
             sys.path = old_path
 

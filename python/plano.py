@@ -1396,7 +1396,7 @@ def print_tests(modules):
         for test in module._plano_tests:
             print(test)
 
-def run_tests(modules, include="*", exclude=(), test_timeout=300, verbose=False, quiet=False):
+def run_tests(modules, include="*", exclude=(), enable=(), test_timeout=300, verbose=False, quiet=False):
     if _inspect.ismodule(modules):
         modules = (modules,)
 
@@ -1405,6 +1405,9 @@ def run_tests(modules, include="*", exclude=(), test_timeout=300, verbose=False,
 
     if is_string(exclude):
         exclude = (exclude,)
+
+    if is_string(enable):
+        enable = (enable,)
 
     test_run = TestRun(test_timeout=test_timeout)
 
@@ -1418,8 +1421,9 @@ def run_tests(modules, include="*", exclude=(), test_timeout=300, verbose=False,
         for test in module._plano_tests:
             included = any([_fnmatch.fnmatchcase(test.name, x) for x in include])
             excluded = any([_fnmatch.fnmatchcase(test.name, x) for x in exclude])
+            disabled = test.disabled and not any([_fnmatch.fnmatchcase(test.name, x) for x in enable])
 
-            if included and not excluded and not test.disabled:
+            if included and not excluded and not disabled:
                 test_run.tests.append(test)
 
                 if verbose:
@@ -1552,6 +1556,8 @@ class TestCommand(BaseCommand):
                                  help="Run only tests with names matching PATTERN. This option can be repeated.")
         self.parser.add_argument("-e", "--exclude", metavar="PATTERN", action="append", default=[],
                                  help="Do not run tests with names matching PATTERN. This option can be repeated.")
+        self.parser.add_argument("--enable", metavar="PATTERN", action="append", default=[],
+                                 help="Enable disabled tests matching PATTERN.  This option can be repeated.")
         self.parser.add_argument("--iterations", metavar="COUNT", type=int, default=1,
                                  help="Run the tests COUNT times (default 1)")
         self.parser.add_argument("--timeout", metavar="SECONDS", type=int, default=300,
@@ -1564,6 +1570,7 @@ class TestCommand(BaseCommand):
         self.list_only = args.list
         self.include_patterns = args.include
         self.exclude_patterns = args.exclude
+        self.enable_patterns = args.enable
         self.iterations = args.iterations
         self.timeout = args.timeout
 
@@ -1573,7 +1580,7 @@ class TestCommand(BaseCommand):
             return
 
         for i in range(self.iterations):
-            run_tests(self.test_modules, include=self.include_patterns, exclude=self.exclude_patterns,
+            run_tests(self.test_modules, include=self.include_patterns, exclude=self.exclude_patterns, enable=self.enable_patterns,
                       test_timeout=self.timeout, verbose=self.verbose, quiet=self.quiet)
 
 ## Plano command operations
@@ -1804,6 +1811,7 @@ class PlanoCommand(BaseCommand):
         return self.parser.parse_args(args)
 
     def init(self, args):
+        # XXX Can this move to the top of run?
         if args.help or args.command is None and self.default_command_name is None:
             self.parser.print_help()
             self.init_only = True
