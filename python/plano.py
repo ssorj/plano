@@ -777,6 +777,10 @@ class logging_enabled(object):
     def __exit__(self, exc_type, exc_value, traceback):
         enable_logging(level=self.old_level, output=self.old_output)
 
+class logging_disabled(logging_enabled):
+    def __init__(self):
+        super(logging_disabled, self).__init__(level="disabled")
+
 def fail(message, *args):
     error(message, *args)
 

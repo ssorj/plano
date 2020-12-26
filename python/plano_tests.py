@@ -454,40 +454,37 @@ def test_link_operations():
 @test
 def test_logging_operations():
     with temp_file() as f:
-        disable_logging()
-
-        enable_logging(output=f, level="error")
-        enable_logging(output=f, level="notice")
-        enable_logging(output=f, level="warn")
-        enable_logging(output=f, level="warning")
-        enable_logging(output=f, level="debug")
-
-        try:
-            try:
-                fail("Nooo!")
-                assert False
-            except PlanoException:
-                pass
-
-            error("Error!")
-            warn("Warning!")
-            notice("Take a look!")
-            notice(123)
-            debug("By the way")
-            debug("abc{0}{1}{2}", 1, 2, 3)
-
-            exc = Exception("abc123")
+        with logging_disabled():
+            enable_logging(output=f, level="error")
+            enable_logging(output=f, level="notice")
+            enable_logging(output=f, level="warn")
+            enable_logging(output=f, level="warning")
+            enable_logging(output=f, level="debug")
 
             try:
-                fail(exc)
-                assert False
-            except Exception as e:
-                assert e is exc, e
-        except:
-            print(read(f))
-            raise
-        finally:
-            enable_logging()
+                try:
+                    fail("Nooo!")
+                    assert False
+                except PlanoException:
+                    pass
+
+                error("Error!")
+                warn("Warning!")
+                notice("Take a look!")
+                notice(123)
+                debug("By the way")
+                debug("abc{0}{1}{2}", 1, 2, 3)
+
+                exc = Exception("abc123")
+
+                try:
+                    fail(exc)
+                    assert False
+                except Exception as e:
+                    assert e is exc, e
+            except:
+                print(read(f))
+                raise
 
 @test
 def test_path_operations():
