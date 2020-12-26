@@ -60,6 +60,12 @@ except ImportError: # pragma: nocover
 
 _max = max
 
+class PlanoException(Exception):
+    pass
+
+class PlanoTimeoutExpired(PlanoException):
+    pass
+
 LINE_SEP = _os.linesep
 PATH_SEP = _os.sep
 PATH_VAR_SEP = _os.pathsep
@@ -158,13 +164,13 @@ class BaseCommand(object):
 
                 exit(str(e))
 
-    def parse_args(self, args):
+    def parse_args(self, args): # pragma: nocover
         raise NotImplementedError()
 
-    def init(self, args):
+    def init(self, args): # pragma: nocover
         raise NotImplementedError()
 
-    def run(self):
+    def run(self): # pragma: nocover
         raise NotImplementedError()
 
 class BaseArgumentParser(_argparse.ArgumentParser):
@@ -996,7 +1002,7 @@ def start(command, stdin=None, stdout=None, stderr=None, output=None, shell=Fals
 
     return proc
 
-def stop(proc, quiet=False):
+def stop(proc, timeout=None, quiet=False):
     _log(quiet, "Stopping {0}", proc)
 
     if proc.poll() is not None:
@@ -1011,19 +1017,20 @@ def stop(proc, quiet=False):
 
     kill(proc, quiet=True)
 
-    # XXX Timeout
-
-    return wait(proc, quiet=True)
+    return wait(proc, timeout=timeout, quiet=True)
 
 def kill(proc, quiet=False):
     _log(quiet, "Killing {0}", proc)
 
     proc.terminate()
 
-def wait(proc, check=False, quiet=False):
+def wait(proc, timeout=None, check=False, quiet=False):
     _log(quiet, "Waiting for {0} to exit", proc)
 
-    proc.wait()
+    try:
+        proc.wait(timeout=timeout)
+    except _subprocess.TimeoutExpired:
+        raise PlanoTimeoutExpired()
 
     if proc.exit_code == 0:
         debug("{0} exited normally", proc)
@@ -1124,9 +1131,6 @@ class PlanoProcess(_subprocess.Popen):
 
     def __repr__(self):
         return "process {0} ({1})".format(self.pid, _format_command(self.args))
-
-class PlanoException(Exception):
-    pass
 
 class PlanoProcessError(_subprocess.CalledProcessError, PlanoException):
     def __init__(self, proc):
@@ -1251,16 +1255,19 @@ def get_time():
     return _time.time()
 
 def format_duration(duration):
-    if duration > 240:
+    if duration >= 240:
         return "{0:.0f}m".format(duration / 60)
 
-    if duration > 60:
+    if duration >= 60:
         return "{0:.0f}s".format(duration)
 
     return "{0:.1f}s".format(duration)
 
 class Timer(object):
     def __init__(self, timeout=None):
+        # Alarms work with integral seconds only
+        assert timeout is None or isinstance(timeout, int), type(timeout)
+
         self.timeout = timeout
 
         self.start_time = None
@@ -1296,10 +1303,7 @@ class Timer(object):
             return self.stop_time - self.start_time
 
     def raise_timeout(self, *args):
-        raise PlanoTimeoutError()
-
-class PlanoTimeoutError(PlanoException):
-    pass
+        raise PlanoTimeoutExpired()
 
 ## Unique ID operations
 
@@ -1457,7 +1461,7 @@ def _run_test(test_run, test, quiet=False):
             if not quiet:
                 _print_test_result("SKIPPED", timer)
                 print("Reason: {0}".format(str(e)))
-        except PlanoTimeoutError:
+        except PlanoTimeoutExpired:
             test_run.failed_tests.append(test)
 
             if not quiet:
@@ -1510,7 +1514,7 @@ def _run_test_verbosely(test_run, test):
     except PlanoTestSkipped:
         test_run.skipped_tests.append(test)
         notice("{0} SKIPPED ({1})", test, format_duration(timer.elapsed_time))
-    except PlanoTimeoutError:
+    except PlanoTimeoutExpired:
         test_run.failed_tests.append(test)
         error("{0} TIMED OUT ({1})", test, format_duration(timer.elapsed_time))
     except Exception as e:

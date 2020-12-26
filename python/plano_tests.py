@@ -51,6 +51,35 @@ def test_archive_operations():
         assert is_file("something-else/some-file")
 
 @test
+def test_command_operations():
+    class SomeCommand(BaseCommand):
+        def __init__(self):
+            self.parser = BaseArgumentParser()
+            self.parser.add_argument("--explode", action="store_true")
+
+        def parse_args(self, args):
+            return self.parser.parse_args(args)
+
+        def init(self, args):
+            self.verbose = args.verbose
+            self.explode = args.explode
+
+        def run(self):
+            if self.verbose:
+                print("Hello")
+
+            if self.explode:
+                raise PlanoException("Exploded")
+
+    SomeCommand().main([])
+
+    try:
+        SomeCommand().main(["--verbose", "--explode"])
+        assert False
+    except SystemExit:
+        pass
+
+@test
 def test_console_operations():
     eprint("Here's a story")
     eprint("About a", "man named Brady")
@@ -455,6 +484,9 @@ def test_link_operations():
 def test_logging_operations():
     with temp_file() as f:
         with logging_disabled():
+            enable_logging()
+            disable_logging()
+
             enable_logging(output=f, level="error")
             enable_logging(output=f, level="notice")
             enable_logging(output=f, level="warn")
@@ -640,12 +672,22 @@ def test_process_operations():
     except PlanoProcessError:
         pass
 
+    proc = start("sleep 10")
+
+    try:
+        wait(proc, timeout=0.1)
+        assert False
+    except PlanoTimeoutExpired:
+        pass
+
     proc = start("echo hello")
     sleep(0.1)
     stop(proc)
 
     proc = start("sleep 10")
-    sleep(0.1)
+    stop(proc)
+
+    proc = start("sleep 10")
     kill(proc)
     sleep(0.1)
     stop(proc)
@@ -802,13 +844,39 @@ def test_time_operations():
     assert get_time() - start_time > 0.1
 
     try:
-        proc = start("sleep 1")
+        proc = start("sleep 10")
         from plano import _default_sigterm_handler
         _default_sigterm_handler(_signal.SIGTERM, None)
+        assert False
     except SystemExit:
         pass
     finally:
         stop(proc)
+
+    result = format_duration(0.1)
+    assert result == "0.1s", result
+
+    result = format_duration(1)
+    assert result == "1.0s", result
+
+    result = format_duration(60)
+    assert result == "60s", result
+
+    result = format_duration(240)
+    assert result == "4m", result
+
+    with Timer() as timer:
+        sleep(0.2)
+        assert timer.elapsed_time > 0.1
+
+    assert timer.elapsed_time > 0.2
+
+    try:
+        with Timer(timeout=1) as timer:
+            sleep(10)
+        assert False
+    except PlanoTimeoutExpired:
+        pass
 
 @test
 def test_unique_id_operations():
