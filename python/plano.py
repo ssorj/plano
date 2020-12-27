@@ -235,10 +235,13 @@ class console_color(object):
         if self.has_colors:
             print(self.color, file=self.file, end="")
 
+        self.file.flush()
+
     def __exit__(self, exc_type, exc_value, traceback):
         if self.has_colors:
             print("\u001b[0m", file=self.file, end="")
-            self.file.flush()
+
+        self.file.flush()
 
 def cprint(*args, **kwargs):
     color = kwargs.pop("color", "white")
@@ -1551,6 +1554,10 @@ def _print_test_error(e):
 
 def _print_test_output(output_file):
     print("--- Output ---")
+
+    if get_file_size(output_file) == 0:
+        print("[None]")
+        return
 
     with open(output_file, "r") as out:
         for line in out:
