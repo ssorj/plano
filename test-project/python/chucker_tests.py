@@ -13,16 +13,16 @@ def test_badbye():
     print("Badbye")
     assert False
 
+@test
+def test_skipped():
+    raise PlanoTestSkipped("Test coverage")
+
 @test(disabled=True)
 def test_keyboard_interrupt():
     raise KeyboardInterrupt()
 
-@test
-def test_test_skipped():
-    raise PlanoTestSkipped("Test coverage")
-
 @test(disabled=True, timeout=1)
-def test_timeout_expired():
+def test_timeout():
     sleep(10, quiet=True)
     assert False
 

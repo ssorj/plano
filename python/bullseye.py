@@ -128,9 +128,10 @@ def build(prefix=None, clean_=False):
 
 @command(args=(CommandArgument("include", help="Run only tests with names matching PATTERN", metavar="PATTERN"),
                CommandArgument("exclude", help="Do not run tests with names matching PATTERN", metavar="PATTERN"),
+               CommandArgument("enable", help="Enable disabled tests matching PATTERN", metavar="PATTERN"),
                CommandArgument("list_", help="Print the test names and exit", display_name="list"),
                _verbose_arg, _clean_arg))
-def test(include="*", exclude=None, list_=False, verbose=False, clean_=False):
+def test(include="*", exclude=None, enable=None, list_=False, verbose=False, clean_=False):
     check_project()
 
     if clean_:
@@ -153,7 +154,10 @@ def test(include="*", exclude=None, list_=False, verbose=False, clean_=False):
             print_tests(modules)
             return
 
-        run_tests(modules, include=include, verbose=verbose)
+        exclude = nvl(exclude, ())
+        enable = nvl(enable, ())
+
+        run_tests(modules, include=include, exclude=exclude, enable=enable, verbose=verbose)
 
 @command(args=(CommandArgument("staging_dir", help="A path prepended to installed files"),
                _prefix_arg, _clean_arg))

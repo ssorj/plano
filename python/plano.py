@@ -1546,13 +1546,13 @@ def _run_test(test_run, test, quiet=False):
             test_run.failed_tests.append(test)
 
             if not quiet:
-                _print_test_result("TIMED OUT", timer)
+                _print_test_result("**TIMED OUT**", timer)
                 _print_test_output(output_file)
         except Exception as e:
             test_run.failed_tests.append(test)
 
             if not quiet:
-                _print_test_result("FAILED", timer)
+                _print_test_result("**FAILED**", timer)
                 _print_test_error(e)
                 _print_test_output(output_file)
         else:
@@ -1562,7 +1562,7 @@ def _run_test(test_run, test, quiet=False):
                 _print_test_result("PASSED", timer)
 
 def _print_test_result(status, timer):
-    print("{0:<10} {1:>6}".format(status, format_duration(timer.elapsed_time)))
+    print("{0:<11} {1:>6}".format(status, format_duration(timer.elapsed_time)))
 
 def _print_test_error(e):
     print("--- Error ---")
@@ -1576,11 +1576,10 @@ def _print_test_error(e):
         print("\n".join(lines))
 
 def _print_test_output(output_file):
-    print("--- Output ---")
-
     if get_file_size(output_file) == 0:
-        print("[None]")
         return
+
+    print("--- Output ---")
 
     with open(output_file, "r") as out:
         for line in out:

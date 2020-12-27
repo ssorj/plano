@@ -819,7 +819,7 @@ def test_test_operations():
                     run_tests(chucker_tests, enable="test_keyboard_interrupt", verbose=verbose)
 
                 with expect_exception(PlanoException):
-                    run_tests(chucker_tests, enable="test_timeout_expired", verbose=verbose)
+                    run_tests(chucker_tests, enable="test_timeout", verbose=verbose)
 
                 with expect_exception(PlanoException):
                     run_tests(chucker_tests, enable="test_process_error", verbose=verbose)
