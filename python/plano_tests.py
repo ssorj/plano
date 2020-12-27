@@ -38,18 +38,6 @@ class test_project(working_dir):
         copy(test_project_dir, ".", inside=False)
         return dir
 
-class error_expected(exception_expected):
-    def __init__(self):
-        super(error_expected, self).__init__(PlanoError)
-
-class timeout_expected(exception_expected):
-    def __init__(self):
-        super(timeout_expected, self).__init__(PlanoTimeoutExpired)
-
-class exit_expected(exception_expected):
-    def __init__(self):
-        super(exit_expected, self).__init__(SystemExit)
-
 @test
 def test_archive_operations():
     with working_dir():
@@ -93,7 +81,7 @@ def test_command_operations():
 
     SomeCommand().main([])
 
-    with exit_expected():
+    with expect_system_exit():
         SomeCommand().main(["--verbose", "--explode"])
 
 @test
@@ -197,17 +185,17 @@ def test_env_operations():
     with working_env(YES_I_AM_SET=1):
         check_env("YES_I_AM_SET")
 
-        with error_expected():
+        with expect_error():
             check_env("YES_I_AM_SET", "NO_I_AM_NOT")
 
         with working_env(I_AM_SET_NOW=1, amend=False):
             check_env("I_AM_SET_NOW")
             assert "YES_I_AM_SET" not in ENV, ENV
 
-    with error_expected():
+    with expect_error():
         check_programs("not-there", "also-not-extant")
 
-    with error_expected():
+    with expect_error():
         check_modules("not_there", "nope_not_at_all")
 
     with working_env(SOME_VAR=1):
@@ -477,7 +465,7 @@ def test_logging_operations():
             enable_logging(output=f, level="debug")
 
             try:
-                with error_expected():
+                with expect_error():
                     fail("Nooo!")
 
                 error("Error!")
@@ -491,10 +479,10 @@ def test_logging_operations():
 
                 try:
                     fail(exc)
-                    assert False
+                    assert False # pragma: nocover
                 except Exception as e:
                     assert e is exc, e
-            except:
+            except: # pragma: nocover
                 print(read(f))
                 raise
 
@@ -575,19 +563,19 @@ def test_path_operations():
         check_dirs("adir")
         check_files("adir/afile")
 
-        with error_expected():
+        with expect_error():
             check_exists("adir/notafile")
 
-        with error_expected():
+        with expect_error():
             check_files("adir/afile", "adir/notafile")
 
-        with error_expected():
+        with expect_error():
             check_files("adir")
 
-        with error_expected():
+        with expect_error():
             check_dirs("not-there", "nnoott")
 
-        with error_expected():
+        with expect_error():
             check_dirs("adir/afile")
 
 @test
@@ -607,12 +595,12 @@ def test_port_operations():
 
         check_ports(server_port)
 
-        with exception_expected(PlanoException):
+        with expect_error():
             get_random_port(min=server_port, max=server_port)
     finally:
         server_socket.close()
 
-    with exception_expected(PlanoTimeoutExpired):
+    with expect_timeout():
         await_port(get_random_port(), timeout=1)
 
 @test
@@ -645,10 +633,10 @@ def test_process_operations():
     run("echo hello | cat", shell=True)
     run(["echo", "hello"], shell=True)
 
-    with error_expected():
+    with expect_error():
         run("/not/there")
 
-    with exception_expected(PlanoProcessError):
+    with expect_exception(PlanoProcessError):
         run("cat /whoa/not/really", stash=True)
 
     result = call("echo hello")
@@ -657,13 +645,13 @@ def test_process_operations():
     result = call("echo hello | cat", shell=True)
     assert result == "hello\n", result
 
-    with exception_expected(PlanoProcessError):
+    with expect_exception(PlanoProcessError):
         call("cat /whoa/not/really")
 
     if PYTHON3:
         proc = start("sleep 10")
 
-        with timeout_expected():
+        with expect_timeout():
             wait(proc, timeout=0.1)
 
     proc = start("echo hello")
@@ -691,22 +679,22 @@ def test_process_operations():
         with start("date", stdin="i", stdout="o", stderr="e"):
             pass
 
-            with exit_expected():
+            with expect_system_exit():
                 exit()
 
-            with exit_expected():
+            with expect_system_exit():
                 exit("abc")
 
-            with exit_expected():
+            with expect_system_exit():
                 exit(Exception())
 
-            with exit_expected():
+            with expect_system_exit():
                 exit(123)
 
-            with exit_expected():
+            with expect_system_exit():
                 exit(-123)
 
-            with exception_expected(PlanoException):
+            with expect_exception(PlanoException):
                 exit(object())
 
 @test
@@ -816,22 +804,22 @@ def test_test_operations():
                 run_tests(chucker_tests, verbose=verbose)
                 run_tests(chucker_tests, exclude="*hello*", verbose=verbose)
 
-                with exception_expected(PlanoException):
+                with expect_exception(PlanoException):
                     run_tests(chucker, verbose=verbose)
 
-                with exception_expected(PlanoException):
+                with expect_exception(PlanoException):
                     run_tests(chucker_tests, enable="*badbye*", verbose=verbose)
 
-                with exception_expected(KeyboardInterrupt):
+                with expect_exception(KeyboardInterrupt):
                     run_tests(chucker_tests, enable="test_keyboard_interrupt", verbose=verbose)
 
-                with exception_expected(PlanoException):
+                with expect_exception(PlanoException):
                     run_tests(chucker_tests, enable="test_timeout_expired", verbose=verbose)
 
-                with exception_expected(PlanoException):
+                with expect_exception(PlanoException):
                     run_tests(chucker_tests, enable="test_process_error", verbose=verbose)
 
-                with exception_expected(PlanoException):
+                with expect_exception(PlanoException):
                     run_tests(chucker_tests, enable="test_system_exit", verbose=verbose)
 
             def run_command(*args):
@@ -840,16 +828,16 @@ def test_test_operations():
             run_command("--verbose")
             run_command("--list")
 
-            with exception_expected(SystemExit):
+            with expect_exception(SystemExit):
                 run_command("--enable", "*badbye*")
 
-            with exception_expected(SystemExit):
+            with expect_exception(SystemExit):
                 run_command("--enable", "*badbye*", "--verbose")
 
             try:
-                with exception_expected():
+                with expect_exception():
                     pass
-                raise Exception()
+                raise Exception() # pragma: nocover
             except AssertionError:
                 pass
 
@@ -861,7 +849,7 @@ def test_time_operations():
 
     assert get_time() - start_time > 0.1
 
-    with exit_expected():
+    with expect_system_exit():
         with start("sleep 10"):
             from plano import _default_sigterm_handler
             _default_sigterm_handler(_signal.SIGTERM, None)
@@ -884,7 +872,7 @@ def test_time_operations():
 
     assert timer.elapsed_time > 0.2
 
-    with timeout_expected():
+    with expect_timeout():
         with Timer(timeout=1) as timer:
             sleep(10)
 
@@ -924,7 +912,7 @@ def test_value_operations():
 
 @test
 def test_plano_command():
-    if PYTHON2:
+    if PYTHON2: # pragma: nocover
         raise PlanoTestSkipped("The plano command is not supported on Python 2")
 
     with working_dir():
@@ -933,13 +921,13 @@ def test_plano_command():
     with working_dir():
         write("Planofile", "garbage")
 
-        with exit_expected():
+        with expect_system_exit():
             PlanoCommand().main([])
 
-    with exit_expected():
+    with expect_system_exit():
         PlanoCommand("no-such-file").main([])
 
-    with exit_expected():
+    with expect_system_exit():
         PlanoCommand().main(["-f", "no-such-file"])
 
     def run_command(*args):
@@ -955,32 +943,32 @@ def test_plano_command():
         run_command("install")
         run_command("clean")
 
-        with exit_expected():
+        with expect_system_exit():
             run_command("build", "--help")
 
-        with exit_expected():
+        with expect_system_exit():
             run_command("no-such-command")
 
-        with exit_expected():
+        with expect_system_exit():
             run_command("no-such-command", "--help")
 
-        with exit_expected():
+        with expect_system_exit():
             run_command("--help", "no-such-command")
 
         run_command("extended-command", "a", "b", "--omega", "z")
 
-        with exit_expected():
+        with expect_system_exit():
             run_command("echo")
 
         try:
             run_command("echo", "Hello", "--trouble")
-            assert False
+            assert False # pragma: nocover
         except Exception as e:
             assert str(e) == "Trouble", str(e)
 
         run_command("echo", "Hello", "--count", "5")
 
-        with exit_expected():
+        with expect_system_exit():
             run_command("echo", "Hello", "--count", "not-an-int")
 
         run_command("haberdash", "ballcap", "fedora", "hardhat", "--last", "turban")

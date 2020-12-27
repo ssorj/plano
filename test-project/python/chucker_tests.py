@@ -23,7 +23,7 @@ def test_test_skipped():
 
 @test(disabled=True, timeout=1)
 def test_timeout_expired():
-    sleep(10)
+    sleep(10, quiet=True)
     assert False
 
 @test(disabled=True)

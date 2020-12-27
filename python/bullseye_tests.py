@@ -127,11 +127,8 @@ def test_command_env():
 @test
 def test_command_modules():
     with test_project():
-        try:
+        with expect_system_exit():
             run_plano("modules", "--remote", "--recursive")
-            assert False
-        except SystemExit:
-            pass
 
 @test
 def test_command_generate():
@@ -150,8 +147,5 @@ def test_command_generate():
         assert exists("LICENSE.txt"), list_dir()
         assert exists("VERSION.txt"), list_dir()
 
-        try:
+        with expect_system_exit():
             run_plano("generate", "no-such-file")
-            assert False
-        except SystemExit:
-            pass

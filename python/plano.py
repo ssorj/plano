@@ -68,7 +68,10 @@ class PlanoException(Exception):
 class PlanoError(PlanoException):
     pass
 
-class PlanoTimeoutExpired(PlanoException):
+class PlanoTimeout(PlanoException):
+    pass
+
+class PlanoTestSkipped(Exception):
     pass
 
 ## Global variables
@@ -1090,7 +1093,7 @@ def wait(proc, timeout=None, check=False, quiet=False):
         try:
             proc.wait(timeout=timeout)
         except _subprocess.TimeoutExpired:
-            raise PlanoTimeoutExpired()
+            raise PlanoTimeout()
 
     if proc.exit_code == 0:
         debug("{0} exited normally", proc)
@@ -1364,7 +1367,7 @@ class Timer(object):
             return self.stop_time - self.start_time
 
     def raise_timeout(self, *args):
-        raise PlanoTimeoutExpired(self.timeout_message)
+        raise PlanoTimeout(self.timeout_message)
 
 ## Unique ID operations
 
@@ -1519,7 +1522,7 @@ def _run_test(test_run, test, quiet=False):
             if not quiet:
                 _print_test_result("SKIPPED", timer)
                 print("Reason: {0}".format(str(e)))
-        except PlanoTimeoutExpired:
+        except PlanoTimeout:
             test_run.failed_tests.append(test)
 
             if not quiet:
@@ -1576,7 +1579,7 @@ def _run_test_verbosely(test_run, test):
     except PlanoTestSkipped:
         test_run.skipped_tests.append(test)
         notice("{0} SKIPPED ({1})", test, format_duration(timer.elapsed_time))
-    except PlanoTimeoutExpired:
+    except PlanoTimeout:
         test_run.failed_tests.append(test)
         error("{0} TIMED OUT ({1})", test, format_duration(timer.elapsed_time))
     except Exception as e:
@@ -1587,7 +1590,7 @@ def _run_test_verbosely(test_run, test):
         test_run.passed_tests.append(test)
         notice("{0} PASSED ({1})", test, format_duration(timer.elapsed_time))
 
-class exception_expected(object):
+class expect_exception(object):
     def __init__(self, exception_type=Exception):
         self.exception_type = exception_type
 
@@ -1600,8 +1603,17 @@ class exception_expected(object):
 
         return isinstance(exc_value, self.exception_type)
 
-class PlanoTestSkipped(Exception):
-    pass
+class expect_error(expect_exception):
+    def __init__(self):
+        super(expect_error, self).__init__(PlanoError)
+
+class expect_timeout(expect_exception):
+    def __init__(self):
+        super(expect_timeout, self).__init__(PlanoTimeout)
+
+class expect_system_exit(expect_exception):
+    def __init__(self):
+        super(expect_system_exit, self).__init__(SystemExit)
 
 class TestRun(object):
     def __init__(self, test_timeout=None):
