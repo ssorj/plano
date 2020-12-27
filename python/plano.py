@@ -450,7 +450,7 @@ class working_env(object):
         self.prev_vars = dict(_os.environ)
 
         if not self.amend:
-            for name, value in _os.environ.items():
+            for name, value in list(_os.environ.items()):
                 if name not in self.vars:
                     del _os.environ[name]
 
