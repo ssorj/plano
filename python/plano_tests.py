@@ -38,6 +38,18 @@ class test_project(working_dir):
         copy(test_project_dir, ".", inside=False)
         return dir
 
+class error_expected(exception_expected):
+    def __init__(self):
+        super(error_expected, self).__init__(PlanoError)
+
+class timeout_expected(exception_expected):
+    def __init__(self):
+        super(timeout_expected, self).__init__(PlanoTimeoutExpired)
+
+class exit_expected(exception_expected):
+    def __init__(self):
+        super(exit_expected, self).__init__(SystemExit)
+
 @test
 def test_archive_operations():
     with working_dir():
@@ -77,15 +89,12 @@ def test_command_operations():
                 print("Hello")
 
             if self.explode:
-                raise PlanoException("Exploded")
+                raise PlanoError("Exploded")
 
     SomeCommand().main([])
 
-    try:
+    with exit_expected():
         SomeCommand().main(["--verbose", "--explode"])
-        assert False
-    except SystemExit:
-        pass
 
 @test
 def test_console_operations():
@@ -188,27 +197,18 @@ def test_env_operations():
     with working_env(YES_I_AM_SET=1):
         check_env("YES_I_AM_SET")
 
-        try:
+        with error_expected():
             check_env("YES_I_AM_SET", "NO_I_AM_NOT")
-            assert False
-        except PlanoException:
-            pass
 
         with working_env(I_AM_SET_NOW=1, amend=False):
             check_env("I_AM_SET_NOW")
             assert "YES_I_AM_SET" not in ENV, ENV
 
-    try:
+    with error_expected():
         check_programs("not-there", "also-not-extant")
-        assert False
-    except PlanoException:
-        pass
 
-    try:
+    with error_expected():
         check_modules("not_there", "nope_not_at_all")
-        assert False
-    except PlanoException:
-        pass
 
     with working_env(SOME_VAR=1):
         assert ENV["SOME_VAR"] == "1", ENV.get("SOME_VAR")
@@ -477,11 +477,8 @@ def test_logging_operations():
             enable_logging(output=f, level="debug")
 
             try:
-                try:
+                with error_expected():
                     fail("Nooo!")
-                    assert False
-                except PlanoException:
-                    pass
 
                 error("Error!")
                 warn("Warning!")
@@ -578,35 +575,20 @@ def test_path_operations():
         check_dirs("adir")
         check_files("adir/afile")
 
-        try:
+        with error_expected():
             check_exists("adir/notafile")
-            assert False
-        except PlanoException:
-            pass
 
-        try:
+        with error_expected():
             check_files("adir/afile", "adir/notafile")
-            assert False
-        except PlanoException:
-            pass
 
-        try:
+        with error_expected():
             check_files("adir")
-            assert False
-        except PlanoException:
-            pass
 
-        try:
+        with error_expected():
             check_dirs("not-there", "nnoott")
-            assert False
-        except PlanoException:
-            pass
 
-        try:
+        with error_expected():
             check_dirs("adir/afile")
-            assert False
-        except PlanoException:
-            pass
 
 @test
 def test_port_operations():
@@ -663,17 +645,11 @@ def test_process_operations():
     run("echo hello | cat", shell=True)
     run(["echo", "hello"], shell=True)
 
-    try:
+    with error_expected():
         run("/not/there")
-        assert False
-    except PlanoException:
-        pass
 
-    try:
+    with exception_expected(PlanoProcessError):
         run("cat /whoa/not/really", stash=True)
-        assert False
-    except PlanoProcessError:
-        pass
 
     result = call("echo hello")
     assert result == "hello\n", result
@@ -681,20 +657,14 @@ def test_process_operations():
     result = call("echo hello | cat", shell=True)
     assert result == "hello\n", result
 
-    try:
+    with exception_expected(PlanoProcessError):
         call("cat /whoa/not/really")
-        assert False
-    except PlanoProcessError:
-        pass
 
     if PYTHON3:
         proc = start("sleep 10")
 
-        try:
+        with timeout_expected():
             wait(proc, timeout=0.1)
-            assert False
-        except PlanoTimeoutExpired:
-            pass
 
     proc = start("echo hello")
     sleep(0.1)
@@ -721,41 +691,23 @@ def test_process_operations():
         with start("date", stdin="i", stdout="o", stderr="e"):
             pass
 
-            try:
+            with exit_expected():
                 exit()
-                assert False
-            except SystemExit:
-                pass
 
-            try:
+            with exit_expected():
                 exit("abc")
-                assert False
-            except SystemExit:
-                pass
 
-            try:
+            with exit_expected():
                 exit(Exception())
-                assert False
-            except SystemExit:
-                pass
 
-            try:
+            with exit_expected():
                 exit(123)
-                assert False
-            except SystemExit:
-                pass
 
-            try:
+            with exit_expected():
                 exit(-123)
-                assert False
-            except SystemExit:
-                pass
 
-            try:
+            with exception_expected(PlanoException):
                 exit(object())
-                assert False
-            except PlanoException:
-                pass
 
 @test
 def test_string_operations():
@@ -909,15 +861,10 @@ def test_time_operations():
 
     assert get_time() - start_time > 0.1
 
-    try:
-        proc = start("sleep 10")
-        from plano import _default_sigterm_handler
-        _default_sigterm_handler(_signal.SIGTERM, None)
-        assert False
-    except SystemExit:
-        pass
-    finally:
-        stop(proc)
+    with exit_expected():
+        with start("sleep 10"):
+            from plano import _default_sigterm_handler
+            _default_sigterm_handler(_signal.SIGTERM, None)
 
     result = format_duration(0.1)
     assert result == "0.1s", result
@@ -937,12 +884,9 @@ def test_time_operations():
 
     assert timer.elapsed_time > 0.2
 
-    try:
+    with timeout_expected():
         with Timer(timeout=1) as timer:
             sleep(10)
-        assert False
-    except PlanoTimeoutExpired:
-        pass
 
 @test
 def test_unique_id_operations():
@@ -989,23 +933,14 @@ def test_plano_command():
     with working_dir():
         write("Planofile", "garbage")
 
-        try:
+        with exit_expected():
             PlanoCommand().main([])
-            assert False
-        except SystemExit:
-            pass
 
-    try:
+    with exit_expected():
         PlanoCommand("no-such-file").main([])
-        assert False
-    except SystemExit:
-        pass
 
-    try:
+    with exit_expected():
         PlanoCommand().main(["-f", "no-such-file"])
-        assert False
-    except SystemExit:
-        pass
 
     def run_command(*args):
         PlanoCommand().main(["-f", test_project_dir] + list(args))
@@ -1020,37 +955,22 @@ def test_plano_command():
         run_command("install")
         run_command("clean")
 
-        try:
+        with exit_expected():
             run_command("build", "--help")
-            assert False
-        except SystemExit:
-            pass
 
-        try:
+        with exit_expected():
             run_command("no-such-command")
-            assert False
-        except SystemExit:
-            pass
 
-        try:
+        with exit_expected():
             run_command("no-such-command", "--help")
-            assert False
-        except SystemExit:
-            pass
 
-        try:
+        with exit_expected():
             run_command("--help", "no-such-command")
-            assert False
-        except SystemExit:
-            pass
 
         run_command("extended-command", "a", "b", "--omega", "z")
 
-        try:
+        with exit_expected():
             run_command("echo")
-            assert False
-        except SystemExit:
-            pass
 
         try:
             run_command("echo", "Hello", "--trouble")
@@ -1060,11 +980,8 @@ def test_plano_command():
 
         run_command("echo", "Hello", "--count", "5")
 
-        try:
+        with exit_expected():
             run_command("echo", "Hello", "--count", "not-an-int")
-            assert False
-        except SystemExit:
-            pass
 
         run_command("haberdash", "ballcap", "fedora", "hardhat", "--last", "turban")
         result = read_json("haberdash.json")

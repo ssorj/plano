@@ -60,11 +60,18 @@ except ImportError: # pragma: nocover
 
 _max = max
 
+## Exceptions
+
 class PlanoException(Exception):
+    pass
+
+class PlanoError(PlanoException):
     pass
 
 class PlanoTimeoutExpired(PlanoException):
     pass
+
+## Global variables
 
 ENV = _os.environ
 ARGS = _sys.argv
@@ -157,7 +164,7 @@ class BaseCommand(object):
 
             try:
                 self.run()
-            except PlanoException as e:
+            except PlanoError as e:
                 if self.verbose:
                     _traceback.print_exc()
 
@@ -422,17 +429,17 @@ def which(program_name):
 def check_env(*vars):
     for var in vars:
         if var not in _os.environ:
-            raise PlanoException("Environment variable {0} is not set".format(repr(var)))
+            raise PlanoError("Environment variable {0} is not set".format(repr(var)))
 
 def check_modules(*modules):
     for module in modules:
         if _pkgutil.find_loader(module) is None:
-            raise PlanoException("Module {0} is not found".format(repr(module)))
+            raise PlanoError("Module {0} is not found".format(repr(module)))
 
 def check_programs(*programs):
     for program in programs:
         if which(program) is None:
-            raise PlanoException("Program {0} is not found".format(repr(program)))
+            raise PlanoError("Program {0} is not found".format(repr(program)))
 
 class working_env(object):
     def __init__(self, **vars):
@@ -791,7 +798,7 @@ def fail(message, *args):
     if isinstance(message, BaseException):
         raise message
 
-    raise PlanoException(message.format(*args))
+    raise PlanoError(message.format(*args))
 
 def error(message, *args):
     _print_message("Error", message, args)
@@ -916,17 +923,17 @@ def get_name_extension(file):
 def check_exists(*paths):
     for path in paths:
         if not exists(path):
-            raise PlanoException("File or directory {0} is not found".format(repr(path)))
+            raise PlanoError("File or directory {0} is not found".format(repr(path)))
 
 def check_files(*paths):
     for path in paths:
         if not is_file(path):
-            raise PlanoException("File {0} is not found".format(repr(path)))
+            raise PlanoError("File {0} is not found".format(repr(path)))
 
 def check_dirs(*paths):
     for path in paths:
         if not is_dir(path):
-            raise PlanoException("Directory {0} is not found".format(repr(path)))
+            raise PlanoError("Directory {0} is not found".format(repr(path)))
 
 ## Port operations
 
@@ -936,10 +943,10 @@ def get_random_port(min=49152, max=65535, check=True):
     if check:
         try:
             check_ports(port)
-        except PlanoException:
+        except PlanoError:
             pass
         else:
-            raise PlanoException("Port {0} is in use".format(port))
+            raise PlanoError("Port {0} is in use".format(port))
 
     return port
 
@@ -952,7 +959,7 @@ def check_ports(*ports, **kwargs):
         sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
 
         if sock.connect_ex((host, port)) != 0:
-            raise PlanoException("Port {0} (host {1}) is not reachable".format(repr(port), repr(host)))
+            raise PlanoError("Port {0} (host {1}) is not reachable".format(repr(port), repr(host)))
 
 def await_port(port, host="localhost", timeout=30, quiet=False):
     _log(quiet, "Waiting for port {0}", port)
@@ -1042,7 +1049,7 @@ def start(command, stdin=None, stdout=None, stderr=None, output=None, shell=Fals
     try:
         proc = PlanoProcess(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell, close_fds=True, stash_file=stash_file)
     except OSError as e:
-        raise PlanoException("Command {0}: {1}".format(_format_command(command), str(e)))
+        raise PlanoError("Command {0}: {1}".format(_format_command(command), str(e)))
 
     debug("{0} started", proc)
 
@@ -1182,7 +1189,7 @@ class PlanoProcess(_subprocess.Popen):
     def __repr__(self):
         return "process {0} (command {1})".format(self.pid, _format_command(self.args))
 
-class PlanoProcessError(_subprocess.CalledProcessError, PlanoException):
+class PlanoProcessError(_subprocess.CalledProcessError, PlanoError):
     def __init__(self, proc):
         super(PlanoProcessError, self).__init__(proc.exit_code, " ".join(proc.args))
 
@@ -1423,7 +1430,7 @@ def test(_function=None, name=None, timeout=None, disabled=False):
                 self.function()
             except SystemExit as e:
                 error(e)
-                raise PlanoException("System exit with code {0}".format(e))
+                raise PlanoError("System exit with code {0}".format(e))
 
         def __repr__(self):
             return "test '{0}:{1}'".format(self.module.__name__, self.name)
@@ -1481,14 +1488,14 @@ def run_tests(modules, include="*", exclude=(), enable=(), test_timeout=300, ver
     failed = len(test_run.failed_tests)
 
     if total == 0:
-        raise PlanoException("No tests ran")
+        raise PlanoError("No tests ran")
 
     if failed == 0:
         _log(quiet, "RESULT: All tests passed ({0} skipped)".format(skipped))
     else:
         message = "{0} {1} failed or timed out ({2} skipped)".format(failed, plural("test", failed), skipped)
         _log(quiet, "RESULT: {0}", message)
-        raise PlanoException(message)
+        raise PlanoError(message)
 
 def _run_test(test_run, test, quiet=False):
     if not quiet:
