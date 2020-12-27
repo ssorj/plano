@@ -939,20 +939,21 @@ def await_port(port, host="", timeout=30, quiet=False):
     if is_string(port):
         port = int(port)
 
+    timeout_message = "Timed out waiting for port {0} to open".format(port)
+    period = 0.1
+
     sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
     sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
 
-    start = _time.time()
-
     try:
-        while True:
-            if sock.connect_ex((host, port)) == 0:
-                return
+        with Timer(timeout=timeout, timeout_message=timeout_message) as timer:
+            while True:
+                if sock.connect_ex((host, port)) == 0:
+                    return
 
-            sleep(0.1, quiet=True)
+                sleep(period, quiet=True)
 
-            if _time.time() - start > timeout:
-                fail("Timed out waiting for port {0} to open", port)
+                period = min(1, period * 2)
     finally:
         sock.close()
 
@@ -1292,11 +1293,12 @@ def format_duration(duration):
     return "{0:.1f}s".format(duration)
 
 class Timer(object):
-    def __init__(self, timeout=None):
+    def __init__(self, timeout=None, timeout_message=None):
         # Alarms work with integral seconds only
         assert timeout is None or isinstance(timeout, int), type(timeout)
 
         self.timeout = timeout
+        self.timeout_message = timeout_message
 
         self.start_time = None
         self.stop_time = None
@@ -1331,7 +1333,7 @@ class Timer(object):
             return self.stop_time - self.start_time
 
     def raise_timeout(self, *args):
-        raise PlanoTimeoutExpired()
+        raise PlanoTimeoutExpired(self.timeout_message)
 
 ## Unique ID operations
 
