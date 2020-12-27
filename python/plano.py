@@ -22,6 +22,7 @@ from __future__ import print_function
 import argparse as _argparse
 import base64 as _base64
 import binascii as _binascii
+import code as _code
 import codecs as _codecs
 import collections as _collections
 import fnmatch as _fnmatch
@@ -274,6 +275,16 @@ class output_redirected(object):
         flush()
 
         _sys.stdout, _sys.stderr = self.old_stdout, self.old_stderr
+
+try:
+    breakpoint
+except NameError: # pragma: nocover
+    def breakpoint():
+        import pdb
+        pdb.set_trace()
+
+def repl(vars): # pragma: nocover
+    _code.InteractiveConsole(locals=vars).interact()
 
 ## Directory operations
 
@@ -612,14 +623,14 @@ def prepend_lines(file, lines):
 
     return file
 
-def tail_lines(file, n):
-    assert n >= 0
+def tail_lines(file, count):
+    assert count >= 0
 
     with _codecs.open(file, encoding="utf-8", mode="r") as f:
-        pos = n + 1
+        pos = count + 1
         lines = list()
 
-        while len(lines) <= n:
+        while len(lines) <= count:
             try:
                 f.seek(-pos, 2)
             except IOError:
@@ -630,7 +641,7 @@ def tail_lines(file, n):
 
             pos *= 2
 
-        return lines[-n:]
+        return lines[-count:]
 
 ## Iterable operations
 
@@ -1231,7 +1242,7 @@ def remove_suffix(string, suffix):
 
     return string
 
-def shorten(string, max, ellipsis=""):
+def shorten(string, max, ellipsis=None):
     assert max is None or isinstance(max, int)
 
     if string is None:
@@ -1240,7 +1251,7 @@ def shorten(string, max, ellipsis=""):
     if max is None or len(string) < max:
         return string
     else:
-        if ellipsis:
+        if ellipsis is not None:
             string = string + ellipsis
             end = _max(0, max - len(ellipsis))
             return string[0:end] + ellipsis
