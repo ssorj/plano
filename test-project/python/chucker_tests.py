@@ -19,7 +19,7 @@ def test_keyboard_interrupt():
 
 @test
 def test_test_skipped():
-    raise PlanoTestSkipped()
+    raise PlanoTestSkipped("Test coverage")
 
 @test(disabled=True, timeout=1)
 def test_timeout_expired():

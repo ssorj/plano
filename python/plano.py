@@ -1528,6 +1528,19 @@ def _run_test_verbosely(test_run, test):
         test_run.passed_tests.append(test)
         notice("{0} PASSED ({1})", test, format_duration(timer.elapsed_time))
 
+class exception_expected(object):
+    def __init__(self, exception_type=Exception):
+        self.exception_type = exception_type
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_value is None:
+            assert False
+
+        return isinstance(exc_value, self.exception_type)
+
 class PlanoTestSkipped(Exception):
     pass
 

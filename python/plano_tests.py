@@ -862,41 +862,23 @@ def test_test_operations():
                 run_tests(chucker_tests, verbose=verbose)
                 run_tests(chucker_tests, exclude="*hello*", verbose=verbose)
 
-                try:
+                with exception_expected(PlanoException):
                     run_tests(chucker, verbose=verbose)
-                    assert False
-                except PlanoException:
-                    pass
 
-                try:
+                with exception_expected(PlanoException):
                     run_tests(chucker_tests, enable="*badbye*", verbose=verbose)
-                    assert False
-                except PlanoException:
-                    pass
 
-                try:
+                with exception_expected(KeyboardInterrupt):
                     run_tests(chucker_tests, enable="test_keyboard_interrupt", verbose=verbose)
-                    assert False
-                except KeyboardInterrupt:
-                    pass
 
-                try:
+                with exception_expected(PlanoException):
                     run_tests(chucker_tests, enable="test_timeout_expired", verbose=verbose)
-                    assert False
-                except PlanoException:
-                    pass
 
-                try:
+                with exception_expected(PlanoException):
                     run_tests(chucker_tests, enable="test_process_error", verbose=verbose)
-                    assert False
-                except PlanoException:
-                    pass
 
-                try:
+                with exception_expected(PlanoException):
                     run_tests(chucker_tests, enable="test_system_exit", verbose=verbose)
-                    assert False
-                except PlanoException:
-                    pass
 
             def run_command(*args):
                 TestCommand(chucker_tests).main(args)
@@ -904,17 +886,11 @@ def test_test_operations():
             run_command("--verbose")
             run_command("--list")
 
-            try:
+            with exception_expected(SystemExit):
                 run_command("--enable", "*badbye*")
-                assert False
-            except SystemExit:
-                pass
 
-            try:
+            with exception_expected(SystemExit):
                 run_command("--enable", "*badbye*", "--verbose")
-                assert False
-            except SystemExit:
-                pass
         finally:
             sys.path = old_path
 
