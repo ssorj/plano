@@ -401,9 +401,9 @@ def get_hostname():
     return _socket.gethostname()
 
 def which(program_name):
-    assert "PATH" in ENV
+    assert "PATH" in _os.environ, _os.environ
 
-    for dir in ENV["PATH"].split(_os.pathsep):
+    for dir in _os.environ["PATH"].split(_os.pathsep):
         program = join(dir, program_name)
 
         if _os.access(program, _os.X_OK):
@@ -411,7 +411,7 @@ def which(program_name):
 
 def check_env(*vars):
     for var in vars:
-        if var not in ENV:
+        if var not in _os.environ:
             raise PlanoException("Environment variable '{0}' is not set".format(var))
 
 def check_exists(*paths):
@@ -441,22 +441,27 @@ def check_programs(*programs):
 
 class working_env(object):
     def __init__(self, **vars):
+        self.amend = vars.pop("amend", True)
         self.vars = vars
-        self.prev_vars = dict()
 
     def __enter__(self):
-        for name, value in self.vars.items():
-            if name in _os.environ:
-                self.prev_vars[name] = _os.environ[name]
+        self.prev_vars = dict(_os.environ)
 
+        if not self.amend:
+            for name, value in _os.environ.items():
+                if name not in self.vars:
+                    del _os.environ[name]
+
+        for name, value in self.vars.items():
             _os.environ[name] = str(value)
 
     def __exit__(self, exc_type, exc_value, traceback):
+        for name, value in self.prev_vars.items():
+            _os.environ[name] = value
+
         for name, value in self.vars.items():
-            if name in self.prev_vars:
-                _os.environ[name] = self.prev_vars[name]
-            else:
-                del _os.environ[name]
+            if name not in self.prev_vars:
+                del ENV[name]
 
 class working_python_path(object):
     def __init__(self, path, amend=True):
@@ -1241,7 +1246,7 @@ def get_temp_dir():
 
 def get_user_temp_dir():
     try:
-        return ENV["XDG_RUNTIME_DIR"]
+        return _os.environ["XDG_RUNTIME_DIR"]
     except KeyError:
         return join(get_temp_dir(), get_user())
 

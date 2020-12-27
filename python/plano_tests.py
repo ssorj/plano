@@ -188,6 +188,10 @@ def test_env_operations():
             except PlanoException:
                 pass
 
+            with working_env(I_AM_SET_NOW=1, amend=False):
+                check_env("I_AM_SET_NOW")
+                assert "YES_I_AM_SET" not in ENV, ENV
+
         check_exists("adir")
         check_exists("adir/afile")
         check_dirs("adir")
@@ -886,6 +890,13 @@ def test_test_operations():
 
             with exception_expected(SystemExit):
                 run_command("--enable", "*badbye*", "--verbose")
+
+            try:
+                with exception_expected():
+                    pass
+                raise Exception()
+            except AssertionError:
+                pass
 
 @test
 def test_time_operations():
