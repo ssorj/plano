@@ -847,12 +847,7 @@ def test_temp_operations():
 @test
 def test_test_operations():
     with test_project():
-        import sys
-
-        old_path = sys.path
-        sys.path.insert(0, "python")
-
-        try:
+        with working_python_path("python"):
             import chucker
             import chucker_tests
 
@@ -891,8 +886,6 @@ def test_test_operations():
 
             with exception_expected(SystemExit):
                 run_command("--enable", "*badbye*", "--verbose")
-        finally:
-            sys.path = old_path
 
 @test
 def test_time_operations():

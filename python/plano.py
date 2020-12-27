@@ -66,9 +66,6 @@ class PlanoException(Exception):
 class PlanoTimeoutExpired(PlanoException):
     pass
 
-LINE_SEP = _os.linesep
-PATH_SEP = _os.sep
-PATH_VAR_SEP = _os.pathsep
 ENV = _os.environ
 ARGS = _sys.argv
 
@@ -389,7 +386,7 @@ class working_dir(object):
 ## Environment operations
 
 def join_path_var(*paths):
-    return PATH_VAR_SEP.join(unique(skip(paths)))
+    return _os.pathsep.join(unique(skip(paths)))
 
 def get_current_dir():
     return _os.getcwd()
@@ -406,7 +403,7 @@ def get_hostname():
 def which(program_name):
     assert "PATH" in ENV
 
-    for dir in ENV["PATH"].split(PATH_VAR_SEP):
+    for dir in ENV["PATH"].split(_os.pathsep):
         program = join(dir, program_name)
 
         if _os.access(program, _os.X_OK):
@@ -443,23 +440,43 @@ def check_programs(*programs):
             raise PlanoException("Program '{0}' is not found".format(program))
 
 class working_env(object):
-    def __init__(self, **env_vars):
-        self.env_vars = env_vars
-        self.prev_env_vars = dict()
+    def __init__(self, **vars):
+        self.vars = vars
+        self.prev_vars = dict()
 
     def __enter__(self):
-        for name, value in self.env_vars.items():
-            if name in ENV:
-                self.prev_env_vars[name] = ENV[name]
+        for name, value in self.vars.items():
+            if name in _os.environ:
+                self.prev_vars[name] = _os.environ[name]
 
-            ENV[name] = str(value)
+            _os.environ[name] = str(value)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        for name, value in self.env_vars.items():
-            if name in self.prev_env_vars:
-                ENV[name] = self.prev_env_vars[name]
+        for name, value in self.vars.items():
+            if name in self.prev_vars:
+                _os.environ[name] = self.prev_vars[name]
             else:
-                del ENV[name]
+                del _os.environ[name]
+
+class working_python_path(object):
+    def __init__(self, path, amend=True):
+        if is_string(path):
+            if not is_absolute(path):
+                path = get_absolute_path(path)
+
+            path = [path]
+
+        if amend:
+            path = path + _sys.path
+
+        self.path = path
+
+    def __enter__(self):
+        self.prev_path = _sys.path
+        _sys.path = self.path
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        _sys.path = self.prev_path
 
 ## File operations
 
