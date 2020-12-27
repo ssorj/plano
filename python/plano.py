@@ -400,6 +400,16 @@ def get_user():
 def get_hostname():
     return _socket.gethostname()
 
+def get_program_name(command=None):
+    if command is None:
+        args = ARGS
+    else:
+        args = command.split()
+
+    for arg in args:
+        if "=" not in arg:
+            return get_base_name(arg)
+
 def which(program_name):
     assert "PATH" in _os.environ, _os.environ
 
@@ -413,21 +423,6 @@ def check_env(*vars):
     for var in vars:
         if var not in _os.environ:
             raise PlanoException("Environment variable {0} is not set".format(repr(var)))
-
-def check_exists(*paths):
-    for path in paths:
-        if not exists(path):
-            raise PlanoException("File or directory {0} is not found".format(repr(path)))
-
-def check_files(*files):
-    for file in files:
-        if not is_file(file):
-            raise PlanoException("File {0} is not found".format(repr(file)))
-
-def check_dirs(*dirs):
-    for dir in dirs:
-        if not is_dir(dir):
-            raise PlanoException("Directory {0} is not found".format(repr(dir)))
 
 def check_modules(*modules):
     for module in modules:
@@ -918,15 +913,20 @@ def get_name_extension(file):
 
     return ext
 
-def get_program_name(command=None):
-    if command is None:
-        args = ARGS
-    else:
-        args = command.split()
+def check_exists(*paths):
+    for path in paths:
+        if not exists(path):
+            raise PlanoException("File or directory {0} is not found".format(repr(path)))
 
-    for arg in args:
-        if "=" not in arg:
-            return get_base_name(arg)
+def check_files(*paths):
+    for path in paths:
+        if not is_file(path):
+            raise PlanoException("File {0} is not found".format(repr(path)))
+
+def check_dirs(*paths):
+    for path in paths:
+        if not is_dir(path):
+            raise PlanoException("Directory {0} is not found".format(repr(path)))
 
 ## Port operations
 

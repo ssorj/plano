@@ -173,59 +173,30 @@ def test_env_operations():
     result = get_hostname()
     assert result, result
 
+    result = get_program_name()
+    assert result, result
+
+    result = get_program_name("alpha beta")
+    assert result == "alpha", result
+
+    result = get_program_name("X=Y alpha beta")
+    assert result == "alpha", result
+
     result = which("echo")
     assert result, result
 
-    with working_dir():
-        touch("adir/afile")
-
-        with working_env(YES_I_AM_SET=1):
-            check_env("YES_I_AM_SET")
-
-            try:
-                check_env("YES_I_AM_SET", "NO_I_AM_NOT")
-                assert False
-            except PlanoException:
-                pass
-
-            with working_env(I_AM_SET_NOW=1, amend=False):
-                check_env("I_AM_SET_NOW")
-                assert "YES_I_AM_SET" not in ENV, ENV
-
-        check_exists("adir")
-        check_exists("adir/afile")
-        check_dirs("adir")
-        check_files("adir/afile")
+    with working_env(YES_I_AM_SET=1):
+        check_env("YES_I_AM_SET")
 
         try:
-            check_exists("adir/notafile")
+            check_env("YES_I_AM_SET", "NO_I_AM_NOT")
             assert False
         except PlanoException:
             pass
 
-        try:
-            check_files("adir/afile", "adir/notafile")
-            assert False
-        except PlanoException:
-            pass
-
-        try:
-            check_files("adir")
-            assert False
-        except PlanoException:
-            pass
-
-        try:
-            check_dirs("not-there", "nnoott")
-            assert False
-        except PlanoException:
-            pass
-
-        try:
-            check_dirs("adir/afile")
-            assert False
-        except PlanoException:
-            pass
+        with working_env(I_AM_SET_NOW=1, amend=False):
+            check_env("I_AM_SET_NOW")
+            assert "YES_I_AM_SET" not in ENV, ENV
 
     try:
         check_programs("not-there", "also-not-extant")
@@ -599,14 +570,43 @@ def test_path_operations():
     result = get_name_extension(path)
     assert result == name_split_extension[1], result
 
-    result = get_program_name()
-    assert result, result
+    with working_dir():
+        touch("adir/afile")
 
-    result = get_program_name("alpha beta")
-    assert result == "alpha", result
+        check_exists("adir")
+        check_exists("adir/afile")
+        check_dirs("adir")
+        check_files("adir/afile")
 
-    result = get_program_name("X=Y alpha beta")
-    assert result == "alpha", result
+        try:
+            check_exists("adir/notafile")
+            assert False
+        except PlanoException:
+            pass
+
+        try:
+            check_files("adir/afile", "adir/notafile")
+            assert False
+        except PlanoException:
+            pass
+
+        try:
+            check_files("adir")
+            assert False
+        except PlanoException:
+            pass
+
+        try:
+            check_dirs("not-there", "nnoott")
+            assert False
+        except PlanoException:
+            pass
+
+        try:
+            check_dirs("adir/afile")
+            assert False
+        except PlanoException:
+            pass
 
 @test
 def test_port_operations():
