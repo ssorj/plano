@@ -268,13 +268,13 @@ class output_redirected(object):
         if is_string(self.output):
             output = open(self.output, "w")
 
-        self.old_stdout, self.old_stderr = _sys.stdout, _sys.stderr
+        self.prev_stdout, self.prev_stderr = _sys.stdout, _sys.stderr
         _sys.stdout, _sys.stderr = output, output
 
     def __exit__(self, exc_type, exc_value, traceback):
         flush()
 
-        _sys.stdout, _sys.stderr = self.old_stdout, self.old_stderr
+        _sys.stdout, _sys.stderr = self.prev_stdout, self.prev_stderr
 
 try:
     breakpoint
@@ -797,13 +797,13 @@ class logging_enabled(object):
         self.output = output
 
     def __enter__(self):
-        self.old_level = _logging_levels[_logging_threshold]
-        self.old_output = _logging_output
+        self.prev_level = _logging_levels[_logging_threshold]
+        self.prev_output = _logging_output
 
         enable_logging(level=self.level, output=self.output)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        enable_logging(level=self.old_level, output=self.old_output)
+        enable_logging(level=self.prev_level, output=self.prev_output)
 
 class logging_disabled(logging_enabled):
     def __init__(self):
@@ -952,20 +952,34 @@ def check_dirs(*paths):
         if not is_dir(path):
             raise PlanoError("Directory {0} is not found".format(repr(path)))
 
+def await_exists(path, timeout=30, quiet=False):
+    _log(quiet, "Waiting for path {0} to exist", repr(path))
+
+    timeout_message = "Timed out waiting for path {0} to exist".format(path)
+    period = 0.125
+
+    with Timer(timeout=timeout, timeout_message=timeout_message) as timer:
+        while True:
+            try:
+                check_exists(path)
+            except PlanoError:
+                sleep(period, quiet=True)
+                period = min(1, period * 2)
+            else:
+                return
+
 ## Port operations
 
-def get_random_port(min=49152, max=65535, check=True):
-    port = _random.randint(min, max)
+def get_random_port(min=49152, max=65535):
+    ports = [_random.randint(min, max) for _ in range(3)]
 
-    if check:
+    for port in ports:
         try:
             check_ports(port)
         except PlanoError:
-            pass
-        else:
-            raise PlanoError("Port {0} is in use".format(port))
+            return port
 
-    return port
+    raise PlanoError("Random ports unavailable")
 
 def check_ports(*ports, **kwargs):
     host = kwargs.pop("host", "localhost")
@@ -985,22 +999,17 @@ def await_port(port, host="localhost", timeout=30, quiet=False):
         port = int(port)
 
     timeout_message = "Timed out waiting for port {0} to open".format(port)
-    period = 0.1
+    period = 0.125
 
-    sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
-    sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
-
-    try:
-        with Timer(timeout=timeout, timeout_message=timeout_message) as timer:
-            while True:
-                if sock.connect_ex((host, port)) == 0:
-                    return
-
+    with Timer(timeout=timeout, timeout_message=timeout_message) as timer:
+        while True:
+            try:
+                check_ports(port, host=host)
+            except PlanoError:
                 sleep(period, quiet=True)
-
                 period = min(1, period * 2)
-    finally:
-        sock.close()
+            else:
+                return
 
 ## Process operations
 

@@ -578,6 +578,11 @@ def test_path_operations():
         with expect_error():
             check_dirs("adir/afile")
 
+        await_exists("adir/afile")
+
+        with expect_timeout():
+            await_exists("adir/notafile", timeout=1)
+
 @test
 def test_port_operations():
     result = get_random_port()
