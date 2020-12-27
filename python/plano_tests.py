@@ -853,7 +853,50 @@ def test_test_operations():
         sys.path.insert(0, "python")
 
         try:
+            import chucker
             import chucker_tests
+
+            print_tests(chucker_tests)
+
+            for verbose in (False, True):
+                run_tests(chucker_tests, verbose=verbose)
+                run_tests(chucker_tests, exclude="*hello*", verbose=verbose)
+
+                try:
+                    run_tests(chucker, verbose=verbose)
+                    assert False
+                except PlanoException:
+                    pass
+
+                try:
+                    run_tests(chucker_tests, enable="*badbye*", verbose=verbose)
+                    assert False
+                except PlanoException:
+                    pass
+
+                try:
+                    run_tests(chucker_tests, enable="test_keyboard_interrupt", verbose=verbose)
+                    assert False
+                except KeyboardInterrupt:
+                    pass
+
+                try:
+                    run_tests(chucker_tests, enable="test_timeout_expired", verbose=verbose)
+                    assert False
+                except PlanoException:
+                    pass
+
+                try:
+                    run_tests(chucker_tests, enable="test_process_error", verbose=verbose)
+                    assert False
+                except PlanoException:
+                    pass
+
+                try:
+                    run_tests(chucker_tests, enable="test_system_exit", verbose=verbose)
+                    assert False
+                except PlanoException:
+                    pass
 
             def run_command(*args):
                 TestCommand(chucker_tests).main(args)
@@ -862,13 +905,13 @@ def test_test_operations():
             run_command("--list")
 
             try:
-                run_command("--exclude", "*")
+                run_command("--enable", "*badbye*")
                 assert False
             except SystemExit:
                 pass
 
             try:
-                run_command("--enable", "*badbye*")
+                run_command("--enable", "*badbye*", "--verbose")
                 assert False
             except SystemExit:
                 pass

@@ -1029,7 +1029,7 @@ def kill(proc, quiet=False):
 def wait(proc, timeout=None, check=False, quiet=False):
     _log(quiet, "Waiting for {0} to exit", proc)
 
-    if PYTHON2:
+    if PYTHON2: # pragma: nocover
         assert timeout is None, "The timeout option is not supported on Python 2"
         proc.wait()
     else:
