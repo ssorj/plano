@@ -621,11 +621,17 @@ def test_port_operations():
         server_socket.listen(5)
 
         await_port(server_port)
+        await_port(str(server_port))
+
+        check_ports(server_port)
+
+        with exception_expected(PlanoException):
+            get_random_port(min=server_port, max=server_port)
     finally:
         server_socket.close()
 
     with exception_expected(PlanoTimeoutExpired):
-        await_port(str(get_random_port()), timeout=1)
+        await_port(get_random_port(), timeout=1)
 
 @test
 def test_process_operations():

@@ -412,32 +412,32 @@ def which(program_name):
 def check_env(*vars):
     for var in vars:
         if var not in _os.environ:
-            raise PlanoException("Environment variable '{0}' is not set".format(var))
+            raise PlanoException("Environment variable {0} is not set".format(repr(var)))
 
 def check_exists(*paths):
     for path in paths:
         if not exists(path):
-            raise PlanoException("File or directory '{0}' is not found".format(path))
+            raise PlanoException("File or directory {0} is not found".format(repr(path)))
 
 def check_files(*files):
     for file in files:
         if not is_file(file):
-            raise PlanoException("File '{0}' is not found".format(file))
+            raise PlanoException("File {0} is not found".format(repr(file)))
 
 def check_dirs(*dirs):
     for dir in dirs:
         if not is_dir(dir):
-            raise PlanoException("Directory '{0}' is not found".format(dir))
+            raise PlanoException("Directory {0} is not found".format(repr(dir)))
 
 def check_modules(*modules):
     for module in modules:
         if _pkgutil.find_loader(module) is None:
-            raise PlanoException("Module '{0}' is not found".format(module))
+            raise PlanoException("Module {0} is not found".format(repr(module)))
 
 def check_programs(*programs):
     for program in programs:
         if which(program) is None:
-            raise PlanoException("Program '{0}' is not found".format(program))
+            raise PlanoException("Program {0} is not found".format(repr(program)))
 
 class working_env(object):
     def __init__(self, **vars):
@@ -930,10 +930,31 @@ def get_program_name(command=None):
 
 ## Port operations
 
-def get_random_port(min=49152, max=65535):
-    return _random.randint(min, max)
+def get_random_port(min=49152, max=65535, check=True):
+    port = _random.randint(min, max)
 
-def await_port(port, host="", timeout=30, quiet=False):
+    if check:
+        try:
+            check_ports(port)
+        except PlanoException:
+            pass
+        else:
+            raise PlanoException("Port {0} is in use".format(port))
+
+    return port
+
+def check_ports(*ports, **kwargs):
+    host = kwargs.pop("host", "localhost")
+    assert not kwargs, kwargs
+
+    for port in ports:
+        sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+        sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+
+        if sock.connect_ex((host, port)) != 0:
+            raise PlanoException("Port {0} (host {1}) is not reachable".format(repr(port), repr(host)))
+
+def await_port(port, host="localhost", timeout=30, quiet=False):
     _log(quiet, "Waiting for port {0}", port)
 
     if is_string(port):
