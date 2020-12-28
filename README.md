@@ -1,6 +1,6 @@
 # Plano
 
-[![Build Status](https://travis-ci.org/ssorj/plano.svg?branch=master)](https://travis-ci.org/ssorj/plano) ![main](https://github.com/ssorj/plano/workflows/main/badge.svg)
+[![main](https://github.com/ssorj/plano/workflows/main/badge.svg)](https://github.com/ssorj/plano/actions?query=workflow%3Amain)
 
 Python functions for writing shell-style system scripts.
 
