@@ -828,7 +828,7 @@ def test_test_operations():
                     run_tests(chucker_tests, enable="test_system_exit", verbose=verbose)
 
             def run_command(*args):
-                TestCommand(chucker_tests).main(args)
+                PlanoTestCommand(chucker_tests).main(args)
 
             run_command("--verbose")
             run_command("--list")

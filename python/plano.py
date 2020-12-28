@@ -161,18 +161,19 @@ class BaseCommand(object):
             level = "error"
 
         with logging_enabled(level=level):
-            self.init(args)
-
-            if self.init_only:
-                return
-
             try:
+                self.init(args)
+
+                if self.init_only:
+                    return
+
                 self.run()
             except PlanoError as e:
                 if self.verbose:
                     _traceback.print_exc()
-
-                exit(str(e))
+                    exit(1)
+                else:
+                    exit(str(e))
 
     def parse_args(self, args): # pragma: nocover
         raise NotImplementedError()
@@ -196,6 +197,12 @@ class BaseArgumentParser(_argparse.ArgumentParser):
                           help="Print no logging to the console")
         self.add_argument("--init-only", action="store_true",
                           help=_argparse.SUPPRESS)
+
+        # Patch the default help text
+        try:
+            self._actions[0].help = "Show this help message and exit"
+        except: # pragma: nocover
+            pass
 
 ## Console operations
 
@@ -1643,22 +1650,24 @@ class TestRun(object):
 
         self.test_timeout = test_timeout
 
-class TestCommand(BaseCommand):
-    def __init__(self, test_modules):
-        super(TestCommand, self).__init__()
+class PlanoTestCommand(BaseCommand):
+    def __init__(self, test_modules=[]):
+        super(PlanoTestCommand, self).__init__()
 
         self.test_modules = test_modules
 
         if _inspect.ismodule(self.test_modules):
-            self.test_modules = (self.test_modules,)
+            self.test_modules = [self.test_modules]
 
         self.parser = BaseArgumentParser()
-        self.parser.add_argument("-l", "--list", action="store_true",
-                                 help="Print the test names and exit")
         self.parser.add_argument("include", metavar="PATTERN", nargs="*", default=["*"],
                                  help="Run only tests with names matching PATTERN. This option can be repeated.")
         self.parser.add_argument("-e", "--exclude", metavar="PATTERN", action="append", default=[],
                                  help="Do not run tests with names matching PATTERN. This option can be repeated.")
+        self.parser.add_argument("-m", "--module", action="append", default=[],
+                                 help="Load tests from MODULE.  This option can be repeated.")
+        self.parser.add_argument("-l", "--list", action="store_true",
+                                 help="Print the test names and exit")
         self.parser.add_argument("--enable", metavar="PATTERN", action="append", default=[],
                                  help="Enable disabled tests matching PATTERN.  This option can be repeated.")
         self.parser.add_argument("--iterations", metavar="COUNT", type=int, default=1,
@@ -1676,6 +1685,12 @@ class TestCommand(BaseCommand):
         self.enable_patterns = args.enable
         self.iterations = args.iterations
         self.timeout = args.timeout
+
+        try:
+            for name in args.module:
+                self.test_modules.append(_import_module(name))
+        except ImportError as e:
+            raise PlanoError(e)
 
     def run(self):
         if self.list_only:

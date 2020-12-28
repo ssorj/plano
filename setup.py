@@ -41,4 +41,4 @@ setup(name="plano",
       data_files=[("lib/plano/python", ["python/plano_tests.py",
                                         "python/bullseye.py",
                                         "python/bullseye_tests.py"])],
-      scripts=["bin/plano", "bin/planosh"])
+      scripts=["bin/plano", "bin/planosh", "bin/planotest"])
