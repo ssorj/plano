@@ -833,6 +833,9 @@ def test_test_operations():
                 with expect_error():
                     run_tests(chucker_tests, enable="test_system_exit", verbose=verbose)
 
+            with expect_system_exit():
+                PlanoTestCommand().main(["--module", "nosuchmodule"])
+
             def run_command(*args):
                 PlanoTestCommand(chucker_tests).main(args)
 
