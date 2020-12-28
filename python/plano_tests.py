@@ -761,6 +761,15 @@ def test_string_operations():
     result = plural("terminus", 2, "termini")
     assert result == "termini", result
 
+    result = capitalize(None)
+    assert result == "", result
+
+    result = capitalize("")
+    assert result == "", result
+
+    result = capitalize("hello, Frank")
+    assert result == "Hello, Frank", result
+
     encoded_result = base64_encode(b"abc")
     decoded_result = base64_decode(encoded_result)
     assert decoded_result == b"abc", decoded_result
@@ -910,6 +919,12 @@ def test_value_operations():
 
     result = nvl("b", "a")
     assert result == "b", result
+
+    result = pformat({"z": 1, "a": 2})
+    assert result == "{'a': 2, 'z': 1}", result
+
+    result = prepr(Namespace(a=1, b=2), limit=1)
+    assert result == "Namespace(a=1)", result
 
     result = Namespace(a=1, b=2)
     assert result.a == 1, result

@@ -198,11 +198,16 @@ class BaseArgumentParser(_argparse.ArgumentParser):
         self.add_argument("--init-only", action="store_true",
                           help=_argparse.SUPPRESS)
 
-        # Patch the default help text
-        try:
-            self._actions[0].help = "Show this help message and exit"
-        except: # pragma: nocover
-            pass
+        _capitalize_help(self)
+
+# Patch the default help text
+def _capitalize_help(parser):
+    try:
+        for action in parser._actions:
+            if action.help:
+                action.help = capitalize(action.help)
+    except: # pragma: nocover
+        pass
 
 ## Console operations
 
@@ -214,7 +219,7 @@ def eprint(*args, **kwargs):
     print(*args, file=_sys.stderr, **kwargs)
 
 def pprint(*args, **kwargs):
-    args = [_pprint.pformat(x, width=120) for x in args]
+    args = [pformat(x) for x in args]
     print(*args, **kwargs)
 
 _color_codes = {
@@ -858,8 +863,7 @@ def _format_message(category, message, args):
     if args:
         message = message.format(*args)
 
-    if len(message) > 0 and message[0].islower():
-        message = message[0].upper() + message[1:]
+    message = capitalize(message)
 
     if category:
         message = "{0}: {1}".format(category, message)
@@ -1289,6 +1293,12 @@ def plural(noun, count=0, plural=None):
 
     return plural
 
+def capitalize(string):
+    if not string:
+        return ""
+
+    return string[0].upper() + string[1:]
+
 def base64_encode(string):
     return _base64.b64encode(string)
 
@@ -1422,6 +1432,13 @@ def nvl(value, replacement):
 
     return value
 
+def pformat(value):
+    return _pprint.pformat(value, width=120)
+
+def prepr(obj, limit=None):
+    attrs = ["{0}={1}".format(k, repr(v)) for k, v in obj.__dict__.items()]
+    return "{0}({1})".format(obj.__class__.__name__, ", ".join(attrs[:limit]))
+
 class Namespace(object):
     def __init__(self, **kwargs):
         for name in kwargs:
@@ -1434,12 +1451,7 @@ class Namespace(object):
         return key in self.__dict__
 
     def __repr__(self):
-        kwargs = list()
-
-        for name, value in self.__dict__.items():
-            kwargs.append("{0}={1}".format(name, repr(value)))
-
-        return "{0}({1})".format(self.__class__.__name__, ", ".join(kwargs))
+        return prepr(self)
 
 ## Test operations
 
@@ -2035,11 +2047,7 @@ class PlanoCommand(BaseCommand):
                     else:
                         subparser.add_argument(*flag_args, dest=arg.name, default=arg.default, metavar=arg.metavar, type=arg.type, help=help)
 
-            # Patch the default help text
-            try:
-                subparser._actions[0].help = "Show this help message and exit"
-            except: # pragma: nocover
-                pass
+            _capitalize_help(subparser)
 
 if __name__ == "__main__": # pragma: nocover
     PlanoCommand().main()

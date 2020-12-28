@@ -99,8 +99,8 @@ def build(prefix=None, clean_=False):
 
     new_build_data = {"prefix": prefix, "mtime": mtime}
 
-    debug("Existing build data: {0}", build_data)
-    debug("New build data:      {0}", new_build_data)
+    debug("Existing build data: {0}", pformat(build_data))
+    debug("New build data:      {0}", pformat(new_build_data))
 
     if build_data == new_build_data:
         debug("Already built")
