@@ -206,7 +206,7 @@ class BaseArgumentParser(_argparse.ArgumentParser):
 def _capitalize_help(parser):
     try:
         for action in parser._actions:
-            if action.help:
+            if action.help and action.help is not _argparse.SUPPRESS:
                 action.help = capitalize(action.help)
     except: # pragma: nocover
         pass
