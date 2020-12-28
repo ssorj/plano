@@ -35,14 +35,12 @@ def run_plano(*args):
     PlanoCommand().main(["-f", join(test_project_dir, "Planofile")] + list(args))
 
 @test
-def project_env_context():
+def project_operations():
     project.name = "alphabet"
 
     with project_env():
         assert "ALPHABET_HOME" in ENV, ENV
 
-@test
-def configure_file_function():
     with working_dir():
         input_file = write("zeta-file", "X@replace-me@X")
         output_file = configure_file(input_file, "zeta-file", {"replace-me": "Y"})

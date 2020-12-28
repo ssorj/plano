@@ -88,6 +88,8 @@ DEVNULL = _os.devnull
 PYTHON2 = _sys.version_info[0] == 2
 PYTHON3 = _sys.version_info[0] == 3
 
+PLANO_DEBUG = "PLANO_DEBUG" in ENV
+
 ## Archive operations
 
 def make_archive(input_dir, output_file=None, quiet=False):
@@ -784,7 +786,13 @@ _disabled = _logging_levels.index("disabled")
 _logging_output = None
 _logging_threshold = _notice
 
-def enable_logging(level="warn", output=None):
+def enable_logging(level=None, output=None):
+    if level is None:
+        if PLANO_DEBUG:
+            level = "debug"
+        else:
+            level = "warn"
+
     if level == "warning":
         level = "warn"
 
@@ -804,7 +812,7 @@ def disable_logging():
     _logging_threshold = _disabled
 
 class logging_enabled(object):
-    def __init__(self, level="warn", output=None):
+    def __init__(self, level=None, output=None):
         self.level = level
         self.output = output
 
