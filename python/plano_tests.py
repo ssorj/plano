@@ -825,9 +825,6 @@ def test_test_operations():
                     run_tests(chucker_tests, enable="test_timeout", verbose=verbose)
 
                 with expect_error():
-                    run_tests(chucker_tests, enable="test_timeout", fail_fast=True, verbose=verbose)
-
-                with expect_error():
                     run_tests(chucker_tests, enable="test_process_error", verbose=verbose)
 
                 with expect_error():
