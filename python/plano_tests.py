@@ -641,7 +641,7 @@ def test_process_operations():
     with expect_error():
         run("/not/there")
 
-    with expect_exception(PlanoProcessError):
+    with expect_error():
         run("cat /whoa/not/really", stash=True)
 
     result = call("echo hello")
@@ -650,7 +650,7 @@ def test_process_operations():
     result = call("echo hello | cat", shell=True)
     assert result == "hello\n", result
 
-    with expect_exception(PlanoProcessError):
+    with expect_error():
         call("cat /whoa/not/really")
 
     if PYTHON3:
@@ -809,22 +809,22 @@ def test_test_operations():
                 run_tests(chucker_tests, verbose=verbose)
                 run_tests(chucker_tests, exclude="*hello*", verbose=verbose)
 
-                with expect_exception(PlanoException):
+                with expect_error():
                     run_tests(chucker, verbose=verbose)
 
-                with expect_exception(PlanoException):
+                with expect_error():
                     run_tests(chucker_tests, enable="*badbye*", verbose=verbose)
 
                 with expect_exception(KeyboardInterrupt):
                     run_tests(chucker_tests, enable="test_keyboard_interrupt", verbose=verbose)
 
-                with expect_exception(PlanoException):
+                with expect_error():
                     run_tests(chucker_tests, enable="test_timeout", verbose=verbose)
 
-                with expect_exception(PlanoException):
+                with expect_error():
                     run_tests(chucker_tests, enable="test_process_error", verbose=verbose)
 
-                with expect_exception(PlanoException):
+                with expect_error():
                     run_tests(chucker_tests, enable="test_system_exit", verbose=verbose)
 
             def run_command(*args):
@@ -833,10 +833,10 @@ def test_test_operations():
             run_command("--verbose")
             run_command("--list")
 
-            with expect_exception(SystemExit):
+            with expect_system_exit():
                 run_command("--enable", "*badbye*")
 
-            with expect_exception(SystemExit):
+            with expect_system_exit():
                 run_command("--enable", "*badbye*", "--verbose")
 
             try:
