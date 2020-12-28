@@ -35,14 +35,14 @@ def run_plano(*args):
     PlanoCommand().main(["-f", join(test_project_dir, "Planofile")] + list(args))
 
 @test
-def test_project_env():
+def project_env_context():
     project.name = "alphabet"
 
     with project_env():
         assert "ALPHABET_HOME" in ENV, ENV
 
 @test
-def test_configure_file():
+def configure_file_function():
     with working_dir():
         input_file = write("zeta-file", "X@replace-me@X")
         output_file = configure_file(input_file, "zeta-file", {"replace-me": "Y"})
@@ -50,7 +50,7 @@ def test_configure_file():
         assert output == "XYX", output
 
 @test
-def test_command_build():
+def build_command():
     with test_project():
         run_plano("build")
 
@@ -77,7 +77,7 @@ def test_command_build():
         assert result["prefix"] == ("/usr/local"), result
 
 @test
-def test_command_test():
+def test_command():
     with test_project():
         run_plano("test")
 
@@ -90,7 +90,7 @@ def test_command_test():
         run_plano("test", "--clean")
 
 @test
-def test_command_install():
+def install_command():
     with test_project():
         run_plano("install", "--staging-dir", "staging")
 
@@ -108,7 +108,7 @@ def test_command_install():
         assert is_dir("staging/opt/local"), list_dir("staging")
 
 @test
-def test_command_clean():
+def clean_command():
     with test_project():
         run_plano("build")
 
@@ -119,19 +119,19 @@ def test_command_clean():
         assert not is_dir("build")
 
 @test
-def test_command_env():
+def env_command():
     with test_project():
         run_plano("env")
         run_plano("env", "--undo")
 
 @test
-def test_command_modules():
+def modules_command():
     with test_project():
         with expect_system_exit():
             run_plano("modules", "--remote", "--recursive")
 
 @test
-def test_command_generate():
+def generate_command():
     with test_project():
         run_plano("generate", "README.md")
 

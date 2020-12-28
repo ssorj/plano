@@ -234,30 +234,30 @@ _color_codes = {
 }
 
 class console_color(object):
-    def __init__(self, color, bright=False, file=_sys.stdout):
-        elems = [_color_codes[color]]
-
-        if bright:
-            elems.append(";1")
-
-        elems.append("m")
-
-        self.color = "".join(elems)
+    def __init__(self, color=None, file=_sys.stdout, bright=False):
+        self.color = color
         self.file = file
+        self.color_code = None
 
-        self.has_colors = hasattr(self.file, "isatty") and self.file.isatty()
+        if self.color is not None:
+            elems = [_color_codes[color]]
+
+            if bright:
+                elems.append(";1")
+
+            elems.append("m")
+
+            self.color_code = "".join(elems)
+
+        self.enabled = self.color_code is not None and PYTHON3 and hasattr(self.file, "isatty") and self.file.isatty()
 
     def __enter__(self):
-        if self.has_colors:
-            print(self.color, file=self.file, end="")
-
-        self.file.flush()
+        if self.enabled:
+            print(self.color_code, file=self.file, end="", flush=True)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.has_colors:
-            print("\u001b[0m", file=self.file, end="")
-
-        self.file.flush()
+        if self.enabled:
+            print("\u001b[0m", file=self.file, end="", flush=True)
 
 def cprint(*args, **kwargs):
     color = kwargs.pop("color", "white")
@@ -1562,7 +1562,7 @@ def _run_test(test_run, test):
             if test_run.verbose:
                 notice("{0} SKIPPED ({1})", test, format_duration(timer.elapsed_time))
             elif not test_run.quiet:
-                _print_test_result("SKIPPED", timer)
+                _print_test_result("SKIPPED", timer, "yellow")
                 print("Reason: {0}".format(str(e)))
         except Exception as e:
             test_run.failed_tests.append(test)
@@ -1571,9 +1571,9 @@ def _run_test(test_run, test):
                 _traceback.print_exc()
 
                 if isinstance(e, PlanoTimeout):
-                    error("{0} **FAILED** ({1}) [TIMEOUT]", test, format_duration(timer.elapsed_time))
+                    error("{0} **FAILED** (TIMEOUT) ({1})", test, format_duration(timer.elapsed_time))
             elif not test_run.quiet:
-                _print_test_result("**FAILED**", timer, "[TIMEOUT]")
+                _print_test_result("**FAILED** (TIMEOUT)", timer, "red")
                 _print_test_error(e)
                 _print_test_output(output_file)
 
@@ -1587,14 +1587,12 @@ def _run_test(test_run, test):
             elif not test_run.quiet:
                 _print_test_result("PASSED", timer)
 
-def _print_test_result(status, timer, extra=""):
-    if extra:
-        extra = " {0}".format(extra)
-
-    print("{0:<10} {1:>6}{2}".format(status, format_duration(timer.elapsed_time), extra))
+def _print_test_result(status, timer, color="white"):
+    cprint("{0:<7}".format(status), color=color, end="")
+    print("{0:>6}".format(format_duration(timer.elapsed_time)))
 
 def _print_test_error(e):
-    print("--- Error ---")
+    cprint("--- Error ---", color="yellow")
 
     if isinstance(e, PlanoProcessError):
         print("> {0}".format(str(e)))
@@ -1608,7 +1606,7 @@ def _print_test_output(output_file):
     if get_file_size(output_file) == 0:
         return
 
-    print("--- Output ---")
+    cprint("--- Output ---", color="yellow")
 
     with open(output_file, "r") as out:
         for line in out:

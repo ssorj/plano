@@ -39,7 +39,7 @@ class test_project(working_dir):
         return dir
 
 @test
-def test_archive_operations():
+def archive_operations():
     with working_dir():
         make_dir("some-dir")
         touch("some-dir/some-file")
@@ -59,7 +59,7 @@ def test_archive_operations():
         assert is_file("something-else/some-file")
 
 @test
-def test_command_operations():
+def command_operations():
     class SomeCommand(BaseCommand):
         def __init__(self):
             self.parser = BaseArgumentParser()
@@ -85,7 +85,7 @@ def test_command_operations():
         SomeCommand().main(["--verbose", "--explode"])
 
 @test
-def test_console_operations():
+def console_operations():
     eprint("Here's a story")
     eprint("About a", "man named Brady")
 
@@ -100,7 +100,7 @@ def test_console_operations():
     cprint("CRITICAL ALERT", color="red", bright=True)
 
 @test
-def test_dir_operations():
+def dir_operations():
     with working_dir():
         test_dir = make_dir("some-dir")
         test_file_1 = touch(join(test_dir, "some-file-1"))
@@ -148,7 +148,7 @@ def test_dir_operations():
         assert new_curr_dir == new_prev_dir, (new_curr_dir, new_prev_dir)
 
 @test
-def test_env_operations():
+def env_operations():
     result = join_path_var("a", "b", "c", "a")
     assert result == "a:b:c", result
 
@@ -205,7 +205,7 @@ def test_env_operations():
             assert ENV["SOME_VAR"] == "2", ENV.get("SOME_VAR")
 
 @test
-def test_file_operations():
+def file_operations():
     with working_dir():
         alpha_dir = make_dir("alpha-dir")
         alpha_file = touch(join(alpha_dir, "alpha-file"))
@@ -280,7 +280,7 @@ def test_file_operations():
         assert result == 10, result
 
 @test
-def test_http_operations():
+def http_operations():
     class Handler(_http.BaseHTTPRequestHandler):
         def do_GET(self):
             self.send_response(200)
@@ -365,7 +365,7 @@ def test_http_operations():
         server_thread.join()
 
 @test
-def test_io_operations():
+def io_operations():
     with working_dir():
         input_ = "some-text\n"
         file_a = write("a", input_)
@@ -414,7 +414,7 @@ def test_io_operations():
         assert is_file(file_c), file_c
 
 @test
-def test_iterable_operations():
+def iterable_operations():
     result = unique([1, 1, 1, 2, 2, 3])
     assert result == [1, 2, 3], result
 
@@ -422,7 +422,7 @@ def test_iterable_operations():
     assert result == [1, 2, 3], result
 
 @test
-def test_json_operations():
+def json_operations():
     with working_dir():
         input_data = {
             "alpha": [1, 2, 3],
@@ -441,7 +441,7 @@ def test_json_operations():
         assert json == emitted_json, (json, emitted_json)
 
 @test
-def test_link_operations():
+def link_operations():
     with working_dir():
         make_dir("some-dir")
         path = get_absolute_path(touch("some-dir/some-file"))
@@ -452,7 +452,7 @@ def test_link_operations():
             assert linked_path == path, (linked_path, path)
 
 @test
-def test_logging_operations():
+def logging_operations():
     with temp_file() as f:
         with logging_disabled():
             enable_logging()
@@ -487,7 +487,7 @@ def test_logging_operations():
                 raise
 
 @test
-def test_path_operations():
+def path_operations():
     with working_dir("/"):
         curr_dir = get_current_dir()
         assert curr_dir == "/", curr_dir
@@ -584,7 +584,7 @@ def test_path_operations():
             await_exists("adir/notafile", timeout=1)
 
 @test
-def test_port_operations():
+def port_operations():
     result = get_random_port()
     assert result >= 49152 and result <= 65535, result
 
@@ -609,7 +609,7 @@ def test_port_operations():
         await_port(get_random_port(), timeout=1)
 
 @test
-def test_process_operations():
+def process_operations():
     result = get_process_id()
     assert result, result
 
@@ -703,7 +703,7 @@ def test_process_operations():
                 exit(object())
 
 @test
-def test_string_operations():
+def string_operations():
     result = replace("ab", "a", "b")
     assert result == "bb", result
 
@@ -779,7 +779,7 @@ def test_string_operations():
     assert decoded_result == "abc=123&yeah!", decoded_result
 
 @test
-def test_temp_operations():
+def temp_operations():
     temp_dir = get_temp_dir()
 
     result = make_temp_file()
@@ -806,7 +806,7 @@ def test_temp_operations():
     assert user_temp_dir, user_temp_dir
 
 @test
-def test_test_operations():
+def test_operations():
     with test_project():
         with working_python_path("python"):
             import chucker
@@ -862,7 +862,7 @@ def test_test_operations():
                 pass
 
 @test
-def test_time_operations():
+def time_operations():
     start_time = get_time()
 
     sleep(0.1)
@@ -897,7 +897,7 @@ def test_time_operations():
             sleep(10)
 
 @test
-def test_unique_id_operations():
+def unique_id_operations():
     id1 = get_unique_id()
     id2 = get_unique_id()
 
@@ -910,7 +910,7 @@ def test_unique_id_operations():
     assert len(result) == 32
 
 @test
-def test_value_operations():
+def value_operations():
     assert is_string("a")
     assert not is_string(1)
 
@@ -937,7 +937,7 @@ def test_value_operations():
     assert result != other, (result, other)
 
 @test
-def test_plano_command():
+def plano_command():
     if PYTHON2: # pragma: nocover
         raise PlanoTestSkipped("The plano command is not supported on Python 2")
 
