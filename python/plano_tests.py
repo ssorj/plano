@@ -210,10 +210,13 @@ def file_operations():
         alpha_dir = make_dir("alpha-dir")
         alpha_file = touch(join(alpha_dir, "alpha-file"))
         alpha_link = make_link(join(alpha_dir, "alpha-file-link"), "alpha-file")
+        alpha_broken_link = make_link(join(alpha_dir, "broken-link"), "no-such-file")
 
         beta_dir = make_dir("beta-dir")
         beta_file = touch(join(beta_dir, "beta-file"))
         beta_link = make_link(join(beta_dir, "beta-file-link"), "beta-file")
+        beta_broken_link = make_link(join(beta_dir, "broken-link"), join("..", alpha_dir, "no-such-file"))
+        beta_another_link = make_link(join(beta_dir, "broken-link"), join("..", alpha_dir, "alpha-file-link"))
 
         assert exists(beta_link)
         assert exists(beta_file)
