@@ -786,13 +786,7 @@ _disabled = _logging_levels.index("disabled")
 _logging_output = None
 _logging_threshold = _notice
 
-def enable_logging(level=None, output=None):
-    if level is None:
-        if PLANO_DEBUG:
-            level = "debug"
-        else:
-            level = "warn"
-
+def enable_logging(level="notice", output=None):
     if level == "warning":
         level = "warn"
 
@@ -1737,12 +1731,16 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                 self.help = nvl(help, self.extends.help)
                 self.description = nvl(description, self.extends.description)
 
+            self.module = _inspect.getmodule(self.function)
+            self.container = None
+
             debug("Defining {0}", self)
 
             for arg in self.args.values():
                 debug("  {0}", str(arg).capitalize())
 
-            self.container = None
+        def __repr__(self):
+            return "command '{0}:{1}'".format(self.module.__name__, self.name)
 
         def process_args(self, input_args):
             sig = _inspect.signature(self.function)
@@ -1881,9 +1879,6 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                     raise NotImplementedError(param.kind)
 
             return call_args, call_kwargs
-
-        def __repr__(self):
-            return "command '{0}'".format(self.name)
 
     if _function is None:
         return Command
@@ -2054,6 +2049,9 @@ class PlanoCommand(BaseCommand):
                         subparser.add_argument(*flag_args, dest=arg.name, default=arg.default, metavar=arg.metavar, type=arg.type, help=help)
 
             _capitalize_help(subparser)
+
+if PLANO_DEBUG:
+    enable_logging(level="debug")
 
 if __name__ == "__main__": # pragma: nocover
     PlanoCommand().main()
