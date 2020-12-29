@@ -113,7 +113,7 @@ def extract_archive(input_file, output_dir=None, quiet=False):
     if output_dir is None:
         output_dir = get_current_dir()
 
-    _log(quiet, "Extracting archive '{0}' to dir '{1}'", input_file, output_dir)
+    _log(quiet, "Extracting archive {0} to dir {1}", repr(input_file), repr(output_dir))
 
     input_file = get_absolute_path(input_file)
 
@@ -123,7 +123,7 @@ def extract_archive(input_file, output_dir=None, quiet=False):
     return output_dir
 
 def rename_archive(input_file, new_archive_stem, quiet=False):
-    _log(quiet, "Renaming archive '{0}' with stem '{1}'", input_file, new_archive_stem)
+    _log(quiet, "Renaming archive {0} with stem {1}", repr(input_file), repr(new_archive_stem))
 
     output_dir = get_absolute_path(get_parent_dir(input_file))
     output_file = "{0}.tar.gz".format(join(output_dir, new_archive_stem))
@@ -352,7 +352,7 @@ def make_parent_dir(path, quiet=False):
 
 # Returns the current working directory so you can change it back
 def change_dir(dir, quiet=False):
-    _log(quiet, "Changing directory to '{0}'", dir)
+    _log(quiet, "Changing directory to {0}", repr(dir))
 
     prev_dir = get_current_dir()
 
@@ -402,7 +402,7 @@ class working_dir(object):
         if self.dir == ".":
             return
 
-        _log(self.quiet, "Entering directory '{0}'", get_absolute_path(self.dir))
+        _log(self.quiet, "Entering directory {0}", repr(get_absolute_path(self.dir)))
 
         make_dir(self.dir, quiet=True)
 
@@ -414,7 +414,7 @@ class working_dir(object):
         if self.dir == ".":
             return
 
-        _log(self.quiet, "Returning to directory '{0}'", get_absolute_path(self.prev_dir))
+        _log(self.quiet, "Returning to directory {0}", repr(get_absolute_path(self.prev_dir)))
 
         change_dir(self.prev_dir, quiet=True)
 
@@ -519,7 +519,7 @@ class working_python_path(object):
 ## File operations
 
 def touch(file, quiet=False):
-    _log(quiet, "Touching '{0}'", file)
+    _log(quiet, "Touching {0}", repr(file))
 
     try:
         _os.utime(file, None)
@@ -531,7 +531,7 @@ def touch(file, quiet=False):
 # symlinks=True - Preserve symlinks
 # inside=True - Place from_path inside to_path if to_path is a directory
 def copy(from_path, to_path, symlinks=True, inside=True, quiet=False):
-    _log(quiet, "Copying '{0}' to '{1}'", from_path, to_path)
+    _log(quiet, "Copying {0} to {1}", repr(from_path), repr(to_path))
 
     if is_dir(to_path) and inside:
         to_path = join(to_path, get_base_name(from_path))
@@ -552,7 +552,7 @@ def copy(from_path, to_path, symlinks=True, inside=True, quiet=False):
 
 # inside=True - Place from_path inside to_path if to_path is a directory
 def move(from_path, to_path, inside=True, quiet=False):
-    _log(quiet, "Moving '{0}' to '{1}'", from_path, to_path)
+    _log(quiet, "Moving {0} to {1}", repr(from_path), repr(to_path))
 
     to_path = copy(from_path, to_path, inside=inside, quiet=True)
     remove(from_path, quiet=True)
@@ -567,7 +567,7 @@ def remove(paths, quiet=False):
         if not exists(path):
             continue
 
-        _log(quiet, "Removing '{0}'", path)
+        _log(quiet, "Removing {0}", repr(path))
 
         if is_dir(path):
             _shutil.rmtree(path, ignore_errors=True)
@@ -755,7 +755,7 @@ def http_post_json(url, data, insecure=False):
 ## Link operations
 
 def make_link(path, linked_path, quiet=False):
-    _log(quiet, "Making link '{0}' to '{1}'", path, linked_path)
+    _log(quiet, "Making link {0} to {1}", repr(path), repr(linked_path))
 
     make_parent_dir(path, quiet=True)
     remove(path, quiet=True)
@@ -791,6 +791,8 @@ def enable_logging(level="notice", output=None):
         level = "warn"
 
     assert level in _logging_levels
+
+    debug("Enabling logging (level={0}, output={1})", repr(level), repr(nvl(output, "stderr")))
 
     global _logging_threshold
     _logging_threshold = _logging_levels.index(level)
