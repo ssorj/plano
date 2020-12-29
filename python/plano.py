@@ -1437,7 +1437,7 @@ def nvl(value, replacement):
 def pformat(value):
     return _pprint.pformat(value, width=120)
 
-def prepr(obj, limit=None):
+def format_repr(obj, limit=None):
     attrs = ["{0}={1}".format(k, repr(v)) for k, v in obj.__dict__.items()]
     return "{0}({1})".format(obj.__class__.__name__, ", ".join(attrs[:limit]))
 
@@ -1453,7 +1453,7 @@ class Namespace(object):
         return key in self.__dict__
 
     def __repr__(self):
-        return prepr(self)
+        return format_repr(self)
 
 ## Test operations
 

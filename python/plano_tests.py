@@ -923,7 +923,7 @@ def value_operations():
     result = pformat({"z": 1, "a": 2})
     assert result == "{'a': 2, 'z': 1}", result
 
-    result = prepr(Namespace(a=1, b=2), limit=1)
+    result = format_repr(Namespace(a=1, b=2), limit=1)
     assert result == "Namespace(a=1)", result
 
     result = Namespace(a=1, b=2)
