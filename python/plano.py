@@ -93,6 +93,10 @@ PLANO_DEBUG = "PLANO_DEBUG" in ENV
 ## Archive operations
 
 def make_archive(input_dir, output_file=None, quiet=False):
+    """
+    group: archive_operations
+    """
+
     check_programs("tar")
 
     archive_stem = get_base_name(input_dir)
@@ -100,7 +104,7 @@ def make_archive(input_dir, output_file=None, quiet=False):
     if output_file is None:
         output_file = "{0}.tar.gz".format(join(get_current_dir(), archive_stem))
 
-    _log(quiet, "Making archive '{0}' from dir '{1}'", output_file, input_dir)
+    _log(quiet, "Making archive {0} from directory {1}", repr(output_file), repr(input_dir))
 
     with working_dir(get_parent_dir(input_dir)):
         run("tar -czf {0} {1}".format(output_file, archive_stem))
@@ -113,7 +117,7 @@ def extract_archive(input_file, output_dir=None, quiet=False):
     if output_dir is None:
         output_dir = get_current_dir()
 
-    _log(quiet, "Extracting archive {0} to dir {1}", repr(input_file), repr(output_dir))
+    _log(quiet, "Extracting archive {0} to directory {1}", repr(input_file), repr(output_dir))
 
     input_file = get_absolute_path(input_file)
 
