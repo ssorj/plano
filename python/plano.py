@@ -187,7 +187,7 @@ class BaseCommand(object):
         raise NotImplementedError()
 
     def init(self, args): # pragma: nocover
-        raise NotImplementedError()
+        pass
 
     def run(self): # pragma: nocover
         raise NotImplementedError()
@@ -1594,7 +1594,8 @@ def run_tests(modules, include="*", exclude=(), enable=(), test_timeout=300, fai
                 test_run.tests.append(test)
                 _run_test(test_run, test)
 
-        print()
+        if not verbose and not quiet:
+            print()
 
     total = len(test_run.tests)
     skipped = len(test_run.skipped_tests)
@@ -1610,9 +1611,9 @@ def run_tests(modules, include="*", exclude=(), enable=(), test_timeout=300, fai
 
     if verbose:
         if failed == 0:
-            error(result_message)
-        else:
             notice(result_message)
+        else:
+            error(result_message)
     elif not quiet:
         cprint("=== Summary ===", color="cyan")
 
@@ -2174,6 +2175,37 @@ class PlanoCommand(BaseCommand):
                         subparser.add_argument(*flag_args, dest=arg.name, default=arg.default, metavar=arg.metavar, type=arg.type, help=help)
 
             _capitalize_help(subparser)
+
+## Plano shell operations
+
+class PlanoShellCommand(BaseCommand):
+    def __init__(self):
+        self.parser = BaseArgumentParser()
+        self.parser.add_argument("file", metavar="FILE", nargs="?",
+                                 help="Read program from FILE")
+        self.parser.add_argument("arg", metavar="ARG", nargs="*",
+                                 help="Program arguments")
+
+    def parse_args(self, args):
+        return self.parser.parse_args(args)
+
+    def init(self, args):
+        self.file = args.file
+
+    def run(self):
+        if self.file is None: # pragma: nocover
+            _code.interact(local=globals(), banner="", exitmsg="")
+        else:
+            if self.file == "-":
+                script = _sys.stdin.read()
+            else:
+                try:
+                    with open(self.file) as f:
+                        script = f.read()
+                except FileNotFoundError as e:
+                    raise PlanoError(e)
+
+            exec(script, globals())
 
 if PLANO_DEBUG: # pragma: nocover
     enable_logging(level="debug")

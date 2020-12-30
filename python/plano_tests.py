@@ -1041,3 +1041,19 @@ def plano_command():
         run_command("balderdash", "bunk", "--other", "bollocks")
         result = read_json("balderdash.json")
         assert result == ["bunk", "malarkey", "bollocks"], result
+
+@test
+def plano_shell_command():
+    with working_dir():
+        write("script", "garbage")
+
+        with expect_exception(NameError):
+            PlanoShellCommand().main(["script"])
+
+        write("command", "from plano import *; PlanoShellCommand().main()")
+
+        run("python command", input="cprint('Hi!', color='green'); exit()")
+        run("echo \"cprint('Bi!', color='red')\" | python command -", shell=True)
+
+    with expect_system_exit():
+        PlanoShellCommand().main(["no-such-file"])
