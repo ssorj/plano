@@ -1381,14 +1381,25 @@ def sleep(seconds, quiet=False):
 def get_time():
     return _time.time()
 
-def format_duration(duration):
-    if duration >= 240:
-        return "{0:.0f}m".format(duration / 60)
+def format_duration(duration, align=False):
+    assert duration >= 0
 
-    if duration >= 60:
-        return "{0:.0f}s".format(duration)
+    if duration >= 3600:
+        value = duration / 3600
+        unit = "h"
+    elif duration >= 5 * 60:
+        value = duration / 60
+        unit = "m"
+    else:
+        value = duration
+        unit = "s"
 
-    return "{0:.1f}s".format(duration)
+    if align:
+        return "{0:.1f}{1}".format(value, unit)
+    elif value > 10:
+        return "{0:.0f}{1}".format(value, unit)
+    else:
+        return remove_suffix("{0:.1f}".format(value), ".0") + unit
 
 class Timer(object):
     def __init__(self, timeout=None, timeout_message=None):
@@ -1683,7 +1694,7 @@ def _run_test(test_run, test):
 
 def _print_test_result(status, timer, color="white"):
     cprint("{0:<7}".format(status), color=color, end="")
-    print("{0:>6}".format(format_duration(timer.elapsed_time)))
+    print("{0:>6}".format(format_duration(timer.elapsed_time, align=True)))
 
 def _print_test_error(e):
     cprint("--- Error ---", color="yellow")

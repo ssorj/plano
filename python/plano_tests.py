@@ -63,6 +63,7 @@ def command_operations():
     class SomeCommand(BaseCommand):
         def __init__(self):
             self.parser = BaseArgumentParser()
+            self.parser.add_argument("--interrupt", action="store_true")
             self.parser.add_argument("--explode", action="store_true")
 
         def parse_args(self, args):
@@ -70,16 +71,21 @@ def command_operations():
 
         def init(self, args):
             self.verbose = args.verbose
+            self.interrupt = args.interrupt
             self.explode = args.explode
 
         def run(self):
             if self.verbose:
                 print("Hello")
 
+            if self.interrupt:
+                raise KeyboardInterrupt()
+
             if self.explode:
                 raise PlanoError("Exploded")
 
     SomeCommand().main([])
+    SomeCommand().main(["--interrupt"])
 
     with expect_system_exit():
         SomeCommand().main(["--verbose", "--explode"])
@@ -872,13 +878,16 @@ def time_operations():
     assert result == "0.1s", result
 
     result = format_duration(1)
+    assert result == "1s", result
+
+    result = format_duration(1, align=True)
     assert result == "1.0s", result
 
     result = format_duration(60)
     assert result == "60s", result
 
-    result = format_duration(240)
-    assert result == "4m", result
+    result = format_duration(3600)
+    assert result == "1h", result
 
     with Timer() as timer:
         sleep(0.2)
@@ -905,17 +914,35 @@ def unique_id_operations():
 
 @test
 def value_operations():
-    assert is_string("a")
-    assert not is_string(1)
-
     result = nvl(None, "a")
     assert result == "a", result
 
     result = nvl("b", "a")
     assert result == "b", result
 
+    assert is_string("a")
+    assert not is_string(1)
+
+    for value in (None, "", (), [], {}):
+        assert is_empty(value), value
+
+    for value in (object(), " ", (1,), [1], {"a": 1}):
+        assert not is_empty(value), value
+
     result = pformat({"z": 1, "a": 2})
     assert result == "{'a': 2, 'z': 1}", result
+
+    result = format_empty((), "[nothing]")
+    assert result == "[nothing]", result
+
+    result = format_empty((1,), "[nothing]")
+    assert result == (1,), result
+
+    result = format_not_empty("abc", "[{0}]")
+    assert result == "[abc]", result
+
+    result = format_not_empty({}, "[{0}]")
+    assert result == {}, result
 
     result = format_repr(Namespace(a=1, b=2), limit=1)
     assert result == "Namespace(a=1)", result
