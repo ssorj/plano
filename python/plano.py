@@ -304,6 +304,20 @@ except NameError: # pragma: nocover
 def repl(vars): # pragma: nocover
     _code.InteractiveConsole(locals=vars).interact()
 
+def print_properties(props):
+    size = max([len(x[0]) for x in props])
+
+    for prop in props:
+        name = "{0}:".format(prop[0])
+        template = "{{0:<{0}}}  ".format(size + 1)
+
+        print(template.format(name), prop[1], end="")
+
+        for value in prop[2:]:
+            print(" {0}".format(value), end="")
+
+        print()
+
 ## Directory operations
 
 def find(dirs=None, include="*", exclude=()):
@@ -666,7 +680,7 @@ def tail_lines(file, count):
 def unique(iterable):
     return list(_collections.OrderedDict.fromkeys(iterable).keys())
 
-def skip(iterable, values=(None, "")):
+def skip(iterable, values=(None, "", (), [], {})):
     items = list()
 
     for item in iterable:
@@ -1431,20 +1445,35 @@ def get_unique_id(bytes=16):
 
 ## Value operations
 
-def is_string(value):
-    try:
-        return isinstance(value, basestring)
-    except NameError:
-        return isinstance(value, str)
-
 def nvl(value, replacement):
     if value is None:
         return replacement
 
     return value
 
+def is_string(value):
+    try:
+        return isinstance(value, basestring)
+    except NameError:
+        return isinstance(value, str)
+
+def is_empty(value):
+    return value in (None, "", (), [], {})
+
 def pformat(value):
     return _pprint.pformat(value, width=120)
+
+def format_empty(value, replacement):
+    if is_empty(value):
+        value = replacement
+
+    return value
+
+def format_not_empty(value, template=None):
+    if not is_empty(value) and template is not None:
+        value = template.format(value)
+
+    return value
 
 def format_repr(obj, limit=None):
     attrs = ["{0}={1}".format(k, repr(v)) for k, v in obj.__dict__.items()]
@@ -1519,11 +1548,24 @@ def run_tests(modules, include="*", exclude=(), enable=(), test_timeout=300, fai
 
     test_run = TestRun(test_timeout=test_timeout, fail_fast=fail_fast, verbose=verbose, quiet=quiet)
 
+    if verbose:
+        notice("Starting {0}", test_run)
+    elif not quiet:
+        cprint("=== Configuration ===", color="cyan")
+
+        props = (
+            ("Modules", format_empty(", ".join([x.__name__ for x in modules]), "[none]")),
+            ("Test timeout", test_timeout),
+            ("Fail fast", fail_fast),
+        )
+
+        print_properties(props)
+
     for module in modules:
         if verbose:
             notice("Running tests from module {0} (file {1})", repr(module.__name__), repr(module.__file__))
         elif not quiet:
-            cprint("Test module {}:".format(repr(module.__name__)), color="cyan")
+            cprint("=== Module {} ===".format(repr(module.__name__)), color="cyan")
 
         if not hasattr(module, "_plano_tests"):
             warn("Module {0} has no tests", repr(module.__name__))
@@ -1546,21 +1588,35 @@ def run_tests(modules, include="*", exclude=(), enable=(), test_timeout=300, fai
         raise PlanoError("No tests ran")
 
     if failed == 0:
-        message = "RESULT: All tests passed ({0} skipped)".format(skipped)
-
-        if verbose:
-            notice(message)
-        elif not quiet:
-            cprint(message, color="green")
+        result_message = "All tests passed ({0} skipped)".format(skipped)
     else:
-        message = "RESULT: {0} {1} failed ({2} skipped)".format(failed, plural("test", failed), skipped)
+        result_message = "{0} {1} failed ({2} skipped)".format(failed, plural("test", failed), skipped)
 
-        if verbose:
-            error(message)
-        elif not quiet:
-            cprint(message, color="red")
+    if verbose:
+        if failed == 0:
+            error(result_message)
+        else:
+            notice(result_message)
+    elif not quiet:
+        cprint("=== Summary ===", color="cyan")
 
-        raise PlanoError(message)
+        props = (
+            ("Total", total),
+            ("Skipped", skipped, format_not_empty(", ".join([x.name for x in test_run.skipped_tests]), "({0})")),
+            ("Failed", failed, format_not_empty(", ".join([x.name for x in test_run.failed_tests]), "({0})")),
+        )
+
+        print_properties(props)
+
+        cprint("=== RESULT ===", color="cyan")
+
+        if failed == 0:
+            cprint(result_message, color="green")
+        else:
+            cprint(result_message, color="red")
+
+    if failed != 0:
+        raise PlanoError(result_message)
 
 def _run_test(test_run, test):
     if test_run.verbose:
@@ -1644,15 +1700,18 @@ def _print_test_output(output_file):
 
 class TestRun(object):
     def __init__(self, test_timeout=None, fail_fast=False, verbose=False, quiet=False):
+        self.test_timeout = test_timeout
+        self.fail_fast = fail_fast
+        self.verbose = verbose
+        self.quiet = quiet
+
         self.tests = list()
         self.skipped_tests = list()
         self.failed_tests = list()
         self.passed_tests = list()
 
-        self.test_timeout = test_timeout
-        self.fail_fast = fail_fast
-        self.verbose = verbose
-        self.quiet = quiet
+    def __repr__(self):
+        return format_repr(self)
 
 class expect_exception(object):
     def __init__(self, exception_type=Exception):
