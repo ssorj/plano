@@ -2200,7 +2200,7 @@ class PlanoShellCommand(BaseCommand):
         if self.file is None: # pragma: nocover
             _code.interact(local=globals(), banner="", exitmsg="")
         else:
-            if self.file == "-":
+            if self.file == "-": # pragma: nocover
                 script = _sys.stdin.read()
             else:
                 try:
@@ -2208,6 +2208,11 @@ class PlanoShellCommand(BaseCommand):
                         script = f.read()
                 except IOError as e:
                     raise PlanoError(e)
+
+            # _sys.argv = _sys.argv[1:]
+
+            # global ARGS
+            # ARGS = ARGS[1:]
 
             exec(script, globals())
 
