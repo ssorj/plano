@@ -456,38 +456,33 @@ def link_operations():
 
 @test
 def logging_operations():
-    with temp_file() as f:
+    error("Error!")
+    warn("Warning!")
+    notice("Take a look!")
+    notice(123)
+    debug("By the way")
+    debug("abc{0}{1}{2}", 1, 2, 3)
+
+    with expect_exception(RuntimeError):
+        fail(RuntimeError("Error!"))
+
+    with expect_error():
+        fail("Error!")
+
+    for level in ("debug", "notice", "warn", "error"):
+        with expect_output(contains="Something") as temp:
+            enable_logging(level=level, output=temp)
+            log(level, "something")
+
+    with expect_output(contains="Hello") as temp:
         with logging_disabled():
-            enable_logging()
-            disable_logging()
+            with logging_enabled(output=temp):
+                notice("Hello")
 
-            enable_logging(output=f, level="error")
-            enable_logging(output=f, level="notice")
-            enable_logging(output=f, level="warn")
-            enable_logging(output=f, level="warning")
-            enable_logging(output=f, level="debug")
-
-            try:
-                with expect_error():
-                    fail("Nooo!")
-
-                error("Error!")
-                warn("Warning!")
-                notice("Take a look!")
-                notice(123)
-                debug("By the way")
-                debug("abc{0}{1}{2}", 1, 2, 3)
-
-                exc = Exception("abc123")
-
-                try:
-                    fail(exc)
-                    assert False # pragma: nocover
-                except Exception as e:
-                    assert e is exc, e
-            except: # pragma: nocover
-                print(read(f))
-                raise
+    with expect_output(value="") as temp:
+        with logging_enabled(output=temp):
+            with logging_disabled():
+                error("Yikes")
 
 @test
 def path_operations():

@@ -791,9 +791,6 @@ _logging_output = None
 _logging_threshold = _notice
 
 def enable_logging(level="notice", output=None):
-    if level == "warning":
-        level = "warn"
-
     assert level in _logging_levels
 
     debug("Enabling logging (level={0}, output={1})", repr(level), repr(nvl(output, "stderr")))
@@ -808,11 +805,13 @@ def enable_logging(level="notice", output=None):
     _logging_output = output
 
 def disable_logging():
+    debug("Disabling logging")
+
     global _logging_threshold
     _logging_threshold = _disabled
 
 class logging_enabled(object):
-    def __init__(self, level=None, output=None):
+    def __init__(self, level="notice", output=None):
         self.level = level
         self.output = output
 
@@ -820,10 +819,16 @@ class logging_enabled(object):
         self.prev_level = _logging_levels[_logging_threshold]
         self.prev_output = _logging_output
 
-        enable_logging(level=self.level, output=self.output)
+        if self.level == "disabled":
+            disable_logging()
+        else:
+            enable_logging(level=self.level, output=self.output)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        enable_logging(level=self.prev_level, output=self.prev_output)
+        if self.prev_level == "disabled":
+            disable_logging()
+        else:
+            enable_logging(level=self.prev_level, output=self.prev_output)
 
 class logging_disabled(logging_enabled):
     def __init__(self):
@@ -838,48 +843,46 @@ def fail(message, *args):
     raise PlanoError(message.format(*args))
 
 def error(message, *args):
-    _print_message("Error", message, args)
+    log(_error, message, *args)
 
 def warn(message, *args):
-    if _logging_threshold <= _warn:
-        _print_message("Warning", message, args)
+    log(_warn, message, *args)
 
 def notice(message, *args):
-    if _logging_threshold <= _notice:
-        _print_message(None, message, args)
+    log(_notice, message, *args)
 
 def debug(message, *args):
-    if _logging_threshold <= _debug:
-        _print_message("Debug", message, args)
+    log(_debug, message, *args)
 
-def _print_message(category, message, args):
+def log(level, message, *args):
+    if is_string(level):
+        level = _logging_levels.index(level)
+
+    if _logging_threshold <= level:
+        _print_message(level, message, args)
+
+def _print_message(level, message, args, color=None):
     out = nvl(_logging_output, _sys.stderr)
 
+    print("{0}: ".format(get_program_name()), file=out, end="")
+
+    color = ("cyan", "blue", "yellow", "red", None)[level]
+    cprint("{0:>6}: ".format(_logging_levels[level]), color=color, file=out, end="")
+
     if isinstance(message, BaseException) and hasattr(message, "__traceback__"):
-        print(_format_message(category, "Exception:", []), file=out)
+        print("{0}: {1}".format(type(message).__name__, str(message)), file=out)
         _traceback.print_exception(type(message), message, message.__traceback__, file=out)
-    else:
-        message = _format_message(category, message, args)
-        print(message, file=out)
+        return
 
-    out.flush()
-
-def _format_message(category, message, args):
     if not is_string(message):
         message = str(message)
 
     if args:
         message = message.format(*args)
 
-    message = capitalize(message)
+    print(capitalize(message), file=out)
 
-    if category:
-        message = "{0}: {1}".format(category, message)
-
-    program = get_program_name()
-    message = "{0}: {1}".format(program, message)
-
-    return message
+    out.flush()
 
 def _log(quiet, message, *args):
     if quiet:
@@ -1580,8 +1583,14 @@ def _run_test(test_run, test):
 
                 if isinstance(e, PlanoTimeout):
                     error("{0} **FAILED** (TIMEOUT) ({1})", test, format_duration(timer.elapsed_time))
+                else:
+                    error("{0} **FAILED** ({1})", test, format_duration(timer.elapsed_time))
             elif not test_run.quiet:
-                _print_test_result("**FAILED** (TIMEOUT)", timer, "red")
+                if isinstance(e, PlanoTimeout):
+                    _print_test_result("**FAILED** (TIMEOUT)", timer, "red")
+                else:
+                    _print_test_result("**FAILED**", timer, "red")
+
                 _print_test_error(e)
                 _print_test_output(output_file)
 
@@ -1656,6 +1665,25 @@ class expect_timeout(expect_exception):
 class expect_system_exit(expect_exception):
     def __init__(self):
         super(expect_system_exit, self).__init__(SystemExit)
+
+class expect_output(temp_file):
+    def __init__(self, value=None, contains=None):
+        super(expect_output, self).__init__()
+        self.value = value
+        self.contains = contains
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        result = read(self.file)
+
+        if self.value is None:
+            assert len(result) > 0, result
+        else:
+            assert result == self.value, result
+
+        if self.contains is not None:
+            assert self.contains in result, result
+
+        super(expect_output, self).__exit__(exc_type, exc_value, traceback)
 
 class PlanoTestCommand(BaseCommand):
     def __init__(self, test_modules=[]):
@@ -2056,7 +2084,7 @@ class PlanoCommand(BaseCommand):
 
             _capitalize_help(subparser)
 
-if PLANO_DEBUG:
+if PLANO_DEBUG: # pragma: nocover
     enable_logging(level="debug")
 
 if __name__ == "__main__": # pragma: nocover
