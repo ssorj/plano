@@ -1007,11 +1007,8 @@ def plano_command():
         with expect_system_exit():
             run_command("echo")
 
-        try:
+        with expect_exception(contains="Trouble"):
             run_command("echo", "Hello", "--trouble")
-            assert False # pragma: nocover
-        except Exception as e:
-            assert str(e) == "Trouble", str(e)
 
         run_command("echo", "Hello", "--count", "5")
 

@@ -1734,8 +1734,9 @@ class TestRun(object):
         return format_repr(self)
 
 class expect_exception(object):
-    def __init__(self, exception_type=Exception):
+    def __init__(self, exception_type=Exception, contains=None):
         self.exception_type = exception_type
+        self.contains = contains
 
     def __enter__(self):
         pass
@@ -1744,19 +1745,22 @@ class expect_exception(object):
         if exc_value is None:
             assert False
 
-        return isinstance(exc_value, self.exception_type)
+        if self.contains is None:
+            return isinstance(exc_value, self.exception_type)
+        else:
+            return isinstance(exc_value, self.exception_type) and self.contains in str(exc_value)
 
 class expect_error(expect_exception):
-    def __init__(self):
-        super(expect_error, self).__init__(PlanoError)
+    def __init__(self, contains=None):
+        super(expect_error, self).__init__(PlanoError, contains=contains)
 
 class expect_timeout(expect_exception):
-    def __init__(self):
-        super(expect_timeout, self).__init__(PlanoTimeout)
+    def __init__(self, contains=None):
+        super(expect_timeout, self).__init__(PlanoTimeout, contains=contains)
 
 class expect_system_exit(expect_exception):
-    def __init__(self):
-        super(expect_system_exit, self).__init__(SystemExit)
+    def __init__(self, contains=None):
+        super(expect_system_exit, self).__init__(SystemExit, contains=contains)
 
 class expect_output(temp_file):
     def __init__(self, value=None, contains=None):
@@ -2202,7 +2206,7 @@ class PlanoShellCommand(BaseCommand):
                 try:
                     with open(self.file) as f:
                         script = f.read()
-                except FileNotFoundError as e:
+                except IOError as e:
                     raise PlanoError(e)
 
             exec(script, globals())
