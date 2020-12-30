@@ -174,6 +174,8 @@ class BaseCommand(object):
                     return
 
                 self.run()
+            except KeyboardInterrupt:
+                pass
             except PlanoError as e:
                 if self.verbose:
                     _traceback.print_exc()
@@ -1560,6 +1562,7 @@ def run_tests(modules, include="*", exclude=(), enable=(), test_timeout=300, fai
         )
 
         print_properties(props)
+        print()
 
     for module in modules:
         if verbose:
@@ -1579,6 +1582,8 @@ def run_tests(modules, include="*", exclude=(), enable=(), test_timeout=300, fai
             if included and not excluded and not disabled:
                 test_run.tests.append(test)
                 _run_test(test_run, test)
+
+        print()
 
     total = len(test_run.tests)
     skipped = len(test_run.skipped_tests)
@@ -1607,6 +1612,7 @@ def run_tests(modules, include="*", exclude=(), enable=(), test_timeout=300, fai
         )
 
         print_properties(props)
+        print()
 
         cprint("=== RESULT ===", color="cyan")
 
@@ -1614,6 +1620,8 @@ def run_tests(modules, include="*", exclude=(), enable=(), test_timeout=300, fai
             cprint(result_message, color="green")
         else:
             cprint(result_message, color="red")
+
+        print()
 
     if failed != 0:
         raise PlanoError(result_message)
