@@ -2032,7 +2032,7 @@ class PlanoCommand(BaseCommand):
                 exec(f.read(), scope)
         except Exception as e:
             error(e)
-            exit("Failure loading '{0}': {1}", planofile, str(e))
+            exit("Failure loading {0}: {1}", repr(planofile), str(e))
 
         for var in scope.values():
             if callable(var) and hasattr(var, "attach"):

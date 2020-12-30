@@ -624,7 +624,7 @@ def process_operations():
     proc = run("cat /uh/uh", check=False)
     assert proc.exit_code > 0, proc.exit_code
 
-    with temp_file() as temp:
+    with expect_output() as temp:
         run("date", output=temp)
 
     run("date", output=DEVNULL)
