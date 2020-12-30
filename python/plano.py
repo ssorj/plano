@@ -1557,7 +1557,7 @@ def run_tests(modules, include="*", exclude=(), enable=(), test_timeout=300, fai
 
         props = (
             ("Modules", format_empty(", ".join([x.__name__ for x in modules]), "[none]")),
-            ("Test timeout", test_timeout),
+            ("Test timeout", format_duration(test_timeout)),
             ("Fail fast", fail_fast),
         )
 
