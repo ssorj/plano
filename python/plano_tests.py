@@ -470,14 +470,10 @@ def logging_operations():
         fail("Error!")
 
     for level in ("debug", "notice", "warn", "error"):
-        with expect_output(contains="Something") as temp:
-            enable_logging(level=level, output=temp)
-            log(level, "something")
-
-    with expect_output(contains="Hello") as temp:
-        with logging_disabled():
-            with logging_enabled(output=temp):
-                notice("Hello")
+        with expect_output(contains="Hello") as temp:
+            with logging_disabled():
+                with logging_enabled(level=level, output=temp):
+                    log(level, "hello")
 
     with expect_output(value="") as temp:
         with logging_enabled(output=temp):

@@ -1543,10 +1543,20 @@ def run_tests(modules, include="*", exclude=(), enable=(), test_timeout=300, fai
         raise PlanoError("No tests ran")
 
     if failed == 0:
-        _log(quiet, "RESULT: All tests passed ({0} skipped)".format(skipped))
+        message = "RESULT: All tests passed ({0} skipped)".format(skipped)
+
+        if verbose:
+            notice(message)
+        elif not quiet:
+            cprint(message, color="green")
     else:
-        message = "{0} {1} failed ({2} skipped)".format(failed, plural("test", failed), skipped)
-        _log(quiet, "RESULT: {0}", message)
+        message = "RESULT: {0} {1} failed ({2} skipped)".format(failed, plural("test", failed), skipped)
+
+        if verbose:
+            error(message)
+        elif not quiet:
+            cprint(message, color="red")
+
         raise PlanoError(message)
 
 def _run_test(test_run, test):
