@@ -1520,7 +1520,10 @@ def run_tests(modules, include="*", exclude=(), enable=(), test_timeout=300, fai
     test_run = TestRun(test_timeout=test_timeout, fail_fast=fail_fast, verbose=verbose, quiet=quiet)
 
     for module in modules:
-        _log(quiet, "Running tests from module {0} (file {1})", repr(module.__name__), repr(module.__file__))
+        if verbose:
+            notice("Running tests from module {0} (file {1})", repr(module.__name__), repr(module.__file__))
+        elif not quiet:
+            cprint("Test module {}:".format(repr(module.__name__)), color="cyan")
 
         if not hasattr(module, "_plano_tests"):
             warn("Module {0} has no tests", repr(module.__name__))
