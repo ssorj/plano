@@ -541,6 +541,7 @@ def print_env(file=None):
         ("ARGS", ARGS),
         ("ENV['PATH']", ENV.get("PATH")),
         ("ENV['PYTHONPATH']", ENV.get("PYTHONPATH")),
+        ("sys.executable", _sys.executable),
         ("sys.path", _sys.path),
         ("sys.version", _sys.version.replace("\n", "")),
         ("get_current_dir()", get_current_dir()),
@@ -901,7 +902,8 @@ def _print_message(level, message, args, color=None):
     print("{0}: ".format(get_program_name()), file=out, end="")
 
     color = ("cyan", "blue", "yellow", "red", None)[level]
-    cprint("{0:>6}: ".format(_logging_levels[level]), color=color, file=out, end="")
+    bright = (False, False, False, True, False)[level]
+    cprint("{0:>6}: ".format(_logging_levels[level]), color=color, bright=bright, file=out, end="")
 
     if isinstance(message, BaseException) and hasattr(message, "__traceback__"):
         print("{0}: {1}".format(type(message).__name__, str(message)), file=out)
@@ -1072,11 +1074,14 @@ def await_port(port, host="localhost", timeout=30, quiet=False):
 def get_process_id():
     return _os.getpid()
 
-def _format_command(command):
-    if is_string(command):
-        return repr(command)
+def _format_command(command, represent=True):
+    if not is_string(command):
+        command = " ".join(command)
 
-    return repr(" ".join(command))
+    if represent:
+        return repr(command)
+    else:
+        return command
 
 # quiet=False - Don't log at notice level
 # stash=False - No output unless there is an error
@@ -1273,7 +1278,7 @@ class PlanoProcess(_subprocess.Popen):
 
 class PlanoProcessError(_subprocess.CalledProcessError, PlanoError):
     def __init__(self, proc):
-        super(PlanoProcessError, self).__init__(proc.exit_code, " ".join(proc.args))
+        super(PlanoProcessError, self).__init__(proc.exit_code, _format_command(proc.args, represent=False))
 
 def _default_sigterm_handler(signum, frame):
     for proc in _child_processes:
@@ -1489,10 +1494,7 @@ def nvl(value, replacement):
     return value
 
 def is_string(value):
-    try:
-        return isinstance(value, basestring)
-    except NameError:
-        return isinstance(value, str)
+    return isinstance(value, str)
 
 def is_empty(value):
     return value in (None, "", (), [], {})
@@ -1655,7 +1657,7 @@ def run_tests(modules, include="*", exclude=(), enable=(), test_timeout=300, fai
         if failed == 0:
             cprint(result_message, color="green")
         else:
-            cprint(result_message, color="red")
+            cprint(result_message, color="red", bright="True")
 
         print()
 
@@ -1700,9 +1702,9 @@ def _run_test(test_run, test):
                     error("{0} **FAILED** ({1})", test, format_duration(timer.elapsed_time))
             elif not test_run.quiet:
                 if isinstance(e, PlanoTimeout):
-                    _print_test_result("**FAILED** (TIMEOUT)", timer, "red")
+                    _print_test_result("**FAILED** (TIMEOUT)", timer, color="red", bright=True)
                 else:
-                    _print_test_result("**FAILED**", timer, "red")
+                    _print_test_result("**FAILED**", timer, color="red", bright=True)
 
                 _print_test_error(e)
                 _print_test_output(output_file)
@@ -1717,8 +1719,8 @@ def _run_test(test_run, test):
             elif not test_run.quiet:
                 _print_test_result("PASSED", timer)
 
-def _print_test_result(status, timer, color="white"):
-    cprint("{0:<7}".format(status), color=color, end="")
+def _print_test_result(status, timer, color="white", bright=False):
+    cprint("{0:<7}".format(status), color=color, bright=bright, end="")
     print("{0:>6}".format(format_duration(timer.elapsed_time, align=True)))
 
 def _print_test_error(e):

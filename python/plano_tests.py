@@ -21,6 +21,7 @@ import os as _os
 import pwd as _pwd
 import signal as _signal
 import socket as _socket
+import sys as _sys
 import threading as _threading
 
 try:
@@ -1070,8 +1071,8 @@ def plano_shell_command():
         write("command", "from plano import *; PlanoShellCommand().main()")
 
         with working_env(PYTHONPATH=python_dir):
-            run("python command", input="cprint('Hi!', color='green'); exit()")
-            run("echo \"cprint('Bi!', color='red')\" | python command -", shell=True)
+            run("{0} command".format(_sys.executable), input="cprint('Hi!', color='green'); exit()")
+            run("echo \"cprint('Bi!', color='red')\" | {0} command -".format(_sys.executable), shell=True)
 
     with expect_system_exit():
         PlanoShellCommand().main(["no-such-file"])
