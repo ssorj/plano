@@ -1053,6 +1053,8 @@ def plano_shell_command():
 
         PlanoShellCommand().main(["script2"])
 
+        PlanoShellCommand().main(["--command", "print_env()"])
+
         write("command", "from plano import *; PlanoShellCommand().main()")
 
         with working_env(PYTHONPATH=python_dir):
