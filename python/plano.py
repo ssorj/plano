@@ -306,19 +306,19 @@ except NameError: # pragma: nocover
 def repl(vars): # pragma: nocover
     _code.InteractiveConsole(locals=vars).interact()
 
-def print_properties(props):
+def print_properties(props, file=None):
     size = max([len(x[0]) for x in props])
 
     for prop in props:
         name = "{0}:".format(prop[0])
         template = "{{0:<{0}}}  ".format(size + 1)
 
-        print(template.format(name), prop[1], end="")
+        print(template.format(name), prop[1], end="", file=file)
 
         for value in prop[2:]:
-            print(" {0}".format(value), end="")
+            print(" {0}".format(value), end="", file=file)
 
-        print()
+        print(file=file)
 
 ## Directory operations
 
@@ -536,7 +536,7 @@ class working_python_path(object):
     def __exit__(self, exc_type, exc_value, traceback):
         _sys.path = self.prev_path
 
-def print_env():
+def print_env(file=None):
     props = (
         ("ARGS", ARGS),
         ("ENV['PATH']", ENV.get("PATH")),
@@ -552,7 +552,7 @@ def print_env():
         ("which('plano')", which("plano")),
     )
 
-    print_properties(props)
+    print_properties(props, file=file)
 
 ## File operations
 

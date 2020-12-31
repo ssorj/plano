@@ -198,17 +198,21 @@ def env_operations():
             check_env("I_AM_SET_NOW")
             assert "YES_I_AM_SET" not in ENV, ENV
 
+    with working_env(SOME_VAR=1):
+        assert ENV["SOME_VAR"] == "1", ENV.get("SOME_VAR")
+
+        with working_env(SOME_VAR=2):
+            assert ENV["SOME_VAR"] == "2", ENV.get("SOME_VAR")
+
     with expect_error():
         check_programs("not-there", "also-not-extant")
 
     with expect_error():
         check_modules("not_there", "nope_not_at_all")
 
-    with working_env(SOME_VAR=1):
-        assert ENV["SOME_VAR"] == "1", ENV.get("SOME_VAR")
-
-        with working_env(SOME_VAR=2):
-            assert ENV["SOME_VAR"] == "2", ENV.get("SOME_VAR")
+    with expect_output(contains="ARGS:") as out:
+        with open(out, "w") as f:
+            print_env(file=f)
 
 @test
 def file_operations():
@@ -476,13 +480,13 @@ def logging_operations():
         fail("Error!")
 
     for level in ("debug", "notice", "warn", "error"):
-        with expect_output(contains="Hello") as temp:
+        with expect_output(contains="Hello") as out:
             with logging_disabled():
-                with logging_enabled(level=level, output=temp):
+                with logging_enabled(level=level, output=out):
                     log(level, "hello")
 
-    with expect_output(value="") as temp:
-        with logging_enabled(output=temp):
+    with expect_output(value="") as out:
+        with logging_enabled(output=out):
             with logging_disabled():
                 error("Yikes")
 
@@ -626,8 +630,8 @@ def process_operations():
     proc = run("cat /uh/uh", check=False)
     assert proc.exit_code > 0, proc.exit_code
 
-    with expect_output() as temp:
-        run("date", output=temp)
+    with expect_output() as out:
+        run("date", output=out)
 
     run("date", output=DEVNULL)
     run("date", stdin=DEVNULL)
