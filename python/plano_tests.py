@@ -1039,8 +1039,17 @@ def plano_command():
         result = read_json("balderdash.json")
         assert result == ["bunk", "malarkey", "bollocks"], result
 
+def print_env():
+    # key modules and their files
+    import sys
+    pprint(sys.modules)
+
 @test
 def plano_shell_command():
+    # print_env()
+
+    python_dir = get_absolute_path("python")
+
     with working_dir():
         write("script", "garbage")
 
@@ -1049,8 +1058,9 @@ def plano_shell_command():
 
         write("command", "from plano import *; PlanoShellCommand().main()")
 
-        run("python command", input="cprint('Hi!', color='green'); exit()")
-        run("echo \"cprint('Bi!', color='red')\" | python command -", shell=True)
+        with working_env(PYTHONPATH=python_dir):
+            run("python command", input="cprint('Hi!', color='green'); exit()")
+            run("echo \"cprint('Bi!', color='red')\" | python command -", shell=True)
 
     with expect_system_exit():
         PlanoShellCommand().main(["no-such-file"])
