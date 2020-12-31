@@ -21,7 +21,7 @@ def test_skipped():
 def test_keyboard_interrupt():
     raise KeyboardInterrupt()
 
-@test(disabled=True, timeout=1)
+@test(disabled=True, timeout=0.05)
 def test_timeout():
     sleep(10, quiet=True)
     assert False

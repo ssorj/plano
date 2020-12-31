@@ -38,6 +38,8 @@ class test_project(working_dir):
         copy(test_project_dir, ".", inside=False)
         return dir
 
+TINY_INTERVAL = 0.05
+
 @test
 def archive_operations():
     with working_dir():
@@ -585,7 +587,7 @@ def path_operations():
         await_exists("adir/afile")
 
         with expect_timeout():
-            await_exists("adir/notafile", timeout=1)
+            await_exists("adir/notafile", timeout=TINY_INTERVAL)
 
 @test
 def port_operations():
@@ -610,7 +612,7 @@ def port_operations():
         server_socket.close()
 
     with expect_timeout():
-        await_port(get_random_port(), timeout=1)
+        await_port(get_random_port(), timeout=TINY_INTERVAL)
 
 @test
 def process_operations():
@@ -661,10 +663,10 @@ def process_operations():
         proc = start("sleep 10")
 
         with expect_timeout():
-            wait(proc, timeout=0.1)
+            wait(proc, timeout=TINY_INTERVAL)
 
     proc = start("echo hello")
-    sleep(0.1)
+    sleep(TINY_INTERVAL)
     stop(proc)
 
     proc = start("sleep 10")
@@ -672,15 +674,15 @@ def process_operations():
 
     proc = start("sleep 10")
     kill(proc)
-    sleep(0.1)
+    sleep(TINY_INTERVAL)
     stop(proc)
 
     proc = start("date --not-there")
-    sleep(0.1)
+    sleep(TINY_INTERVAL)
     stop(proc)
 
     with start("sleep 10"):
-        sleep(0.1)
+        sleep(TINY_INTERVAL)
 
     with working_dir():
         touch("i")
@@ -736,6 +738,9 @@ def string_operations():
     assert result == "ab", result
 
     result = shorten("abc", None)
+    assert result == "abc", result
+
+    result = shorten("abc", 10)
     assert result == "abc", result
 
     result = shorten("ellipsis", 6, ellipsis="...")
@@ -872,9 +877,9 @@ def test_operations():
 def time_operations():
     start_time = get_time()
 
-    sleep(0.1)
+    sleep(TINY_INTERVAL)
 
-    assert get_time() - start_time > 0.1
+    assert get_time() - start_time > TINY_INTERVAL
 
     with expect_system_exit():
         with start("sleep 10"):
@@ -897,13 +902,13 @@ def time_operations():
     assert result == "1h", result
 
     with Timer() as timer:
-        sleep(0.2)
-        assert timer.elapsed_time > 0.1
+        sleep(TINY_INTERVAL)
+        assert timer.elapsed_time > TINY_INTERVAL
 
-    assert timer.elapsed_time > 0.2
+    assert timer.elapsed_time > TINY_INTERVAL
 
     with expect_timeout():
-        with Timer(timeout=1) as timer:
+        with Timer(timeout=TINY_INTERVAL) as timer:
             sleep(10)
 
 @test

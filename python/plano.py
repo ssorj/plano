@@ -1421,9 +1421,6 @@ def format_duration(duration, align=False):
 
 class Timer(object):
     def __init__(self, timeout=None, timeout_message=None):
-        # Alarms work with integral seconds only
-        assert timeout is None or isinstance(timeout, int), type(timeout)
-
         self.timeout = timeout
         self.timeout_message = timeout_message
 
@@ -1434,14 +1431,23 @@ class Timer(object):
         self.start_time = get_time()
 
         if self.timeout is not None:
-            _signal.signal(_signal.SIGALRM, self.raise_timeout)
-            _signal.alarm(self.timeout)
+            self.prev_handler = _signal.signal(_signal.SIGALRM, self.raise_timeout)
+            self.prev_timeout, prev_interval = _signal.setitimer(_signal.ITIMER_REAL, self.timeout)
+            self.prev_timer_suspend_time = get_time()
+
+            assert prev_interval == 0.0, "This case is not yet handled"
 
     def stop(self):
         self.stop_time = get_time()
 
         if self.timeout is not None:
-            _signal.alarm(0)
+            prev_timer_resume_time = get_time()
+
+            if get_time() - self.prev_timer_suspend_time <= 0:
+                raise Exception("Outer timer expired.  This case is not yet handled.")
+
+            _signal.signal(_signal.SIGALRM, self.prev_handler)
+            _signal.setitimer(_signal.ITIMER_REAL, self.prev_timeout)
 
     def __enter__(self):
         self.start()
