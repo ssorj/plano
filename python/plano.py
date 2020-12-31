@@ -2194,6 +2194,8 @@ class PlanoShellCommand(BaseCommand):
                                  help="Read program from FILE")
         self.parser.add_argument("arg", metavar="ARG", nargs="*",
                                  help="Program arguments")
+        self.parser.add_argument("-c", "--command",
+                                 help="A program passed in as a string")
         self.parser.add_argument("-i", "--interactive", action="store_true",
                                  help="Operate interactively after running the program (if any)")
 
@@ -2203,6 +2205,7 @@ class PlanoShellCommand(BaseCommand):
     def init(self, args):
         self.file = args.file
         self.interactive = args.interactive
+        self.command = args.command
 
     def run(self):
         stdin_isatty = _os.isatty(_sys.stdin.fileno())
@@ -2223,10 +2226,13 @@ class PlanoShellCommand(BaseCommand):
         global ARGS
         ARGS = ARGS[1:]
 
+        if self.command is not None:
+            exec(self.command, globals())
+
         if script is not None:
             exec(script, globals())
 
-        if (self.file is None and stdin_isatty) or self.interactive: # pragma: nocover
+        if (self.command is None and self.file is None and stdin_isatty) or self.interactive: # pragma: nocover
             _code.InteractiveConsole(locals=globals()).interact()
 
 if PLANO_DEBUG: # pragma: nocover
