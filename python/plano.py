@@ -492,11 +492,6 @@ def check_programs(*programs):
         if which(program) is None:
             raise PlanoError("Program {0} is not found".format(repr(program)))
 
-def print_env():
-    # key modules and their files
-    import sys
-    pprint(_sys.modules)
-
 class working_env(object):
     def __init__(self, **vars):
         self.amend = vars.pop("amend", True)
@@ -519,7 +514,7 @@ class working_env(object):
 
         for name, value in self.vars.items():
             if name not in self.prev_vars:
-                del ENV[name]
+                del _os.environ[name]
 
 class working_python_path(object):
     def __init__(self, path, amend=True):
@@ -540,6 +535,24 @@ class working_python_path(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         _sys.path = self.prev_path
+
+def print_env():
+    props = (
+        ("ARGS", ARGS),
+        ("ENV['PATH']", ENV.get("PATH")),
+        ("ENV['PYTHONPATH']", ENV.get("PYTHONPATH")),
+        ("sys.path", _sys.path),
+        ("sys.version", _sys.version.replace("\n", "")),
+        ("get_current_dir()", get_current_dir()),
+        ("get_home_dir()", get_home_dir()),
+        ("get_hostname()", get_hostname()),
+        ("get_program_name()", get_program_name()),
+        ("get_user()", get_user()),
+        ("plano.__file__", __file__),
+        ("which('plano')", which("plano")),
+    )
+
+    print_properties(props)
 
 ## File operations
 
@@ -2223,13 +2236,13 @@ class PlanoShellCommand(BaseCommand):
             # Stdin is a pipe
             script = _sys.stdin.read()
 
-        global ARGS
-        ARGS = ARGS[1:]
-
         if self.command is not None:
             exec(self.command, globals())
 
         if script is not None:
+            global ARGS
+            ARGS = ARGS[1:]
+
             exec(script, globals())
 
         if (self.command is None and self.file is None and stdin_isatty) or self.interactive: # pragma: nocover
