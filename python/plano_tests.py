@@ -858,12 +858,12 @@ def test_operations():
             with expect_system_exit():
                 run_command("--enable", "*badbye*", "--verbose")
 
-            try:
-                with expect_exception():
-                    pass
-                raise Exception() # pragma: nocover
-            except AssertionError:
-                pass
+    try:
+        with expect_exception():
+            pass
+        raise Exception() # pragma: nocover
+    except AssertionError:
+        pass
 
     with expect_output(equals="abc123", contains="bc12", startswith="abc", endswith="123") as out:
         write(out, "abc123")
