@@ -2208,7 +2208,7 @@ class PlanoShellCommand(BaseCommand):
         stdin_isatty = _os.isatty(_sys.stdin.fileno())
         script = None
 
-        if self.file == "-":
+        if self.file == "-": # pragma: nocover
             script = _sys.stdin.read()
         elif self.file is not None:
             try:
@@ -2216,7 +2216,7 @@ class PlanoShellCommand(BaseCommand):
                     script = f.read()
             except IOError as e:
                 raise PlanoError(e)
-        elif not stdin_isatty:
+        elif not stdin_isatty: # pragma: nocover
             # Stdin is a pipe
             script = _sys.stdin.read()
 
@@ -2226,7 +2226,7 @@ class PlanoShellCommand(BaseCommand):
         if script is not None:
             exec(script, globals())
 
-        if (self.file is None and stdin_isatty) or self.interactive:
+        if (self.file is None and stdin_isatty) or self.interactive: # pragma: nocover
             _code.InteractiveConsole(locals=globals()).interact()
 
 if PLANO_DEBUG: # pragma: nocover
