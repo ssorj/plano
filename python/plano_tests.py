@@ -1039,22 +1039,19 @@ def plano_command():
         result = read_json("balderdash.json")
         assert result == ["bunk", "malarkey", "bollocks"], result
 
-def print_env():
-    # key modules and their files
-    import sys
-    pprint(sys.modules)
-
 @test
 def plano_shell_command():
-    # print_env()
-
     python_dir = get_absolute_path("python")
 
     with working_dir():
-        write("script", "garbage")
+        write("script1", "garbage")
 
         with expect_exception(NameError):
-            PlanoShellCommand().main(["script"])
+            PlanoShellCommand().main(["script1"])
+
+        write("script2", "print_env()")
+
+        PlanoShellCommand().main(["script2"])
 
         write("command", "from plano import *; PlanoShellCommand().main()")
 

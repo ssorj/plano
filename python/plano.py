@@ -492,6 +492,11 @@ def check_programs(*programs):
         if which(program) is None:
             raise PlanoError("Program {0} is not found".format(repr(program)))
 
+def print_env():
+    # key modules and their files
+    import sys
+    pprint(_sys.modules)
+
 class working_env(object):
     def __init__(self, **vars):
         self.amend = vars.pop("amend", True)
@@ -2189,32 +2194,40 @@ class PlanoShellCommand(BaseCommand):
                                  help="Read program from FILE")
         self.parser.add_argument("arg", metavar="ARG", nargs="*",
                                  help="Program arguments")
+        self.parser.add_argument("-i", "--interactive", action="store_true",
+                                 help="Operate interactively after running the program (if any)")
 
     def parse_args(self, args):
         return self.parser.parse_args(args)
 
     def init(self, args):
         self.file = args.file
+        self.interactive = args.interactive
 
     def run(self):
-        if self.file is None: # pragma: nocover
-            _code.interact(local=globals(), banner="", exitmsg="")
-        else:
-            if self.file == "-": # pragma: nocover
-                script = _sys.stdin.read()
-            else:
-                try:
-                    with open(self.file) as f:
-                        script = f.read()
-                except IOError as e:
-                    raise PlanoError(e)
+        stdin_isatty = _os.isatty(_sys.stdin.fileno())
+        script = None
 
-            # _sys.argv = _sys.argv[1:]
+        if self.file == "-":
+            script = _sys.stdin.read()
+        elif self.file is not None:
+            try:
+                with open(self.file) as f:
+                    script = f.read()
+            except IOError as e:
+                raise PlanoError(e)
+        elif not stdin_isatty:
+            # Stdin is a pipe
+            script = _sys.stdin.read()
 
-            # global ARGS
-            # ARGS = ARGS[1:]
+        global ARGS
+        ARGS = ARGS[1:]
 
+        if script is not None:
             exec(script, globals())
+
+        if (self.file is None and stdin_isatty) or self.interactive:
+            _code.InteractiveConsole(locals=globals()).interact()
 
 if PLANO_DEBUG: # pragma: nocover
     enable_logging(level="debug")
