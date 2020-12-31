@@ -516,7 +516,7 @@ class working_env(object):
             if name not in self.prev_vars:
                 del _os.environ[name]
 
-class working_python_path(object):
+class working_module_path(object):
     def __init__(self, path, amend=True):
         if is_string(path):
             if not is_absolute(path):
@@ -1781,21 +1781,29 @@ class expect_system_exit(expect_exception):
         super(expect_system_exit, self).__init__(SystemExit, contains=contains)
 
 class expect_output(temp_file):
-    def __init__(self, value=None, contains=None):
+    def __init__(self, equals=None, contains=None, startswith=None, endswith=None):
         super(expect_output, self).__init__()
-        self.value = value
+        self.equals = equals
         self.contains = contains
+        self.startswith = startswith
+        self.endswith = endswith
 
     def __exit__(self, exc_type, exc_value, traceback):
         result = read(self.file)
 
-        if self.value is None:
+        if self.equals is None:
             assert len(result) > 0, result
         else:
-            assert result == self.value, result
+            assert result == self.equals, result
 
         if self.contains is not None:
             assert self.contains in result, result
+
+        if self.startswith is not None:
+            assert result.startswith(self.startswith), result
+
+        if self.endswith is not None:
+            assert result.endswith(self.endswith), result
 
         super(expect_output, self).__exit__(exc_type, exc_value, traceback)
 

@@ -485,7 +485,7 @@ def logging_operations():
                 with logging_enabled(level=level, output=out):
                     log(level, "hello")
 
-    with expect_output(value="") as out:
+    with expect_output(equals="") as out:
         with logging_enabled(output=out):
             with logging_disabled():
                 error("Yikes")
@@ -812,7 +812,7 @@ def temp_operations():
 @test
 def test_operations():
     with test_project():
-        with working_python_path("python"):
+        with working_module_path("python"):
             import chucker
             import chucker_tests
 
@@ -864,6 +864,9 @@ def test_operations():
                 raise Exception() # pragma: nocover
             except AssertionError:
                 pass
+
+    with expect_output(equals="abc123", contains="bc12", startswith="abc", endswith="123") as out:
+        write(out, "abc123")
 
 @test
 def time_operations():
