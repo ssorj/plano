@@ -195,7 +195,7 @@ def clean():
          args=(CommandArgument("remote", help="Get remote commits"),
                CommandArgument("recursive", help="Update modules recursively")))
 def modules(remote=False, recursive=False):
-    check_programs("git")
+    check_program("git")
 
     command = ["git", "submodule", "update", "--init"]
 

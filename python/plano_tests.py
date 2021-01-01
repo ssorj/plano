@@ -195,7 +195,7 @@ def env_operations():
         check_env("YES_I_AM_SET")
 
         with expect_error():
-            check_env("YES_I_AM_SET", "NO_I_AM_NOT")
+            check_env("NO_I_AM_NOT")
 
         with working_env(I_AM_SET_NOW=1, amend=False):
             check_env("I_AM_SET_NOW")
@@ -208,10 +208,10 @@ def env_operations():
             assert ENV["SOME_VAR"] == "2", ENV.get("SOME_VAR")
 
     with expect_error():
-        check_programs("not-there", "also-not-extant")
+        check_program("not-there")
 
     with expect_error():
-        check_modules("not_there", "nope_not_at_all")
+        check_module("not_there")
 
     with expect_output(contains="ARGS:") as out:
         with open(out, "w") as f:
@@ -437,6 +437,9 @@ def iterable_operations():
     result = skip([1, "", 2, None, 3])
     assert result == [1, 2, 3], result
 
+    result = skip([1, "", 2, None, 3], 2)
+    assert result == [1, "", None, 3], result
+
 @test
 def json_operations():
     with working_dir():
@@ -567,23 +570,23 @@ def path_operations():
 
         check_exists("adir")
         check_exists("adir/afile")
-        check_dirs("adir")
-        check_files("adir/afile")
+        check_dir("adir")
+        check_file("adir/afile")
 
         with expect_error():
             check_exists("adir/notafile")
 
         with expect_error():
-            check_files("adir/afile", "adir/notafile")
+            check_file("adir/notafile")
 
         with expect_error():
-            check_files("adir")
+            check_file("adir")
 
         with expect_error():
-            check_dirs("not-there", "nnoott")
+            check_dir("not-there")
 
         with expect_error():
-            check_dirs("adir/afile")
+            check_dir("adir/afile")
 
         await_exists("adir/afile")
 
@@ -605,7 +608,7 @@ def port_operations():
         await_port(server_port)
         await_port(str(server_port))
 
-        check_ports(server_port)
+        check_port(server_port)
 
         with expect_error():
             get_random_port(min=server_port, max=server_port)

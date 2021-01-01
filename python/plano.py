@@ -97,7 +97,7 @@ def make_archive(input_dir, output_file=None, quiet=False):
     group: archive_operations
     """
 
-    check_programs("tar")
+    check_program("tar")
 
     archive_stem = get_base_name(input_dir)
 
@@ -112,7 +112,7 @@ def make_archive(input_dir, output_file=None, quiet=False):
     return output_file
 
 def extract_archive(input_file, output_dir=None, quiet=False):
-    check_programs("tar")
+    check_program("tar")
 
     if output_dir is None:
         output_dir = get_current_dir()
@@ -477,20 +477,17 @@ def which(program_name):
         if _os.access(program, _os.X_OK):
             return program
 
-def check_env(*vars):
-    for var in vars:
-        if var not in _os.environ:
-            raise PlanoError("Environment variable {0} is not set".format(repr(var)))
+def check_env(var):
+    if var not in _os.environ:
+        raise PlanoError("Environment variable {0} is not set".format(repr(var)))
 
-def check_modules(*modules):
-    for module in modules:
-        if _pkgutil.find_loader(module) is None:
-            raise PlanoError("Module {0} is not found".format(repr(module)))
+def check_module(module):
+    if _pkgutil.find_loader(module) is None:
+        raise PlanoError("Module {0} is not found".format(repr(module)))
 
-def check_programs(*programs):
-    for program in programs:
-        if which(program) is None:
-            raise PlanoError("Program {0} is not found".format(repr(program)))
+def check_program(program):
+    if which(program) is None:
+        raise PlanoError("Program {0} is not found".format(repr(program)))
 
 class working_env(object):
     def __init__(self, **vars):
@@ -702,6 +699,9 @@ def unique(iterable):
     return list(_collections.OrderedDict.fromkeys(iterable).keys())
 
 def skip(iterable, values=(None, "", (), [], {})):
+    if is_scalar(values):
+        values = (values,)
+
     items = list()
 
     for item in iterable:
@@ -733,7 +733,7 @@ def emit_json(data):
 ## HTTP operations
 
 def _run_curl(method, url, content=None, content_file=None, content_type=None, output_file=None, insecure=False):
-    check_programs("curl")
+    check_program("curl")
 
     options = [
         "-sf",
@@ -995,26 +995,23 @@ def get_name_extension(file):
 
     return ext
 
-def check_exists(*paths):
-    for path in paths:
-        if not exists(path):
-            raise PlanoError("File or directory {0} is not found".format(repr(path)))
+def check_exists(path):
+    if not exists(path):
+        raise PlanoError("File or directory {0} is not found".format(repr(path)))
 
-def check_files(*paths):
-    for path in paths:
-        if not is_file(path):
-            raise PlanoError("File {0} is not found".format(repr(path)))
+def check_file(path):
+    if not is_file(path):
+        raise PlanoError("File {0} is not found".format(repr(path)))
 
-def check_dirs(*paths):
-    for path in paths:
-        if not is_dir(path):
-            raise PlanoError("Directory {0} is not found".format(repr(path)))
+def check_dir(path):
+    if not is_dir(path):
+        raise PlanoError("Directory {0} is not found".format(repr(path)))
 
 def await_exists(path, timeout=30, quiet=False):
     _log(quiet, "Waiting for path {0} to exist", repr(path))
 
     timeout_message = "Timed out waiting for path {0} to exist".format(path)
-    period = 0.125
+    period = 0.03125
 
     with Timer(timeout=timeout, timeout_message=timeout_message) as timer:
         while True:
@@ -1033,22 +1030,18 @@ def get_random_port(min=49152, max=65535):
 
     for port in ports:
         try:
-            check_ports(port)
+            check_port(port)
         except PlanoError:
             return port
 
     raise PlanoError("Random ports unavailable")
 
-def check_ports(*ports, **kwargs):
-    host = kwargs.pop("host", "localhost")
-    assert not kwargs, kwargs
+def check_port(port, host="localhost"):
+    sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
+    sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
 
-    for port in ports:
-        sock = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
-        sock.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
-
-        if sock.connect_ex((host, port)) != 0:
-            raise PlanoError("Port {0} (host {1}) is not reachable".format(repr(port), repr(host)))
+    if sock.connect_ex((host, port)) != 0:
+        raise PlanoError("Port {0} (host {1}) is not reachable".format(repr(port), repr(host)))
 
 def await_port(port, host="localhost", timeout=30, quiet=False):
     _log(quiet, "Waiting for port {0}", port)
@@ -1057,12 +1050,12 @@ def await_port(port, host="localhost", timeout=30, quiet=False):
         port = int(port)
 
     timeout_message = "Timed out waiting for port {0} to open".format(port)
-    period = 0.125
+    period = 0.03125
 
     with Timer(timeout=timeout, timeout_message=timeout_message) as timer:
         while True:
             try:
-                check_ports(port, host=host)
+                check_port(port, host=host)
             except PlanoError:
                 sleep(period, quiet=True)
                 period = min(1, period * 2)
@@ -1446,10 +1439,7 @@ class Timer(object):
         self.stop_time = get_time()
 
         if self.timeout is not None:
-            prev_timer_resume_time = get_time()
-
-            if get_time() - self.prev_timer_suspend_time <= 0:
-                raise Exception("Outer timer expired.  This case is not yet handled.")
+            assert get_time() - self.prev_timer_suspend_time > 0, "This case is not yet handled"
 
             _signal.signal(_signal.SIGALRM, self.prev_handler)
             _signal.setitimer(_signal.ITIMER_REAL, self.prev_timeout)
@@ -1495,6 +1485,9 @@ def nvl(value, replacement):
 
 def is_string(value):
     return isinstance(value, str)
+
+def is_scalar(value):
+    return value is None or isinstance(value, (str, int, float, complex, bool))
 
 def is_empty(value):
     return value in (None, "", (), [], {})
