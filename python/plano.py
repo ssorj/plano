@@ -397,7 +397,7 @@ def change_dir(dir, quiet=False):
     return prev_dir
 
 def list_dir(dir=None, include="*", exclude=()):
-    if dir is None:
+    if dir in (None, ""):
         dir = get_current_dir()
 
     assert is_dir(dir)
@@ -1012,11 +1012,8 @@ def get_name_extension(file):
 
 def _check_path(path, test_func, message):
     if not test_func(path):
-        parent_dir = get_parent_dir(path)
         message = message.format(repr(path))
-
-        if parent_dir:
-            message = "{0}. The parent directory contains: {1}".format(message, "', '".join(list_dir(parent_dir)))
+        message = "{0}. The parent directory contains: {1}".format(message, "', '".join(list_dir(get_parent_dir(path))))
 
         raise PlanoError(message)
 
