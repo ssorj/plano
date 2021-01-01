@@ -922,16 +922,13 @@ def _print_message(level, message, args):
     if args:
         message = message.format(*args)
 
-    elems = ["{0}:".format(get_program_name())]
+    program = "{0}:".format(get_program_name())
 
-    log_level = "{0:>6}:".format(_logging_levels[level])
     level_color = ("cyan", "blue", "yellow", "red", None)[level]
     level_bright = (False, False, False, True, False)[level]
+    level = cformat("{0:>6}:".format(_logging_levels[level]), color=level_color, bright=level_bright, file=out)
 
-    elems.append(cformat(log_level, color=level_color, bright=level_bright, file=out))
-    elems.append(capitalize(message))
-
-    print(" ".join(elems), file=out)
+    print(program, level, capitalize(message), file=out)
 
     if exception is not None and hasattr(exception, "__traceback__"):
         _traceback.print_exception(type(exception), exception, exception.__traceback__, file=out)
