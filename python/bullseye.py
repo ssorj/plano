@@ -255,9 +255,24 @@ __pycache__/
 """
 
 _project_files["README.md"] = """
-# {title}
+# {project_title}
 
-## Dependencies
+[![main](https://github.com/ssorj/{project_name}/workflows/main/badge.svg)](https://github.com/ssorj/{project_name}/actions?query=workflow%3Amain)
+
+## Setting up the project
+
+This project uses Git submodules.  After you clone this repo, load the
+submodules using the following command:
+
+```shell
+git submodule update --init
+```
+
+## Project commands
+
+Once you have set up the project, you can use the `./plano` command in
+the root of the project to perform project tasks.  It accepts a
+subcommand.  Use `./plano --help` to list the available commands.
 """
 
 _project_files["LICENSE.txt"] = """
@@ -494,10 +509,10 @@ def _generate_file(filename, stdout):
     try:
         content = _project_files[filename]
     except KeyError:
-        exit("File '{0}' is not one of the options".format(filename))
+        exit("File {0} is not one of the options".format(repr(filename)))
 
     content = content.lstrip()
-    content = content.format(title=project.name.capitalize(), name=project.name)
+    content = content.format(project_title=project.name.capitalize(), project_name=project.name)
 
     if stdout:
         print(content, end="")
