@@ -1010,17 +1010,24 @@ def get_name_extension(file):
 
     return ext
 
+def _check_path(path, test_func, message):
+    if not test_func(path):
+        parent_dir = get_parent_dir(path)
+        message = message.format(path)
+
+        if parent_dir:
+            message = "{0}. The parent directory contains: {1}".format(message, "', '".join(list_dir(parent_dir)))
+
+        raise PlanoError(message)
+
 def check_exists(path):
-    if not exists(path):
-        raise PlanoError("File or directory {0} is not found".format(repr(path)))
+    _check_path(path, exists, "File or directory {0} not found")
 
 def check_file(path):
-    if not is_file(path):
-        raise PlanoError("File {0} is not found".format(repr(path)))
+    _check_path(path, is_file, "File {0} not found")
 
 def check_dir(path):
-    if not is_dir(path):
-        raise PlanoError("Directory {0} is not found".format(repr(path)))
+    _check_path(path, is_dir, "Directory {0} not found")
 
 def await_exists(path, timeout=30, quiet=False):
     _log(quiet, "Waiting for path {0} to exist", repr(path))
@@ -1392,16 +1399,6 @@ def make_temp_dir(suffix="", dir=None):
 
     return _tempfile.mkdtemp(prefix="plano-", suffix=suffix, dir=dir)
 
-class temp_dir(object):
-    def __init__(self, suffix="", dir=None):
-        self.dir = make_temp_dir(suffix=suffix, dir=dir)
-
-    def __enter__(self):
-        return self.dir
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        remove(self.dir, quiet=True)
-
 class temp_file(object):
     def __init__(self, suffix="", dir=None):
         self.file = make_temp_file(suffix=suffix, dir=dir)
@@ -1411,6 +1408,16 @@ class temp_file(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         remove(self.file, quiet=True)
+
+class temp_dir(object):
+    def __init__(self, suffix="", dir=None):
+        self.dir = make_temp_dir(suffix=suffix, dir=dir)
+
+    def __enter__(self):
+        return self.dir
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        remove(self.dir, quiet=True)
 
 ## Time operations
 
