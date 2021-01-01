@@ -106,6 +106,9 @@ def console_operations():
     with console_color("red"):
         print("ALERT")
 
+    print(cformat("AMBER ALERT", color="yellow"))
+    print(cformat("NO ALERT"))
+
     cprint("CRITICAL ALERT", color="red", bright=True)
 
 @test

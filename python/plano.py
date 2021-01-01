@@ -241,23 +241,30 @@ _color_codes = {
     "white": "\u001b[37",
 }
 
+_color_reset = "\u001b[0m"
+
+def _get_color_code(color, bright):
+    elems = [_color_codes[color]]
+
+    if bright:
+        elems.append(";1")
+
+    elems.append("m")
+
+    return "".join(elems)
+
+def _is_color_enabled(file):
+    return PYTHON3 and hasattr(file, "isatty") and file.isatty()
+
 class console_color(object):
-    def __init__(self, color=None, file=_sys.stdout, bright=False):
-        self.color = color
+    def __init__(self, color=None, bright=False, file=_sys.stdout):
         self.file = file
         self.color_code = None
 
-        if self.color is not None:
-            elems = [_color_codes[color]]
+        if (color, bright) != (None, False):
+            self.color_code = _get_color_code(color, bright)
 
-            if bright:
-                elems.append(";1")
-
-            elems.append("m")
-
-            self.color_code = "".join(elems)
-
-        self.enabled = self.color_code is not None and PYTHON3 and hasattr(self.file, "isatty") and self.file.isatty()
+        self.enabled = self.color_code is not None and _is_color_enabled(self.file)
 
     def __enter__(self):
         if self.enabled:
@@ -265,7 +272,13 @@ class console_color(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self.enabled:
-            print("\u001b[0m", file=self.file, end="", flush=True)
+            print(_color_reset, file=self.file, end="", flush=True)
+
+def cformat(value, color=None, bright=False, file=_sys.stdout):
+    if (color, bright) != (None, False) and _is_color_enabled(file):
+        return "".join((_get_color_code(color, bright), value, _color_reset))
+    else:
+        return value
 
 def cprint(*args, **kwargs):
     color = kwargs.pop("color", "white")
@@ -896,27 +909,32 @@ def log(level, message, *args):
     if _logging_threshold <= level:
         _print_message(level, message, args)
 
-def _print_message(level, message, args, color=None):
+def _print_message(level, message, args):
     out = nvl(_logging_output, _sys.stderr)
+    exception = None
 
-    print("{0}: ".format(get_program_name()), file=out, end="")
-
-    color = ("cyan", "blue", "yellow", "red", None)[level]
-    bright = (False, False, False, True, False)[level]
-    cprint("{0:>6}: ".format(_logging_levels[level]), color=color, bright=bright, file=out, end="")
-
-    if isinstance(message, BaseException) and hasattr(message, "__traceback__"):
-        print("{0}: {1}".format(type(message).__name__, str(message)), file=out)
-        _traceback.print_exception(type(message), message, message.__traceback__, file=out)
-        return
-
-    if not is_string(message):
+    if isinstance(message, BaseException):
+        exception = message
+        message = "{0}: {1}".format(type(message).__name__, str(message))
+    else:
         message = str(message)
 
     if args:
         message = message.format(*args)
 
-    print(capitalize(message), file=out)
+    elems = ["{0}:".format(get_program_name())]
+
+    log_level = "{0:>6}:".format(_logging_levels[level])
+    level_color = ("cyan", "blue", "yellow", "red", None)[level]
+    level_bright = (False, False, False, True, False)[level]
+
+    elems.append(cformat(log_level, color=level_color, bright=level_bright, file=out))
+    elems.append(capitalize(message))
+
+    print(" ".join(elems), file=out)
+
+    if exception is not None and hasattr(exception, "__traceback__"):
+        _traceback.print_exception(type(exception), exception, exception.__traceback__, file=out)
 
     out.flush()
 
