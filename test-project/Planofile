@@ -1,8 +1,8 @@
 from bullseye import *
 
 project.name = "chucker"
-project.extra_source_dirs = ["files"]
-project.build_deps = ["flipper"]
+project.data_dirs = ["files"]
+project.excluded_modules = ["flipper"]
 project.test_modules = ["chucker_tests"]
 
 _result_file = "build/result.json"

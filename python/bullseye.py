@@ -20,6 +20,7 @@
 from __future__ import print_function
 
 import collections as _collections
+import fnmatch as _fnmatch
 import os as _os
 import shutil as _shutil
 import sys as _sys
@@ -30,9 +31,10 @@ class _Project:
     def __init__(self):
         self.name = None
         self.source_dir = "python"
-        self.extra_source_dirs = []
+        self.included_modules = ["*"]
+        self.excluded_modules = ["plano", "bullseye"]
+        self.data_dirs = []
         self.build_dir = "build"
-        self.build_deps = ["plano", "bullseye"]
         self.test_modules = []
 
 project = _Project()
@@ -117,12 +119,14 @@ def build(prefix=None, clean_=False):
         copy(path, join(project.build_dir, path), inside=False, symlinks=False)
 
     for path in find(project.source_dir, "*.py"):
-        if get_name_stem(path) in project.build_deps:
-            continue
+        module_name = get_name_stem(path)
+        included = any([_fnmatch.fnmatchcase(module_name, x) for x in project.included_modules])
+        excluded = any([_fnmatch.fnmatchcase(module_name, x) for x in project.excluded_modules])
 
-        copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
+        if included and not excluded:
+            copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
-    for dir_name in project.extra_source_dirs:
+    for dir_name in project.data_dirs:
         for path in find(dir_name):
             copy(path, join(project.build_dir, project.name, path), inside=False, symlinks=False)
 
