@@ -1013,7 +1013,7 @@ def get_name_extension(file):
 def _check_path(path, test_func, message):
     if not test_func(path):
         parent_dir = get_parent_dir(path)
-        message = message.format(path)
+        message = message.format(repr(path))
 
         if parent_dir:
             message = "{0}. The parent directory contains: {1}".format(message, "', '".join(list_dir(parent_dir)))
