@@ -796,21 +796,27 @@ def string_operations():
 
 @test
 def temp_operations():
-    temp_dir = get_temp_dir()
+    system_temp_dir = get_system_temp_dir()
 
     result = make_temp_file()
-    assert result.startswith(temp_dir), result
+    assert result.startswith(system_temp_dir), result
 
     result = make_temp_file(suffix=".txt")
     assert result.endswith(".txt"), result
 
     result = make_temp_dir()
-    assert result.startswith(temp_dir), result
+    assert result.startswith(system_temp_dir), result
+
+    with temp_dir() as d:
+        assert is_dir(d), d
+        list_dir(d)
 
     with temp_file() as f:
+        assert is_file(f), f
         write(f, "test")
 
     with working_dir() as d:
+        assert is_dir(d), d
         list_dir(d)
 
     user_temp_dir = get_user_temp_dir()

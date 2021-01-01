@@ -1371,26 +1371,36 @@ def url_decode(string):
 
 ## Temp operations
 
-def get_temp_dir():
+def get_system_temp_dir():
     return _tempfile.gettempdir()
 
 def get_user_temp_dir():
     try:
         return _os.environ["XDG_RUNTIME_DIR"]
     except KeyError:
-        return join(get_temp_dir(), get_user())
+        return join(get_system_temp_dir(), get_user())
 
 def make_temp_file(suffix="", dir=None):
     if dir is None:
-        dir = get_temp_dir()
+        dir = get_system_temp_dir()
 
     return _tempfile.mkstemp(prefix="plano-", suffix=suffix, dir=dir)[1]
 
 def make_temp_dir(suffix="", dir=None):
     if dir is None:
-        dir = get_temp_dir()
+        dir = get_system_temp_dir()
 
     return _tempfile.mkdtemp(prefix="plano-", suffix=suffix, dir=dir)
+
+class temp_dir(object):
+    def __init__(self, suffix="", dir=None):
+        self.dir = make_temp_dir(suffix=suffix, dir=dir)
+
+    def __enter__(self):
+        return self.dir
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        remove(self.dir, quiet=True)
 
 class temp_file(object):
     def __init__(self, suffix="", dir=None):
