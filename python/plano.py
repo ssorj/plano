@@ -2100,15 +2100,15 @@ class PlanoCommand(BaseCommand):
 
         self.parser = _argparse.ArgumentParser(parents=(self.pre_parser,), add_help=False, allow_abbrev=False)
 
-        self.commands = _collections.OrderedDict()
+        self.bound_commands = _collections.OrderedDict()
         self.running_commands = list()
 
         self.default_command_name = None
         self.default_command_args = None
         self.default_command_kwargs = None
 
-    def add_commands(self, module):
-        self._add_commands(vars(module))
+    def bind_commands(self, module):
+        self._bind_commands(vars(module))
 
     def set_default_command(self, name, *args, **kwargs):
         self.default_command_name = name
@@ -2131,11 +2131,11 @@ class PlanoCommand(BaseCommand):
             return
 
         if args.command is None:
-            self.selected_command = self.commands[self.default_command_name]
+            self.selected_command = self.bound_commands[self.default_command_name]
             self.command_args = self.default_command_args
             self.command_kwargs = self.default_command_kwargs
         else:
-            self.selected_command = self.commands[args.command]
+            self.selected_command = self.bound_commands[args.command]
             self.command_args = list()
             self.command_kwargs = dict()
 
@@ -2155,10 +2155,10 @@ class PlanoCommand(BaseCommand):
         cprint("OK", color="green", file=_sys.stderr, end="")
         cprint(" ({0})".format(format_duration(timer.elapsed_time)), color="magenta", file=_sys.stderr)
 
-    def _add_commands(self, scope):
+    def _bind_commands(self, scope):
         for var in scope.values():
             if callable(var) and var.__class__.__name__ == "Command":
-                self.commands[var.name] = var
+                self.bound_commands[var.name] = var
 
     def _load_config(self, planofile):
         if planofile is None:
@@ -2190,7 +2190,7 @@ class PlanoCommand(BaseCommand):
             error(e)
             exit("Failure loading {0}: {1}", repr(planofile), str(e))
 
-        self._add_commands(scope)
+        self._bind_commands(scope)
 
     def _find_planofile(self, dir):
         for name in ("Planofile", ".planofile"):
@@ -2202,7 +2202,7 @@ class PlanoCommand(BaseCommand):
     def _process_commands(self):
         subparsers = self.parser.add_subparsers(title="commands", dest="command")
 
-        for command in self.commands.values():
+        for command in self.bound_commands.values():
             subparser = subparsers.add_parser(command.name, help=command.help,
                                               description=nvl(command.description, command.help),
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)
