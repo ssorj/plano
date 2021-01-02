@@ -55,10 +55,10 @@ def build_command():
         result = read_json(result_file)
         assert result["built"], result
 
-        assert is_file("build/bin/chucker")
-        assert is_file("build/bin/chucker-test")
-        assert is_file("build/chucker/python/chucker.py")
-        assert is_file("build/chucker/python/chucker_tests.py")
+        check_file("build/bin/chucker")
+        check_file("build/bin/chucker-test")
+        check_file("build/chucker/python/chucker.py")
+        check_file("build/chucker/python/chucker_tests.py")
 
         result = read("build/bin/chucker").strip()
         assert result.endswith(".local/lib/chucker"), result
@@ -79,6 +79,8 @@ def test_command():
     with test_project():
         run_plano("test")
 
+        check_file(result_file)
+
         result = read_json(result_file)
         assert result["tested"], result
 
@@ -95,7 +97,7 @@ def install_command():
         result = read_json(result_file)
         assert result["installed"], result
 
-        assert is_dir("staging"), list_dir()
+        check_dir("staging")
 
     with test_project():
         assert not exists("build"), list_dir()
@@ -103,14 +105,14 @@ def install_command():
         run_plano("build", "--prefix", "/opt/local")
         run_plano("install", "--staging-dir", "staging")
 
-        assert is_dir("staging/opt/local"), list_dir("staging")
+        check_dir("staging/opt/local")
 
 @test
 def clean_command():
     with test_project():
         run_plano("build")
 
-        assert is_dir("build")
+        check_dir("build")
 
         run_plano("clean")
 

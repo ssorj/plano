@@ -1901,22 +1901,26 @@ _command_help = {
     "test":     "Run the tests",
 }
 
-def command(_function=None, extends=None, name=None, args=None, help=None, description=None):
+def command(_function=None, name=None, args=None, help=None, description=None, overrides=None):
     class Command(object):
         def __init__(self, function):
             self.function = function
-            self.extends = extends
-            self.name = nvl(name, function.__name__.replace("_", "-"))
             self.module = _inspect.getmodule(self.function)
 
-            if self.extends is None:
-                self.args = self.process_args(args)
+            self.name = name
+            self.args = args
+            self.help = help
+            self.description = description
+
+            if overrides is None:
+                self.name = nvl(self.name, function.__name__.replace("_", "-"))
+                self.args = self.process_args(self.args)
                 self.help = nvl(help, _command_help.get(self.name))
-                self.description = description
             else:
-                self.args = self.extends.args
-                self.help = nvl(help, self.extends.help)
-                self.description = nvl(description, self.extends.description)
+                self.name = nvl(self.name, overrides.name)
+                self.args = nvl(self.args, overrides.args)
+                self.help = nvl(self.help, overrides.help)
+                self.description = nvl(self.description, overrides.description)
 
             debug("Defining {0}", self)
 
@@ -1972,14 +1976,6 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
         def __call__(self, app, *args, **kwargs):
             assert app is not None
 
-            # XXX Dubious!
-
-            command = app.commands[self.name]
-
-            if command is not self:
-                command(app, *args, **kwargs)
-                return
-
             debug("Running {0} {1} {2}".format(self, args, kwargs))
 
             app.running_commands.append(self)
@@ -1995,11 +1991,8 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
 
                 eprint()
 
-            if self.extends is not None:
-                call_args, call_kwargs = self.extends.get_call_args(args, kwargs)
-                self.extends.function(app, *call_args, **call_kwargs)
-
-            call_args, call_kwargs = self.get_call_args(args, kwargs)
+            # call_args, call_kwargs = self.get_call_args(args, kwargs)
+            call_args, call_kwargs = args, kwargs # self.get_call_args(args, kwargs)
 
             self.function(app, *call_args, **call_kwargs)
 
@@ -2060,6 +2053,8 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                         call_kwargs[param.name] = kwargs.get(param.name, param.default)
                 elif param.kind is param.VAR_POSITIONAL:
                     call_args.extend(args[i:])
+                elif param.kind is param.VAR_KEYWORD:
+                    print(111, "hmm", param.name)
                 elif param.kind is param.KEYWORD_ONLY:
                     call_kwargs[param.name] = kwargs.get(param.name, param.default)
                 else: # pragma: nocover
@@ -2186,7 +2181,7 @@ class PlanoCommand(BaseCommand):
         _sys.path.insert(0, join(get_parent_dir(planofile), "python"))
 
         scope = dict(globals())
-        scope["plano"] = self
+        scope["app"] = self
 
         try:
             with open(planofile) as f:

@@ -1,9 +1,9 @@
 import bullseye
+
 from bullseye import *
 
-plano.set_default_command("build", prefix="/tmp/alpha")
+app.set_default_command("build", prefix="/tmp/alpha")
 
-project = bullseye.project
 project.name = "chucker"
 project.data_dirs = ["files"]
 project.excluded_modules = ["flipper"]
@@ -11,24 +11,36 @@ project.test_modules = ["chucker_tests"]
 
 result_file = "build/result.json"
 
-@command(extends=bullseye.build)
-def build(app):
+@command(overrides=bullseye.build)
+def build(app, *args, **kwargs):
+    bullseye.build(app, *args, **kwargs)
+
     notice("Extended building")
 
     data = {"built": True}
     write_json(result_file, data)
 
-@command(extends=bullseye.test)
-def test(app):
+@command(overrides=bullseye.test)
+def test(app, *args, **kwargs):
+    bullseye.test(app, *args, **kwargs)
+
+    build(app) # XXX
+
     notice("Extended testing")
+
+    check_file(result_file)
 
     if exists(result_file):
         data = read_json(result_file)
         data["tested"] = True
         write_json(result_file, data)
 
-@command(extends=bullseye.install)
-def install(app):
+@command(overrides=bullseye.install)
+def install(app, *args, **kwargs):
+    bullseye.install(app, *args, **kwargs)
+
+    build(app) # XXX
+
     notice("Extended installing")
 
     data = read_json(result_file)
@@ -39,9 +51,10 @@ def install(app):
 def base_command(app, alpha, beta, omega="x"):
     print("base", alpha, beta, omega)
 
-@command(extends=base_command)
-def extended_command(app, alpha, omega="y"):
+@command(name="extended-command", overrides=base_command)
+def extended_command(app, alpha, beta, omega="y"):
     print("extended", alpha, omega)
+    base_command(app, alpha, beta, omega)
 
 @command(help="Print a message to the console",
          args=(CommandArgument("message_", help="The message to print", display_name="message"),
