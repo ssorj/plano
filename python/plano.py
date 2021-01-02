@@ -2111,6 +2111,14 @@ class PlanoCommand(BaseCommand):
         self.default_command_args = None
         self.default_command_kwargs = None
 
+    def attach_commands(self, module):
+        self._attach_commands(vars(module))
+
+    def set_default_command(self, name, *args, **kwargs):
+        self.default_command_name = name
+        self.default_command_args = args
+        self.default_command_kwargs = kwargs
+
     def parse_args(self, args):
         pre_args, _ = self.pre_parser.parse_known_args(args)
 
@@ -2151,10 +2159,10 @@ class PlanoCommand(BaseCommand):
         cprint("OK", color="green", file=_sys.stderr, end="")
         cprint(" ({0})".format(format_duration(timer.elapsed_time)), color="magenta", file=_sys.stderr)
 
-    def set_default_command(self, name, *args, **kwargs):
-        self.default_command_name = name
-        self.default_command_args = args
-        self.default_command_kwargs = kwargs
+    def _attach_commands(self, scope):
+        for var in scope.values():
+            if callable(var) and hasattr(var, "attach"):
+                var.attach(self)
 
     def _load_config(self, planofile):
         if planofile is None:
@@ -2186,9 +2194,7 @@ class PlanoCommand(BaseCommand):
             error(e)
             exit("Failure loading {0}: {1}", repr(planofile), str(e))
 
-        for var in scope.values():
-            if callable(var) and hasattr(var, "attach"):
-                var.attach(self)
+        self._attach_commands(scope)
 
     def _find_planofile(self, dir):
         for name in ("Planofile", ".planofile"):

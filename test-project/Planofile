@@ -1,37 +1,39 @@
-from bullseye import *
+import bullseye
 
+plano.attach_commands(bullseye)
+plano.set_default_command("build", prefix="/tmp/alpha")
+
+project = bullseye.project
 project.name = "chucker"
 project.data_dirs = ["files"]
 project.excluded_modules = ["flipper"]
 project.test_modules = ["chucker_tests"]
 
-_result_file = "build/result.json"
+result_file = "build/result.json"
 
-plano.set_default_command("build", prefix="/tmp/alpha")
-
-@command(extends=build)
+@command(extends=bullseye.build)
 def build():
     notice("Extended building")
 
     data = {"built": True}
-    write_json(_result_file, data)
+    write_json(result_file, data)
 
-@command(extends=test)
+@command(extends=bullseye.test)
 def test():
     notice("Extended testing")
 
-    if exists(_result_file):
-        data = read_json(_result_file)
+    if exists(result_file):
+        data = read_json(result_file)
         data["tested"] = True
-        write_json(_result_file, data)
+        write_json(result_file, data)
 
-@command(extends=install)
+@command(extends=bullseye.install)
 def install():
     notice("Extended installing")
 
-    data = read_json(_result_file)
+    data = read_json(result_file)
     data["installed"] = True
-    write_json(_result_file, data)
+    write_json(result_file, data)
 
 @command
 def base_command(alpha, beta, omega="x"):
