@@ -1,5 +1,3 @@
-import bullseye
-
 from bullseye import *
 
 app.set_default_command("build", prefix="/tmp/alpha")
@@ -11,20 +9,18 @@ project.test_modules = ["chucker_tests"]
 
 result_file = "build/result.json"
 
-@command(overrides=bullseye.build)
+@command(parent=build)
 def build(app, *args, **kwargs):
-    bullseye.build(app, *args, **kwargs)
+    build.super(app, *args, **kwargs)
 
     notice("Extended building")
 
     data = {"built": True}
     write_json(result_file, data)
 
-@command(overrides=bullseye.test)
+@command(parent=test)
 def test(app, *args, **kwargs):
-    bullseye.test(app, *args, **kwargs)
-
-    build(app) # XXX
+    test.super(app, *args, **kwargs)
 
     notice("Extended testing")
 
@@ -35,11 +31,9 @@ def test(app, *args, **kwargs):
         data["tested"] = True
         write_json(result_file, data)
 
-@command(overrides=bullseye.install)
+@command(parent=install)
 def install(app, *args, **kwargs):
-    bullseye.install(app, *args, **kwargs)
-
-    build(app) # XXX
+    install.super(app, *args, **kwargs)
 
     notice("Extended installing")
 
@@ -51,10 +45,10 @@ def install(app, *args, **kwargs):
 def base_command(app, alpha, beta, omega="x"):
     print("base", alpha, beta, omega)
 
-@command(name="extended-command", overrides=base_command)
+@command(name="extended-command", parent=base_command)
 def extended_command(app, alpha, beta, omega="y"):
     print("extended", alpha, omega)
-    base_command(app, alpha, beta, omega)
+    extended_command.super(app, alpha, beta, omega)
 
 @command(help="Print a message to the console",
          args=(CommandArgument("message_", help="The message to print", display_name="message"),

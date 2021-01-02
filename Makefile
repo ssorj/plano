@@ -100,7 +100,7 @@ debug-bootstrap:
 
 .PHONY: coverage
 coverage:
-	coverage run --omit /tmp/\* scripts/test
-	coverage report
-	coverage html
+	coverage3 run --omit /tmp/\* scripts/test
+	coverage3 report
+	coverage3 html
 	@echo file:${CURDIR}/htmlcov/index.html

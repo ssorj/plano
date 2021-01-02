@@ -1901,7 +1901,7 @@ _command_help = {
     "test":     "Run the tests",
 }
 
-def command(_function=None, name=None, args=None, help=None, description=None, overrides=None):
+def command(_function=None, name=None, args=None, help=None, description=None, parent=None):
     class Command(object):
         def __init__(self, function):
             self.function = function
@@ -1911,16 +1911,17 @@ def command(_function=None, name=None, args=None, help=None, description=None, o
             self.args = args
             self.help = help
             self.description = description
+            self.parent = parent
 
-            if overrides is None:
+            if self.parent is None:
                 self.name = nvl(self.name, function.__name__.replace("_", "-"))
                 self.args = self.process_args(self.args)
                 self.help = nvl(help, _command_help.get(self.name))
             else:
-                self.name = nvl(self.name, overrides.name)
-                self.args = nvl(self.args, overrides.args)
-                self.help = nvl(self.help, overrides.help)
-                self.description = nvl(self.description, overrides.description)
+                self.name = nvl(self.name, self.parent.name)
+                self.args = nvl(self.args, self.parent.args)
+                self.help = nvl(self.help, self.parent.help)
+                self.description = nvl(self.description, self.parent.description)
 
             debug("Defining {0}", self)
 
@@ -1974,7 +1975,13 @@ def command(_function=None, name=None, args=None, help=None, description=None, o
             return output_args
 
         def __call__(self, app, *args, **kwargs):
-            assert app is not None
+            assert isinstance(app, PlanoCommand), app
+
+            command = app.bound_commands[self.name]
+
+            if command is not self:
+                command(app, *args, **kwargs)
+                return
 
             debug("Running {0} {1} {2}".format(self, args, kwargs))
 
@@ -2005,6 +2012,13 @@ def command(_function=None, name=None, args=None, help=None, description=None, o
 
                 cprint("{0}| {1}".format(dashes[:-2], name), color="magenta", file=_sys.stderr)
 
+        def call_parent(self, app, *args, **kwargs):
+            self.parent.function(app, *args, **kwargs)
+
+        def super(self, app, *args, **kwargs):
+            assert isinstance(app, PlanoCommand), app
+            self.parent.function(app, *args, **kwargs)
+
         def get_display_args(self, args, kwargs):
             for i, arg in enumerate(self.args.values()):
                 if arg.positional:
@@ -2032,35 +2046,6 @@ def command(_function=None, name=None, args=None, help=None, description=None, o
                         value = repr(value)
 
                     yield "{0}={1}".format(arg.display_name, value)
-
-        def get_call_args(self, args, kwargs):
-            sig = _inspect.signature(self.function)
-            params = list(sig.parameters.values())[1:]
-            call_args = list()
-            call_kwargs = dict()
-
-            for i, param in enumerate(params):
-                if param.kind is param.POSITIONAL_ONLY: # pragma: nocover
-                    call_args.append(args[i])
-                elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is param.empty:
-                    call_args.append(args[i])
-                elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is not param.empty:
-                    command_arg = self.args[param.name]
-
-                    if command_arg.positional:
-                        call_args.append(args[i])
-                    else:
-                        call_kwargs[param.name] = kwargs.get(param.name, param.default)
-                elif param.kind is param.VAR_POSITIONAL:
-                    call_args.extend(args[i:])
-                elif param.kind is param.VAR_KEYWORD:
-                    print(111, "hmm", param.name)
-                elif param.kind is param.KEYWORD_ONLY:
-                    call_kwargs[param.name] = kwargs.get(param.name, param.default)
-                else: # pragma: nocover
-                    raise NotImplementedError(param.kind)
-
-            return call_args, call_kwargs
 
     if _function is None:
         return Command
@@ -2107,8 +2092,8 @@ class PlanoCommand(BaseCommand):
         self.default_command_args = None
         self.default_command_kwargs = None
 
-    def bind_commands(self, module):
-        self._bind_commands(vars(module))
+    # def bind_commands(self, module):
+    #     self._bind_commands(vars(module))
 
     def set_default_command(self, name, *args, **kwargs):
         self.default_command_name = name
