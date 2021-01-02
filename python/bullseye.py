@@ -79,11 +79,11 @@ _clean_arg = CommandArgument("clean_", help="Clean before starting", display_nam
 _verbose_arg = CommandArgument("verbose", help="Print detailed logging to the console")
 
 @command(args=(_prefix_arg, _clean_arg))
-def build(prefix=None, clean_=False):
+def build(app, prefix=None, clean_=False):
     check_project()
 
     if clean_:
-        clean()
+        clean(app)
 
     build_file = join(project.build_dir, "build.json")
     build_data = {}
@@ -135,14 +135,14 @@ def build(prefix=None, clean_=False):
                CommandArgument("enable", help="Enable disabled tests matching PATTERN", metavar="PATTERN"),
                CommandArgument("list_", help="Print the test names and exit", display_name="list"),
                _verbose_arg, _clean_arg))
-def test(include="*", exclude=None, enable=None, list_=False, verbose=False, clean_=False):
+def test(app, include="*", exclude=None, enable=None, list_=False, verbose=False, clean_=False):
     check_project()
 
     if clean_:
-        clean()
+        clean(app)
 
     if not list_:
-        build()
+        build(app)
 
     with project_env():
         from plano import _import_module
@@ -165,10 +165,10 @@ def test(include="*", exclude=None, enable=None, list_=False, verbose=False, cle
 
 @command(args=(CommandArgument("staging_dir", help="A path prepended to installed files"),
                _prefix_arg, _clean_arg))
-def install(staging_dir="", prefix=None, clean_=False):
+def install(app, staging_dir="", prefix=None, clean_=False):
     check_project()
 
-    build(prefix=prefix, clean_=clean_)
+    build(app, prefix=prefix, clean_=clean_)
 
     assert is_dir(project.build_dir), list_dir()
 
@@ -184,7 +184,7 @@ def install(staging_dir="", prefix=None, clean_=False):
         copy(path, join(install_prefix, "lib", remove_prefix(path, build_prefix)), inside=False, symlinks=False)
 
 @command
-def clean():
+def clean(app):
     check_project()
 
     remove(project.build_dir)
@@ -194,7 +194,7 @@ def clean():
 @command(help="Update Git submodules",
          args=(CommandArgument("remote", help="Get remote commits"),
                CommandArgument("recursive", help="Update modules recursively")))
-def modules(remote=False, recursive=False):
+def modules(app, remote=False, recursive=False):
     check_program("git")
 
     command = ["git", "submodule", "update", "--init"]
@@ -210,7 +210,7 @@ def modules(remote=False, recursive=False):
 @command(help="Generate shell settings for the project environment",
          description="Source the output from your shell.  For example:\n\n\n  $ source <(plano env)",
          args=(CommandArgument("undo", help="Generate settings that restore the previous environment"),))
-def env(undo=False):
+def env(app, undo=False):
     check_project()
 
     project_dir = get_current_dir() # XXX Needs some checking
@@ -496,7 +496,7 @@ Or use the special filename "all" to generate all of them.
 @command(help="Generate standard project files", description=_description,
          args=(CommandArgument("filename", help="Which file to generate"),
                CommandArgument("stdout", help="Print to stdout instead of writing the file directly")))
-def generate(filename, stdout=False):
+def generate(app, filename, stdout=False):
     assert project.name
 
     if filename == "all":

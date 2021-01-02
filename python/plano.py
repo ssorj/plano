@@ -1907,6 +1907,7 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
             self.function = function
             self.extends = extends
             self.name = nvl(name, function.__name__.replace("_", "-"))
+            self.module = _inspect.getmodule(self.function)
 
             if self.extends is None:
                 self.args = self.process_args(args)
@@ -1916,9 +1917,6 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
                 self.args = self.extends.args
                 self.help = nvl(help, self.extends.help)
                 self.description = nvl(description, self.extends.description)
-
-            self.module = _inspect.getmodule(self.function)
-            self.container = None
 
             debug("Defining {0}", self)
 
@@ -1930,10 +1928,19 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
 
         def process_args(self, input_args):
             sig = _inspect.signature(self.function)
+            params = list(sig.parameters.values())
             input_args = {x.name: x for x in nvl(input_args, ())}
             output_args = _collections.OrderedDict()
 
-            for param in sig.parameters.values():
+            try:
+                app_param = params.pop(0)
+            except IndexError:
+                raise PlanoError("The function for {0} is missing the required 'app' parameter".format(self))
+            else:
+                if app_param.name != "app":
+                    raise PlanoError("The function for {0} is missing the required 'app' parameter".format(self))
+
+            for param in params:
                 try:
                     arg = input_args[param.name]
                 except KeyError:
@@ -1962,29 +1969,22 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
 
             return output_args
 
-        def attach(self, container):
-            if self.extends:
-                self.extends.attach(container)
+        def __call__(self, app, *args, **kwargs):
+            assert app is not None
 
-            debug("Attaching {0}", self)
+            # XXX Dubious!
 
-            self.container = container
-            self.container.attached_commands[self.name] = self
-
-        def __call__(self, *args, **kwargs):
-            assert self.container is not None, self
-
-            command = self.container.attached_commands[self.name]
+            command = app.commands[self.name]
 
             if command is not self:
-                command(*args, **kwargs)
+                command(app, *args, **kwargs)
                 return
 
             debug("Running {0} {1} {2}".format(self, args, kwargs))
 
-            self.container.running_commands.append(self)
+            app.running_commands.append(self)
 
-            dashes = "--" * len(self.container.running_commands)
+            dashes = "--" * len(app.running_commands)
             display_args = list(self.get_display_args(args, kwargs))
 
             with console_color("magenta", file=_sys.stderr):
@@ -1997,18 +1997,18 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
 
             if self.extends is not None:
                 call_args, call_kwargs = self.extends.get_call_args(args, kwargs)
-                self.extends.function(*call_args, **call_kwargs)
+                self.extends.function(app, *call_args, **call_kwargs)
 
             call_args, call_kwargs = self.get_call_args(args, kwargs)
 
-            self.function(*call_args, **call_kwargs)
+            self.function(app, *call_args, **call_kwargs)
 
             cprint("<{0} {1}".format(dashes, self.name), color="magenta", file=_sys.stderr)
 
-            self.container.running_commands.pop()
+            app.running_commands.pop()
 
-            if self.container.running_commands:
-                name = self.container.running_commands[-1].name
+            if app.running_commands:
+                name = app.running_commands[-1].name
 
                 cprint("{0}| {1}".format(dashes[:-2], name), color="magenta", file=_sys.stderr)
 
@@ -2042,10 +2042,11 @@ def command(_function=None, extends=None, name=None, args=None, help=None, descr
 
         def get_call_args(self, args, kwargs):
             sig = _inspect.signature(self.function)
+            params = list(sig.parameters.values())[1:]
             call_args = list()
             call_kwargs = dict()
 
-            for i, param in enumerate(sig.parameters.values()):
+            for i, param in enumerate(params):
                 if param.kind is param.POSITIONAL_ONLY: # pragma: nocover
                     call_args.append(args[i])
                 elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is param.empty:
@@ -2104,15 +2105,15 @@ class PlanoCommand(BaseCommand):
 
         self.parser = _argparse.ArgumentParser(parents=(self.pre_parser,), add_help=False, allow_abbrev=False)
 
-        self.attached_commands = _collections.OrderedDict()
+        self.commands = _collections.OrderedDict()
         self.running_commands = list()
 
         self.default_command_name = None
         self.default_command_args = None
         self.default_command_kwargs = None
 
-    def attach_commands(self, module):
-        self._attach_commands(vars(module))
+    def add_commands(self, module):
+        self._add_commands(vars(module))
 
     def set_default_command(self, name, *args, **kwargs):
         self.default_command_name = name
@@ -2135,11 +2136,11 @@ class PlanoCommand(BaseCommand):
             return
 
         if args.command is None:
-            self.selected_command = self.attached_commands[self.default_command_name]
+            self.selected_command = self.commands[self.default_command_name]
             self.command_args = self.default_command_args
             self.command_kwargs = self.default_command_kwargs
         else:
-            self.selected_command = self.attached_commands[args.command]
+            self.selected_command = self.commands[args.command]
             self.command_args = list()
             self.command_kwargs = dict()
 
@@ -2154,15 +2155,15 @@ class PlanoCommand(BaseCommand):
 
     def run(self):
         with Timer() as timer:
-            self.selected_command(*self.command_args, **self.command_kwargs)
+            self.selected_command(self, *self.command_args, **self.command_kwargs)
 
         cprint("OK", color="green", file=_sys.stderr, end="")
         cprint(" ({0})".format(format_duration(timer.elapsed_time)), color="magenta", file=_sys.stderr)
 
-    def _attach_commands(self, scope):
+    def _add_commands(self, scope):
         for var in scope.values():
-            if callable(var) and hasattr(var, "attach"):
-                var.attach(self)
+            if callable(var) and var.__class__.__name__ == "Command":
+                self.commands[var.name] = var
 
     def _load_config(self, planofile):
         if planofile is None:
@@ -2194,7 +2195,7 @@ class PlanoCommand(BaseCommand):
             error(e)
             exit("Failure loading {0}: {1}", repr(planofile), str(e))
 
-        self._attach_commands(scope)
+        self._add_commands(scope)
 
     def _find_planofile(self, dir):
         for name in ("Planofile", ".planofile"):
@@ -2206,7 +2207,7 @@ class PlanoCommand(BaseCommand):
     def _process_commands(self):
         subparsers = self.parser.add_subparsers(title="commands", dest="command")
 
-        for command in self.attached_commands.values():
+        for command in self.commands.values():
             subparser = subparsers.add_parser(command.name, help=command.help,
                                               description=nvl(command.description, command.help),
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)

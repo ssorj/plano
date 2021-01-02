@@ -1,6 +1,6 @@
 import bullseye
+from bullseye import *
 
-plano.attach_commands(bullseye)
 plano.set_default_command("build", prefix="/tmp/alpha")
 
 project = bullseye.project
@@ -12,14 +12,14 @@ project.test_modules = ["chucker_tests"]
 result_file = "build/result.json"
 
 @command(extends=bullseye.build)
-def build():
+def build(app):
     notice("Extended building")
 
     data = {"built": True}
     write_json(result_file, data)
 
 @command(extends=bullseye.test)
-def test():
+def test(app):
     notice("Extended testing")
 
     if exists(result_file):
@@ -28,7 +28,7 @@ def test():
         write_json(result_file, data)
 
 @command(extends=bullseye.install)
-def install():
+def install(app):
     notice("Extended installing")
 
     data = read_json(result_file)
@@ -36,18 +36,18 @@ def install():
     write_json(result_file, data)
 
 @command
-def base_command(alpha, beta, omega="x"):
+def base_command(app, alpha, beta, omega="x"):
     print("base", alpha, beta, omega)
 
 @command(extends=base_command)
-def extended_command(alpha, omega="y"):
+def extended_command(app, alpha, omega="y"):
     print("extended", alpha, omega)
 
 @command(help="Print a message to the console",
          args=(CommandArgument("message_", help="The message to print", display_name="message"),
                CommandArgument("count", help="Print the message COUNT times"),
                CommandArgument("extra", default=1, short_option="e")))
-def echo(message_, count=1, extra=None, trouble=False):
+def echo(app, message_, count=1, extra=None, trouble=False):
     print("Echoing (message={0}, count={1})".format(message_, count))
 
     if trouble:
@@ -57,11 +57,11 @@ def echo(message_, count=1, extra=None, trouble=False):
        print(message_)
 
 @command
-def haberdash(first, *middle, last="bowler"):
+def haberdash(app, first, *middle, last="bowler"):
     data = [first, *middle, last]
     write_json("haberdash.json", data)
 
 @command(args=(CommandArgument("optional", positional=True),))
-def balderdash(required, optional="malarkey", other="rubbish"):
+def balderdash(app, required, optional="malarkey", other="rubbish"):
     data = [required, optional, other]
     write_json("balderdash.json", data)
