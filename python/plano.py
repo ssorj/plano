@@ -2000,10 +2000,7 @@ def command(_function=None, name=None, args=None, help=None, description=None, p
 
                 eprint()
 
-            # call_args, call_kwargs = self.get_call_args(args, kwargs)
-            call_args, call_kwargs = args, kwargs # self.get_call_args(args, kwargs)
-
-            self.function(app, *call_args, **call_kwargs)
+            self.function(app, *args, **kwargs)
 
             cprint("<{0} {1}".format(dashes, self.name), color="magenta", file=_sys.stderr)
 
@@ -2014,14 +2011,11 @@ def command(_function=None, name=None, args=None, help=None, description=None, p
 
                 cprint("{0}| {1}".format(dashes[:-2], name), color="magenta", file=_sys.stderr)
 
-        def call_parent(self, app, *args, **kwargs):
-            self.parent.function(app, *args, **kwargs)
-
         def super(self, app, *args, **kwargs):
             assert isinstance(app, PlanoCommand), app
 
             if self.parent is None:
-                raise PlanoError("Call to super in a command with no parent")
+                raise PlanoError("You called super() in a command with no parent ({0})".format(self))
 
             self.parent.function(app, *args, **kwargs)
 
