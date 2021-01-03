@@ -125,12 +125,6 @@ def env_command():
         run_plano("env", "--undo")
 
 @test
-def modules_command():
-    with test_project():
-        with expect_system_exit():
-            run_plano("modules", "--remote", "--recursive")
-
-@test
 def generate_command():
     with test_project():
         run_plano("generate", "README.md")

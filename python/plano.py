@@ -1791,7 +1791,7 @@ class expect_exception(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_value is None:
-            assert False
+            assert False, "Never encountered expected exception {0}".format(self.exception_type.__name__)
 
         if self.contains is None:
             return isinstance(exc_value, self.exception_type)
