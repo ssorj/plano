@@ -282,6 +282,8 @@ class _StringCatalog(dict):
 
         self.path = "{0}.strings".format(split_extension(path)[0])
 
+        check_file(self.path)
+
         key = None
         out = list()
 
