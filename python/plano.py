@@ -1961,6 +1961,8 @@ def command(_function=None, name=None, args=None, help=None, description=None, p
                 elif param.kind is param.VAR_POSITIONAL:
                     arg.positional = True
                     arg.multiple = True
+                elif param.kind is param.VAR_KEYWORD:
+                    continue
                 elif param.kind is param.KEYWORD_ONLY:
                     arg.optional = True
                     arg.default = param.default
