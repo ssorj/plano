@@ -191,10 +191,11 @@ def clean(app):
     remove(find(".", "__pycache__"))
     remove(find(".", "*.pyc"))
 
-@command(help="Update Git submodules",
-         args=(CommandArgument("remote", help="Get remote commits"),
+@command(args=(CommandArgument("remote", help="Get remote commits"),
                CommandArgument("recursive", help="Update modules recursively")))
 def modules(app, remote=False, recursive=False):
+    """Update Git submodules"""
+
     check_program("git")
 
     command = ["git", "submodule", "update", "--init"]
@@ -207,10 +208,16 @@ def modules(app, remote=False, recursive=False):
 
     run(command)
 
-@command(help="Generate shell settings for the project environment",
-         description="Source the output from your shell.  For example:\n\n\n  $ source <(plano env)",
-         args=(CommandArgument("undo", help="Generate settings that restore the previous environment"),))
+@command(args=(CommandArgument("undo", help="Generate settings that restore the previous environment"),))
 def env(app, undo=False):
+    """
+    Generate shell settings for the project environment
+
+    To apply the settings, source the output from your shell:
+
+        $ source <(plano env)
+    """
+
     check_project()
 
     project_dir = get_current_dir() # XXX Needs some checking
@@ -483,20 +490,19 @@ _project_files["VERSION.txt"] = """
 0.1.0-SNAPSHOT
 """
 
-_description = """
-Generate standard project files
-
-Use one of the following filenames:
-
-  {0}
-
-Or use the special filename "all" to generate all of them.
-""".format("\n  ".join(_project_files))
-
-@command(help="Generate standard project files", description=_description,
-         args=(CommandArgument("filename", help="Which file to generate"),
+@command(args=(CommandArgument("filename", help="Which file to generate"),
                CommandArgument("stdout", help="Print to stdout instead of writing the file directly")))
 def generate(app, filename, stdout=False):
+    """
+    Generate standard project files
+
+    Use one of the following filenames:
+
+        {0}
+
+    Or use the special filename "all" to generate all of them.
+    """.format("\n    ".join(_project_files))
+
     assert project.name
 
     if filename == "all":

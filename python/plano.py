@@ -1901,7 +1901,7 @@ _command_help = {
     "test":     "Run the tests",
 }
 
-def command(_function=None, name=None, args=None, help=None, description=None, parent=None):
+def command(_function=None, name=None, args=None, parent=None):
     class Command(object):
         def __init__(self, function):
             self.function = function
@@ -1909,17 +1909,25 @@ def command(_function=None, name=None, args=None, help=None, description=None, p
 
             self.name = name
             self.args = args
-            self.help = help
-            self.description = description
             self.parent = parent
 
             if self.parent is None:
                 self.name = nvl(self.name, function.__name__.replace("_", "-"))
                 self.args = self.process_args(self.args)
-                self.help = nvl(help, _command_help.get(self.name))
             else:
                 self.name = nvl(self.name, self.parent.name)
                 self.args = nvl(self.args, self.parent.args)
+
+            doc = _inspect.getdoc(self.function)
+
+            if doc is None:
+                self.help = _command_help.get(self.name)
+                self.description = self.help
+            else:
+                self.help = doc.split("\n")[0]
+                self.description = doc
+
+            if self.parent is not None:
                 self.help = nvl(self.help, self.parent.help)
                 self.description = nvl(self.description, self.parent.description)
 
