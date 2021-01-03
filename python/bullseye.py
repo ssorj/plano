@@ -498,10 +498,13 @@ def generate(app, filename, stdout=False):
 
     Use one of the following filenames:
 
-        {0}
+        .gitignore
+        README.md
+        LICENSE.txt
+        VERSION.txt
 
     Or use the special filename "all" to generate all of them.
-    """.format("\n    ".join(_project_files))
+    """
 
     assert project.name
 
