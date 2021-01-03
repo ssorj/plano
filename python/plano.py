@@ -2019,6 +2019,10 @@ def command(_function=None, name=None, args=None, help=None, description=None, p
 
         def super(self, app, *args, **kwargs):
             assert isinstance(app, PlanoCommand), app
+
+            if self.parent is None:
+                raise PlanoError("Call to super in a command with no parent")
+
             self.parent.function(app, *args, **kwargs)
 
         def get_display_args(self, args, kwargs):
