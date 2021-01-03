@@ -266,15 +266,6 @@ _project_files["README.md"] = """
 
 [![main](https://github.com/ssorj/{project_name}/workflows/main/badge.svg)](https://github.com/ssorj/{project_name}/actions?query=workflow%3Amain)
 
-## Setting up the project
-
-This project uses Git submodules.  After you clone this repo, load the
-submodules using the following command:
-
-```shell
-git submodule update --init
-```
-
 ## Project commands
 
 Once you have set up the project, you can use the `./plano` command in
