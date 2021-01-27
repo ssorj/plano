@@ -6,7 +6,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
-    - run: |
-        make test
-        make install
-        PATH=$HOME/.local/bin:$PATH plano-self-test
+    - run: make test
+    - run: make install
+    - run: PATH=$HOME/.local/bin:$PATH plano-self-test
