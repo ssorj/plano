@@ -9,4 +9,4 @@ jobs:
     - run: |
         make test
         make install
-        plano-self-test
+        PATH=$HOME/.local/bin:$PATH plano-self-test
