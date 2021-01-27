@@ -8,6 +8,5 @@ jobs:
     - uses: actions/setup-python@v2
     - run: make test
     - run: make install
+    - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
     - run: plano-self-test
-      env:
-        PATH: $HOME/.local/bin:$PATH
