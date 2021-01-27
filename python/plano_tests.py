@@ -31,7 +31,7 @@ except ImportError: # pragma: nocover
 
 from plano import *
 
-test_project_dir = get_absolute_path("test-project")
+test_project_dir = join(get_parent_dir(get_parent_dir(__file__)), "test-project")
 
 class test_project(working_dir):
     def __enter__(self):
