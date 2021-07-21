@@ -58,7 +58,7 @@ clean:
 .PHONY: test
 test: clean build
 	python3 scripts/test
-	if [[ $$(type -P python2) ]]; then python2 scripts/test; fi
+	$$(type -P python2) && python2 scripts/test || :
 
 .PHONY: big-test
 big-test: test test-centos-8 test-centos-7 test-fedora test-ubuntu
