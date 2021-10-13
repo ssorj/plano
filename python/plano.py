@@ -104,7 +104,7 @@ def make_archive(input_dir, output_file=None, quiet=False):
     if output_file is None:
         output_file = "{0}.tar.gz".format(join(get_current_dir(), archive_stem))
 
-    _log(quiet, "Making archive {0} from directory {1}", repr(output_file), repr(input_dir))
+    _info(quiet, "Making archive {0} from directory {1}", repr(output_file), repr(input_dir))
 
     with working_dir(get_parent_dir(input_dir)):
         run("tar -czf {0} {1}".format(output_file, archive_stem))
@@ -117,7 +117,7 @@ def extract_archive(input_file, output_dir=None, quiet=False):
     if output_dir is None:
         output_dir = get_current_dir()
 
-    _log(quiet, "Extracting archive {0} to directory {1}", repr(input_file), repr(output_dir))
+    _info(quiet, "Extracting archive {0} to directory {1}", repr(input_file), repr(output_dir))
 
     input_file = get_absolute_path(input_file)
 
@@ -127,7 +127,7 @@ def extract_archive(input_file, output_dir=None, quiet=False):
     return output_dir
 
 def rename_archive(input_file, new_archive_stem, quiet=False):
-    _log(quiet, "Renaming archive {0} with stem {1}", repr(input_file), repr(new_archive_stem))
+    _info(quiet, "Renaming archive {0} with stem {1}", repr(input_file), repr(new_archive_stem))
 
     output_dir = get_absolute_path(get_parent_dir(input_file))
     output_file = "{0}.tar.gz".format(join(output_dir, new_archive_stem))
@@ -154,17 +154,21 @@ class BaseCommand(object):
 
         assert args is None or isinstance(args, _argparse.Namespace), args
 
-        self.verbose = args.verbose
+        self.verbose = args.verbose or args.debug
         self.quiet = args.quiet
+        self.debug_enabled = args.debug
         self.init_only = args.init_only
 
         level = "notice"
 
         if self.verbose:
-            level = "debug"
+            level = "info"
 
         if self.quiet:
             level = "error"
+
+        if self.debug_enabled:
+            level = "debug"
 
         with logging_enabled(level=level):
             try:
@@ -177,7 +181,7 @@ class BaseCommand(object):
             except KeyboardInterrupt:
                 pass
             except PlanoError as e:
-                if self.verbose:
+                if self.debug_enabled:
                     _traceback.print_exc()
                     exit(1)
                 else:
@@ -203,6 +207,8 @@ class BaseArgumentParser(_argparse.ArgumentParser):
                           help="Print detailed logging to the console")
         self.add_argument("--quiet", action="store_true",
                           help="Print no logging to the console")
+        self.add_argument("--debug", action="store_true",
+                          help="Print debugging output to the console")
         self.add_argument("--init-only", action="store_true",
                           help=_argparse.SUPPRESS)
 
@@ -296,7 +302,7 @@ class output_redirected(object):
     def __enter__(self):
         flush()
 
-        _log(self.quiet, "Redirecting output to file {0}", repr(self.output))
+        _info(self.quiet, "Redirecting output to file {0}", repr(self.output))
 
         if is_string(self.output):
             output = open(self.output, "w")
@@ -375,7 +381,7 @@ def make_dir(dir, quiet=False):
         return dir
 
     if not exists(dir):
-        _log(quiet, "Making directory '{0}'", dir)
+        _info(quiet, "Making directory '{0}'", dir)
         _os.makedirs(dir)
 
     return dir
@@ -385,7 +391,7 @@ def make_parent_dir(path, quiet=False):
 
 # Returns the current working directory so you can change it back
 def change_dir(dir, quiet=False):
-    _log(quiet, "Changing directory to {0}", repr(dir))
+    _debug(quiet, "Changing directory to {0}", repr(dir))
 
     prev_dir = get_current_dir()
 
@@ -435,7 +441,7 @@ class working_dir(object):
         if self.dir == ".":
             return
 
-        _log(self.quiet, "Entering directory {0}", repr(get_absolute_path(self.dir)))
+        _info(self.quiet, "Entering directory {0}", repr(get_absolute_path(self.dir)))
 
         make_dir(self.dir, quiet=True)
 
@@ -447,7 +453,7 @@ class working_dir(object):
         if self.dir == ".":
             return
 
-        _log(self.quiet, "Returning to directory {0}", repr(get_absolute_path(self.prev_dir)))
+        _debug(self.quiet, "Returning to directory {0}", repr(get_absolute_path(self.prev_dir)))
 
         change_dir(self.prev_dir, quiet=True)
 
@@ -568,7 +574,7 @@ def print_env(file=None):
 ## File operations
 
 def touch(file, quiet=False):
-    _log(quiet, "Touching {0}", repr(file))
+    _info(quiet, "Touching {0}", repr(file))
 
     try:
         _os.utime(file, None)
@@ -580,7 +586,7 @@ def touch(file, quiet=False):
 # symlinks=True - Preserve symlinks
 # inside=True - Place from_path inside to_path if to_path is a directory
 def copy(from_path, to_path, symlinks=True, inside=True, quiet=False):
-    _log(quiet, "Copying {0} to {1}", repr(from_path), repr(to_path))
+    _info(quiet, "Copying {0} to {1}", repr(from_path), repr(to_path))
 
     if is_dir(to_path) and inside:
         to_path = join(to_path, get_base_name(from_path))
@@ -601,7 +607,7 @@ def copy(from_path, to_path, symlinks=True, inside=True, quiet=False):
 
 # inside=True - Place from_path inside to_path if to_path is a directory
 def move(from_path, to_path, inside=True, quiet=False):
-    _log(quiet, "Moving {0} to {1}", repr(from_path), repr(to_path))
+    _info(quiet, "Moving {0} to {1}", repr(from_path), repr(to_path))
 
     to_path = copy(from_path, to_path, inside=inside, quiet=True)
     remove(from_path, quiet=True)
@@ -616,7 +622,7 @@ def remove(paths, quiet=False):
         if not exists(path):
             continue
 
-        _log(quiet, "Removing {0}", repr(path))
+        _debug(quiet, "Removing {0}", repr(path))
 
         if is_dir(path):
             _shutil.rmtree(path, ignore_errors=True)
@@ -810,7 +816,7 @@ def http_post_json(url, data, insecure=False):
 ## Link operations
 
 def make_link(path, linked_path, quiet=False):
-    _log(quiet, "Making link {0} to {1}", repr(path), repr(linked_path))
+    _info(quiet, "Making link {0} to {1}", repr(path), repr(linked_path))
 
     make_parent_dir(path, quiet=True)
     remove(path, quiet=True)
@@ -826,25 +832,27 @@ def read_link(path):
 
 _logging_levels = (
     "debug",
+    "info",
     "notice",
     "warn",
     "error",
     "disabled",
 )
 
-_debug = _logging_levels.index("debug")
-_notice = _logging_levels.index("notice")
-_warn = _logging_levels.index("warn")
-_error = _logging_levels.index("error")
-_disabled = _logging_levels.index("disabled")
+_DEBUG = _logging_levels.index("debug")
+_INFO = _logging_levels.index("info")
+_NOTICE = _logging_levels.index("notice")
+_WARN = _logging_levels.index("warn")
+_ERROR = _logging_levels.index("error")
+_DISABLED = _logging_levels.index("disabled")
 
 _logging_output = None
-_logging_threshold = _notice
+_logging_threshold = _NOTICE
 
 def enable_logging(level="notice", output=None):
     assert level in _logging_levels
 
-    debug("Enabling logging (level={0}, output={1})", repr(level), repr(nvl(output, "stderr")))
+    info("Enabling logging (level={0}, output={1})", repr(level), repr(nvl(output, "stderr")))
 
     global _logging_threshold
     _logging_threshold = _logging_levels.index(level)
@@ -856,7 +864,7 @@ def enable_logging(level="notice", output=None):
     _logging_output = output
 
 def disable_logging():
-    debug("Disabling logging")
+    info("Disabling logging")
 
     global _logging_threshold
     _logging_threshold = _disabled
@@ -894,16 +902,19 @@ def fail(message, *args):
     raise PlanoError(message.format(*args))
 
 def error(message, *args):
-    log(_error, message, *args)
+    log(_ERROR, message, *args)
 
 def warn(message, *args):
-    log(_warn, message, *args)
+    log(_WARN, message, *args)
 
 def notice(message, *args):
-    log(_notice, message, *args)
+    log(_NOTICE, message, *args)
+
+def info(message, *args):
+    log(_INFO, message, *args)
 
 def debug(message, *args):
-    log(_debug, message, *args)
+    log(_DEBUG, message, *args)
 
 def log(level, message, *args):
     if is_string(level):
@@ -927,8 +938,8 @@ def _print_message(level, message, args):
 
     program = "{0}:".format(get_program_name())
 
-    level_color = ("cyan", "blue", "yellow", "red", None)[level]
-    level_bright = (False, False, False, True, False)[level]
+    level_color = ("cyan", "cyan", "blue", "yellow", "red", None)[level]
+    level_bright = (False, False, False, False, True, False)[level]
     level = cformat("{0:>6}:".format(_logging_levels[level]), color=level_color, bright=level_bright, file=out)
 
     print(program, level, capitalize(message), file=out)
@@ -938,9 +949,15 @@ def _print_message(level, message, args):
 
     out.flush()
 
-def _log(quiet, message, *args):
+def _debug(quiet, message, *args):
     if quiet:
         debug(message, *args)
+    else:
+        notice(message, *args)
+
+def _info(quiet, message, *args):
+    if quiet:
+        info(message, *args)
     else:
         notice(message, *args)
 
@@ -1030,7 +1047,7 @@ def check_dir(path):
     _check_path(path, is_dir, "Directory {0} not found")
 
 def await_exists(path, timeout=30, quiet=False):
-    _log(quiet, "Waiting for path {0} to exist", repr(path))
+    _info(quiet, "Waiting for path {0} to exist", repr(path))
 
     timeout_message = "Timed out waiting for path {0} to exist".format(path)
     period = 0.03125
@@ -1066,7 +1083,7 @@ def check_port(port, host="localhost"):
         raise PlanoError("Port {0} (host {1}) is not reachable".format(repr(port), repr(host)))
 
 def await_port(port, host="localhost", timeout=30, quiet=False):
-    _log(quiet, "Waiting for port {0}", port)
+    _info(quiet, "Waiting for port {0}", port)
 
     if is_string(port):
         port = int(port)
@@ -1106,7 +1123,7 @@ def _format_command(command, represent=True):
 # stderr=<file> - Send stderr to a file
 # shell=False - XXX
 def start(command, stdin=None, stdout=None, stderr=None, output=None, shell=False, stash=False, quiet=False):
-    _log(quiet, "Starting command {0}", _format_command(command))
+    _info(quiet, "Starting command {0}", _format_command(command))
 
     if output is not None:
         stdout, stderr = output, output
@@ -1158,7 +1175,7 @@ def start(command, stdin=None, stdout=None, stderr=None, output=None, shell=Fals
     return proc
 
 def stop(proc, timeout=None, quiet=False):
-    _log(quiet, "Stopping {0}", proc)
+    _info(quiet, "Stopping {0}", proc)
 
     if proc.poll() is not None:
         if proc.exit_code == 0:
@@ -1175,12 +1192,12 @@ def stop(proc, timeout=None, quiet=False):
     return wait(proc, timeout=timeout, quiet=True)
 
 def kill(proc, quiet=False):
-    _log(quiet, "Killing {0}", proc)
+    _info(quiet, "Killing {0}", proc)
 
     proc.terminate()
 
 def wait(proc, timeout=None, check=False, quiet=False):
-    _log(quiet, "Waiting for {0} to exit", proc)
+    _info(quiet, "Waiting for {0} to exit", proc)
 
     if PYTHON2: # pragma: nocover
         assert timeout is None, "The timeout option is not supported on Python 2"
@@ -1212,7 +1229,7 @@ def wait(proc, timeout=None, check=False, quiet=False):
 # input=<string> - Pipe <string> to the process
 def run(command, stdin=None, stdout=None, stderr=None, input=None, output=None,
         stash=False, shell=False, check=True, quiet=False):
-    _log(quiet, "Running command {0}", _format_command(command))
+    _info(quiet, "Running command {0}", _format_command(command))
 
     if input is not None:
         assert stdin in (None, _subprocess.PIPE), stdin
@@ -1235,7 +1252,7 @@ def run(command, stdin=None, stdout=None, stderr=None, input=None, output=None,
 
 # input=<string> - Pipe the given input into the process
 def call(command, input=None, shell=False, quiet=False):
-    _log(quiet, "Calling {0}", _format_command(command))
+    _info(quiet, "Calling {0}", _format_command(command))
 
     proc = run(command, stdin=_subprocess.PIPE, stdout=_subprocess.PIPE, stderr=_subprocess.PIPE,
                input=input, shell=shell, check=True, quiet=True)
@@ -1429,7 +1446,7 @@ class temp_dir(object):
 ## Time operations
 
 def sleep(seconds, quiet=False):
-    _log(quiet, "Sleeping for {0} {1}", seconds, plural("second", seconds))
+    _info(quiet, "Sleeping for {0} {1}", seconds, plural("second", seconds))
 
     _time.sleep(seconds)
 
