@@ -867,7 +867,7 @@ def disable_logging():
     info("Disabling logging")
 
     global _logging_threshold
-    _logging_threshold = _disabled
+    _logging_threshold = _DISABLED
 
 class logging_enabled(object):
     def __init__(self, level="notice", output=None):
