@@ -496,17 +496,26 @@ def which(program_name):
         if _os.access(program, _os.X_OK):
             return program
 
-def check_env(var):
+def check_env(var, message=None):
     if var not in _os.environ:
-        raise PlanoError("Environment variable {0} is not set".format(repr(var)))
+        if message is None:
+            message = "Environment variable {0} is not set".format(repr(var))
 
-def check_module(module):
+        raise PlanoError(message)
+
+def check_module(module, message=None):
     if _pkgutil.find_loader(module) is None:
-        raise PlanoError("Module {0} is not found".format(repr(module)))
+        if message is None:
+            message = "Module {0} is not found".format(repr(module))
 
-def check_program(program):
+        raise PlanoError(message)
+
+def check_program(program, message=None):
     if which(program) is None:
-        raise PlanoError("Program {0} is not found".format(repr(program)))
+        if message is None:
+            message = "Program {0} is not found".format(repr(program))
+
+        raise PlanoError(message)
 
 class working_env(object):
     def __init__(self, **vars):
