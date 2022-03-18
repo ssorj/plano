@@ -1974,7 +1974,7 @@ def command(_function=None, name=None, args=None, parent=None):
             self.parent = parent
 
             if self.parent is None:
-                self.name = nvl(self.name, function.__name__.replace("_", "-"))
+                self.name = nvl(self.name, function.__name__.rstrip("_").replace("_", "-"))
                 self.args = self.process_args(self.args)
             else:
                 self.name = nvl(self.name, self.parent.name)
