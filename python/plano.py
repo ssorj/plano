@@ -2022,14 +2022,17 @@ def command(_function=None, name=None, args=None, parent=None):
                     arg = CommandArgument(param.name)
 
                 if param.kind is param.POSITIONAL_ONLY: # pragma: nocover
-                    arg.positional = True
+                    if arg.positional is None:
+                        arg.positional = True
                 elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is param.empty:
-                    arg.positional = True
+                    if arg.positional is None:
+                        arg.positional = True
                 elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is not param.empty:
                     arg.optional = True
                     arg.default = param.default
                 elif param.kind is param.VAR_POSITIONAL:
-                    arg.positional = True
+                    if arg.positional is None:
+                        arg.positional = True
                     arg.multiple = True
                 elif param.kind is param.VAR_KEYWORD:
                     continue
@@ -2123,7 +2126,7 @@ def command(_function=None, name=None, args=None, parent=None):
         return Command(_function)
 
 class CommandArgument(object):
-    def __init__(self, name, display_name=None, type=None, metavar=None, help=None, short_option=None, default=None, positional=False):
+    def __init__(self, name, display_name=None, type=None, metavar=None, help=None, short_option=None, default=None, positional=None):
         self.name = name
         self.display_name = nvl(display_name, self.name.replace("_", "-"))
         self.type = type
