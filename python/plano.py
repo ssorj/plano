@@ -724,6 +724,19 @@ def tail_lines(file, count):
 def replace_in_file(file, expr, replacement, count=0):
     write(file, replace(read(file), expr, replacement, count=count))
 
+def concatenate(file, input_files):
+    assert file not in input_files
+
+    make_parent_dir(file, quiet=True)
+
+    with open(file, "wb") as f:
+        for input_file in input_files:
+            if not exists(input_file):
+                continue
+
+            with open(input_file, "rb") as inf:
+                _shutil.copyfileobj(inf, f)
+
 ## Iterable operations
 
 def unique(iterable):
