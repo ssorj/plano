@@ -11,3 +11,12 @@ Python functions for writing shell-style system scripts.
  - python
  - tar
  - findutils
+
+## Installation
+
+To install plano globally:
+
+```
+make
+make install
+```
