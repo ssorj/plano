@@ -1428,10 +1428,15 @@ def get_user_temp_dir():
         return join(get_system_temp_dir(), get_user())
 
 def make_temp_file(suffix="", dir=None):
-    if dir is None:
-        dir = get_system_temp_dir()
+    file = _tempfile.NamedTemporaryFile(prefix="plano-", suffix=suffix, dir=dir)
 
-    return _tempfile.mkstemp(prefix="plano-", suffix=suffix, dir=dir)[1]
+    return file.name
+
+# def make_temp_file(suffix="", dir=None):
+#     if dir is None:
+#         dir = get_system_temp_dir()
+
+#     return _tempfile.mkstemp(prefix="plano-", suffix=suffix, dir=dir)[1]
 
 def make_temp_dir(suffix="", dir=None):
     if dir is None:
@@ -1447,8 +1452,9 @@ class temp_file(object):
         return self.file
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.file.close()
-        remove(self.file, quiet=True)
+        pass
+        # XXX
+        # remove(self.file, quiet=True)
 
 class temp_dir(object):
     def __init__(self, suffix="", dir=None):
@@ -1458,7 +1464,6 @@ class temp_dir(object):
         return self.dir
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.file.close()
         remove(self.dir, quiet=True)
 
 ## Time operations
