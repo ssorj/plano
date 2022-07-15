@@ -1427,16 +1427,16 @@ def get_user_temp_dir():
     except KeyError:
         return join(get_system_temp_dir(), get_user())
 
-def make_temp_file(suffix="", dir=None):
-    file = _tempfile.NamedTemporaryFile(prefix="plano-", suffix=suffix, dir=dir)
-
-    return file.name
-
 # def make_temp_file(suffix="", dir=None):
-#     if dir is None:
-#         dir = get_system_temp_dir()
+#     file = _tempfile.NamedTemporaryFile(prefix="plano-", suffix=suffix, dir=dir)
 
-#     return _tempfile.mkstemp(prefix="plano-", suffix=suffix, dir=dir)[1]
+#     return file.name
+
+def make_temp_file(suffix="", dir=None):
+    if dir is None:
+        dir = get_system_temp_dir()
+
+    return _tempfile.mkstemp(prefix="plano-", suffix=suffix, dir=dir)[1]
 
 def make_temp_dir(suffix="", dir=None):
     if dir is None:

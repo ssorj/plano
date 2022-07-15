@@ -17,6 +17,7 @@
 # under the License.
 #
 
+import getpass as _getpass
 import os as _os
 import signal as _signal
 import socket as _socket
@@ -174,7 +175,7 @@ def env_operations():
     result = get_home_dir("alice")
     assert result.endswith("alice"), result
 
-    user = _os.getlogin()
+    user = _getpass.getuser()
     result = get_user()
     assert result == user, (result, user)
 
