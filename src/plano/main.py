@@ -1500,6 +1500,9 @@ class Timer(object):
         self.timeout = timeout
         self.timeout_message = timeout_message
 
+        if self.timeout is not None and not hasattr(_signal, "SIGALRM"):
+            self.timeout = None
+
         self.start_time = None
         self.stop_time = None
 
