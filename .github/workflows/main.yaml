@@ -15,9 +15,9 @@ jobs:
           packages: python3
       - run: echo "C:\Users\runneradmin\AppData\Roaming\Python\Python39\Scripts" >> "$GITHUB_PATH"
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
-      - run: which python || :
+      - run: "which python || :"
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
-      - run: which python3 || :
+      - run: "which python3 || :"
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
       - run: pip install build
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
