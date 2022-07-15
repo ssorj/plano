@@ -18,7 +18,6 @@
 #
 
 import os as _os
-import pwd as _pwd
 import signal as _signal
 import socket as _socket
 import sys as _sys
@@ -175,7 +174,7 @@ def env_operations():
     result = get_home_dir("alice")
     assert result.endswith("alice"), result
 
-    user = _pwd.getpwuid(_os.getuid())[0]
+    user = _os.getlogin()
     result = get_user()
     assert result == user, (result, user)
 
