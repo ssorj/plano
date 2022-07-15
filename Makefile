@@ -49,9 +49,9 @@ docs:
 	mkdir -p build
 	sphinx-build -M html docs build/docs
 
-.PHONY: coverage
-coverage:
-	coverage3 run --omit /tmp/\* scripts/test
-	coverage3 report
-	coverage3 html
-	@echo file:${CURDIR}/htmlcov/index.html
+# .PHONY: coverage
+# coverage:
+# 	coverage3 run --omit /tmp/\* scripts/test
+# 	coverage3 report
+# 	coverage3 html
+# 	@echo file:${CURDIR}/htmlcov/index.html
