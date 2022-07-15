@@ -16,6 +16,8 @@ jobs:
       - uses: cygwin/cygwin-install-action@master
       - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
+      - run: pip install build
+        shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
       - run: make install
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
       - run: plano-self-test
@@ -28,5 +30,6 @@ jobs:
         with:
           python-version: "3.x"
       - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: pip install build
       - run: make install
       - run: plano-self-test
