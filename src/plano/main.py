@@ -488,13 +488,7 @@ def get_program_name(command=None):
             return get_base_name(arg)
 
 def which(program_name):
-    assert "PATH" in _os.environ, _os.environ
-
-    for dir in _os.environ["PATH"].split(_os.pathsep):
-        program = join(dir, program_name)
-
-        if _os.access(program, _os.X_OK):
-            return program
+    return _shutil.which(program_name)
 
 def check_env(var, message=None):
     if var not in _os.environ:
@@ -1453,6 +1447,7 @@ class temp_file(object):
         return self.file
 
     def __exit__(self, exc_type, exc_value, traceback):
+        self.file.close()
         remove(self.file, quiet=True)
 
 class temp_dir(object):
@@ -1463,6 +1458,7 @@ class temp_dir(object):
         return self.dir
 
     def __exit__(self, exc_type, exc_value, traceback):
+        self.file.close()
         remove(self.dir, quiet=True)
 
 ## Time operations
