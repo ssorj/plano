@@ -15,7 +15,7 @@ jobs:
       #     python-version: "3.x"
       - uses: cygwin/cygwin-install-action@master
         with:
-          packages: [python3]
+          packages: python3
       - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
       - run: pip install build
