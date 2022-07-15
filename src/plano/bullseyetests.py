@@ -17,12 +17,12 @@
 # under the License.
 #
 
-from bullseye import *
 from plano import *
+from plano.bullseye import *
 
-from bullseye import test as test_command
+from plano.bullseye import test as test_command
 
-test_project_dir = join(get_parent_dir(get_parent_dir(__file__)), "test-project")
+test_project_dir = join(get_parent_dir(__file__), "testproject")
 result_file = "build/result.json"
 
 class test_project(working_dir):
@@ -56,9 +56,9 @@ def build_command():
         assert result["built"], result
 
         check_file("build/bin/chucker")
-        check_file("build/bin/chucker-test")
+        check_file("build/bin/chucker-self-test")
         check_file("build/chucker/python/chucker.py")
-        check_file("build/chucker/python/chucker_tests.py")
+        check_file("build/chucker/python/chuckertests.py")
 
         result = read("build/bin/chucker").strip()
         assert result.endswith(".local/lib/chucker"), result

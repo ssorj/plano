@@ -45,12 +45,11 @@ help:
 
 .PHONY: build
 build:
-	./setup.py build
-	./setup.py check
+	python -m build
 
 .PHONY: install
-install: clean
-	./setup.py install --root ${DESTDIR} --prefix ${PREFIX}
+install: build
+	pip install --user --force-reinstall dist/plano-*-py3-none-any.whl
 
 .PHONY: docs
 docs:
@@ -59,52 +58,50 @@ docs:
 
 .PHONY: clean
 clean:
-	find . -type f -name \*.pyc -delete
-	find . -type d -name __pycache__ -exec rm -rf \{} +
-	rm -rf build dist htmlcov .coverage test-project/build
+	rm -rf build dist htmlcov .coverage
 
 .PHONY: test
 test: clean build
 	python3 scripts/test
 	$$(type -P python2) && python2 scripts/test || :
 
-.PHONY: big-test
-big-test: test test-centos-7 test-centos-8 test-fedora test-ubuntu
+# .PHONY: big-test
+# big-test: test test-centos-7 test-centos-8 test-fedora test-ubuntu
 
-.PHONY: test-centos-8
-test-centos-8:
-	${DOCKER_COMMAND} build -f scripts/test-centos-8.dockerfile -t plano-test-centos-8 .
-	${DOCKER_COMMAND} run --rm plano-test-centos-8
+# .PHONY: test-centos-8
+# test-centos-8:
+# 	${DOCKER_COMMAND} build -f scripts/test-centos-8.dockerfile -t plano-test-centos-8 .
+# 	${DOCKER_COMMAND} run --rm plano-test-centos-8
 
-.PHONY: test-centos-7
-test-centos-7:
-	${DOCKER_COMMAND} build -f scripts/test-centos-7.dockerfile -t plano-test-centos-7 .
-	${DOCKER_COMMAND} run --rm plano-test-centos-7
+# .PHONY: test-centos-7
+# test-centos-7:
+# 	${DOCKER_COMMAND} build -f scripts/test-centos-7.dockerfile -t plano-test-centos-7 .
+# 	${DOCKER_COMMAND} run --rm plano-test-centos-7
 
-.PHONY: test-centos-6
-test-centos-6:
-	${DOCKER_COMMAND} build -f scripts/test-centos-6.dockerfile -t plano-test-centos-6 .
-	${DOCKER_COMMAND} run --rm plano-test-centos-6
+# .PHONY: test-centos-6
+# test-centos-6:
+# 	${DOCKER_COMMAND} build -f scripts/test-centos-6.dockerfile -t plano-test-centos-6 .
+# 	${DOCKER_COMMAND} run --rm plano-test-centos-6
 
-.PHONY: test-fedora
-test-fedora:
-	${DOCKER_COMMAND} build -f scripts/test-fedora.dockerfile -t plano-test-fedora .
-	${DOCKER_COMMAND} run --rm plano-test-fedora
+# .PHONY: test-fedora
+# test-fedora:
+# 	${DOCKER_COMMAND} build -f scripts/test-fedora.dockerfile -t plano-test-fedora .
+# 	${DOCKER_COMMAND} run --rm plano-test-fedora
 
-.PHONY: test-ubuntu
-test-ubuntu:
-	${DOCKER_COMMAND} build -f scripts/test-ubuntu.dockerfile -t plano-test-ubuntu .
-	${DOCKER_COMMAND} run --rm plano-test-ubuntu
+# .PHONY: test-ubuntu
+# test-ubuntu:
+# 	${DOCKER_COMMAND} build -f scripts/test-ubuntu.dockerfile -t plano-test-ubuntu .
+# 	${DOCKER_COMMAND} run --rm plano-test-ubuntu
 
-.PHONY: test-bootstrap
-test-bootstrap:
-	${DOCKER_COMMAND} build -f scripts/test-bootstrap.dockerfile -t plano-test-bootstrap .
-	${DOCKER_COMMAND} run --rm plano-test-bootstrap
+# .PHONY: test-bootstrap
+# test-bootstrap:
+# 	${DOCKER_COMMAND} build -f scripts/test-bootstrap.dockerfile -t plano-test-bootstrap .
+# 	${DOCKER_COMMAND} run --rm plano-test-bootstrap
 
-.PHONY: debug-bootstrap
-debug-bootstrap:
-	${DOCKER_COMMAND} build -f scripts/test-bootstrap.dockerfile -t plano-test-bootstrap .
-	${DOCKER_COMMAND} run --rm -it plano-test-bootstrap /bin/bash
+# .PHONY: debug-bootstrap
+# debug-bootstrap:
+# 	${DOCKER_COMMAND} build -f scripts/test-bootstrap.dockerfile -t plano-test-bootstrap .
+# 	${DOCKER_COMMAND} run --rm -it plano-test-bootstrap /bin/bash
 
 .PHONY: coverage
 coverage:

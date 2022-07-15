@@ -29,9 +29,9 @@ try:
 except ImportError: # pragma: nocover
     import BaseHTTPServer as _http
 
-from plano import *
+from plano.main import *
 
-test_project_dir = join(get_parent_dir(get_parent_dir(__file__)), "test-project")
+test_project_dir = join(get_parent_dir(__file__), "testproject")
 
 class test_project(working_dir):
     def __enter__(self):
@@ -855,40 +855,40 @@ def test_operations():
     with test_project():
         with working_module_path("python"):
             import chucker
-            import chucker_tests
+            import chuckertests
 
-            print_tests(chucker_tests)
+            print_tests(chuckertests)
 
             for verbose in (False, True):
-                run_tests(chucker_tests, verbose=verbose)
-                run_tests(chucker_tests, exclude="*hello*", verbose=verbose)
+                run_tests(chuckertests, verbose=verbose)
+                run_tests(chuckertests, exclude="*hello*", verbose=verbose)
 
                 with expect_error():
                     run_tests(chucker, verbose=verbose)
 
                 with expect_error():
-                    run_tests(chucker_tests, enable="*badbye*", verbose=verbose)
+                    run_tests(chuckertests, enable="*badbye*", verbose=verbose)
 
                 with expect_error():
-                    run_tests(chucker_tests, enable="*badbye*", fail_fast=True, verbose=verbose)
+                    run_tests(chuckertests, enable="*badbye*", fail_fast=True, verbose=verbose)
 
                 with expect_exception(KeyboardInterrupt):
-                    run_tests(chucker_tests, enable="test_keyboard_interrupt", verbose=verbose)
+                    run_tests(chuckertests, enable="test_keyboard_interrupt", verbose=verbose)
 
                 with expect_error():
-                    run_tests(chucker_tests, enable="test_timeout", verbose=verbose)
+                    run_tests(chuckertests, enable="test_timeout", verbose=verbose)
 
                 with expect_error():
-                    run_tests(chucker_tests, enable="test_process_error", verbose=verbose)
+                    run_tests(chuckertests, enable="test_process_error", verbose=verbose)
 
                 with expect_error():
-                    run_tests(chucker_tests, enable="test_system_exit", verbose=verbose)
+                    run_tests(chuckertests, enable="test_system_exit", verbose=verbose)
 
             with expect_system_exit():
                 PlanoTestCommand().main(["--module", "nosuchmodule"])
 
             def run_command(*args):
-                PlanoTestCommand(chucker_tests).main(args)
+                PlanoTestCommand(chuckertests).main(args)
 
             run_command("--verbose")
             run_command("--list")
@@ -1135,3 +1135,6 @@ def plano_shell_command():
 
     with expect_system_exit():
         PlanoShellCommand().main(["no-such-file"])
+
+def main():
+    PlanoTestCommand(_sys.modules[__name__]).main()

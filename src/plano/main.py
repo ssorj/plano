@@ -2362,5 +2362,5 @@ class PlanoShellCommand(BaseCommand):
 if PLANO_DEBUG: # pragma: nocover
     enable_logging(level="debug")
 
-if __name__ == "__main__": # pragma: nocover
+def main():
     PlanoCommand().main()

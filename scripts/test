@@ -21,11 +21,11 @@
 from plano import *
 
 if __name__ == "__main__":
-    import plano_tests
-    test_modules = [plano_tests]
+    from plano import tests
+    test_modules = [tests]
 
     if PYTHON3:
-        import bullseye_tests
-        test_modules.append(bullseye_tests)
+        from plano import bullseyetests
+        test_modules.append(bullseyetests)
 
     PlanoTestCommand(test_modules).main()

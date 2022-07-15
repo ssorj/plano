@@ -1,11 +1,11 @@
-from bullseye import *
+from plano.bullseye import *
 
 app.set_default_command("build", prefix="/tmp/alpha")
 
 project.name = "chucker"
 project.data_dirs = ["files"]
 project.excluded_modules = ["flipper"]
-project.test_modules = ["chucker_tests"]
+project.test_modules = ["chuckertests"]
 
 result_file = "build/result.json"
 
