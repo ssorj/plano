@@ -1453,7 +1453,7 @@ class temp_file(object):
         return self.file
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.fd.close()
+        _os.close(self.fd)
         remove(self.file, quiet=True)
 
 class temp_dir(object):

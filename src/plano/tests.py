@@ -47,6 +47,10 @@ def archive_operations():
         make_dir("some-dir")
         touch("some-dir/some-file")
 
+        # >   File "C:\Users\runneradmin\AppData\Roaming\Python\Python39\site-packages\plano\tests.py", line 51, in archive_operations
+        # >     assert is_file("some-dir.tar.gz"), list_dir()
+        # > AssertionError: ['UsersRUNNER~1AppDataLocalTempplano-du0sx3bssome-dir.tar.gz', 'some-dir']
+
         make_archive("some-dir")
         assert is_file("some-dir.tar.gz"), list_dir()
 
