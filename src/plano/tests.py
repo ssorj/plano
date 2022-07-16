@@ -48,7 +48,7 @@ def archive_operations():
         touch("some-dir/some-file")
 
         make_archive("some-dir")
-        assert is_file("some-dir.tar.gz")
+        assert is_file("some-dir.tar.gz"), list_dir()
 
         extract_archive("some-dir.tar.gz", output_dir="some-subdir")
         assert is_dir("some-subdir/some-dir")
@@ -162,7 +162,7 @@ def dir_operations():
 @test
 def env_operations():
     result = join_path_var("a", "b", "c", "a")
-    assert result == "a:b:c", result
+    assert result == _os.pathsep.join(("a", "b", "c")), result
 
     curr_dir = get_current_dir()
 
@@ -482,7 +482,7 @@ def link_operations():
         with working_dir("another-dir"):
             link = make_link("a-link", path)
             linked_path = read_link(link)
-            assert linked_path == path, (linked_path, path)
+            assert linked_path.endswith(path), (linked_path, path)
 
 @test
 def logging_operations():
@@ -514,7 +514,7 @@ def logging_operations():
 def path_operations():
     with working_dir("/"):
         curr_dir = get_current_dir()
-        assert curr_dir == "/", curr_dir
+        assert curr_dir == _os.path.abspath(_os.sep), curr_dir
 
         path = "a/b/c"
         result = get_absolute_path(path)
@@ -604,8 +604,9 @@ def path_operations():
 
         await_exists("adir/afile")
 
-        with expect_timeout():
-            await_exists("adir/notafile", timeout=TINY_INTERVAL)
+        if not WINDOWS:
+            with expect_timeout():
+                await_exists("adir/notafile", timeout=TINY_INTERVAL)
 
 @test
 def port_operations():
@@ -629,8 +630,9 @@ def port_operations():
     finally:
         server_socket.close()
 
-    with expect_timeout():
-        await_port(get_random_port(), timeout=TINY_INTERVAL)
+    if not WINDOWS:
+        with expect_timeout():
+            await_port(get_random_port(), timeout=TINY_INTERVAL)
 
 @test
 def process_operations():
@@ -680,8 +682,9 @@ def process_operations():
     if PYTHON3:
         proc = start("sleep 10")
 
-        with expect_timeout():
-            wait(proc, timeout=TINY_INTERVAL)
+        if not WINDOWS:
+            with expect_timeout():
+                wait(proc, timeout=TINY_INTERVAL)
 
     proc = start("echo hello")
     sleep(TINY_INTERVAL)
@@ -943,9 +946,10 @@ def time_operations():
 
     assert timer.elapsed_time > TINY_INTERVAL
 
-    with expect_timeout():
-        with Timer(timeout=TINY_INTERVAL) as timer:
-            sleep(10)
+    if not WINDOWS:
+        with expect_timeout():
+            with Timer(timeout=TINY_INTERVAL) as timer:
+                sleep(10)
 
 @test
 def unique_id_operations():

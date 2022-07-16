@@ -88,6 +88,8 @@ DEVNULL = _os.devnull
 PYTHON2 = _sys.version_info[0] == 2
 PYTHON3 = _sys.version_info[0] == 3
 
+WINDOWS = _sys.platform in ("win32", "cygwin")
+
 PLANO_DEBUG = "PLANO_DEBUG" in ENV
 
 ## Archive operations
@@ -1235,7 +1237,8 @@ def wait(proc, timeout=None, check=False, quiet=False):
         if proc.exit_code > 0:
             eprint(read(proc.stash_file), end="")
 
-        remove(proc.stash_file, quiet=True)
+        if not WINDOWS:
+            remove(proc.stash_file, quiet=True)
 
     if check and proc.exit_code > 0:
         raise PlanoProcessError(proc)
@@ -1427,11 +1430,6 @@ def get_user_temp_dir():
     except KeyError:
         return join(get_system_temp_dir(), get_user())
 
-# def make_temp_file(suffix="", dir=None):
-#     file = _tempfile.NamedTemporaryFile(prefix="plano-", suffix=suffix, dir=dir)
-
-#     return file.name
-
 def make_temp_file(suffix="", dir=None):
     if dir is None:
         dir = get_system_temp_dir()
@@ -1446,15 +1444,17 @@ def make_temp_dir(suffix="", dir=None):
 
 class temp_file(object):
     def __init__(self, suffix="", dir=None):
-        self.file = make_temp_file(suffix=suffix, dir=dir)
+        if dir is None:
+            dir = get_system_temp_dir()
+
+        self.fd, self.file = _tempfile.mkstemp(prefix="plano-", suffix=suffix, dir=dir)
 
     def __enter__(self):
         return self.file
 
     def __exit__(self, exc_type, exc_value, traceback):
-        pass
-        # XXX
-        # remove(self.file, quiet=True)
+        self.fd.close()
+        remove(self.file, quiet=True)
 
 class temp_dir(object):
     def __init__(self, suffix="", dir=None):
