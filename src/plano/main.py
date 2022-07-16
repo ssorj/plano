@@ -1454,7 +1454,9 @@ class temp_file(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         _os.close(self.fd)
-        remove(self.file, quiet=True)
+
+        if not WINDOWS: # XXX
+            remove(self.file, quiet=True)
 
 class temp_dir(object):
     def __init__(self, suffix="", dir=None):

@@ -174,7 +174,7 @@ def env_operations():
         assert get_current_dir() == curr_dir, (get_current_dir(), curr_dir)
 
     result = get_home_dir()
-    assert result == ENV["HOME"], result
+    assert result == ENV["HOME"], (result, ENV["HOME"])
 
     result = get_home_dir("alice")
     assert result.endswith("alice"), result
