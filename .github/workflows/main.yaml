@@ -18,8 +18,7 @@ jobs:
           python-version: "3.x"
       - run: pip install build wheel
       - run: python -m build
-      - run: cp dist/plano-*-py3-none-any.whl dist.whl
-      - run: pip install dist.whl
+      - run: pip install dist/plano-1.0.0-py3-none-any.whl
       - run: plano-self-test
   cygwin:
     runs-on: windows-latest
