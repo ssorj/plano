@@ -125,7 +125,12 @@ def extract_archive(input_file, output_dir=None, quiet=False):
     input_file = get_absolute_path(input_file)
 
     with working_dir(output_dir):
-        run("tar -xf {0}".format(input_file))
+        copy(input_file, "temp.tar.gz")
+
+        try:
+            run("tar -xf temp.tar.gz")
+        finally:
+            remove("temp.tar.gz")
 
     return output_dir
 
