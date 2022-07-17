@@ -16,9 +16,9 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.x"
-      - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - run: pip install build wheel
       - run: make install
+      - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - run: plano-self-test
   cygwin:
     runs-on: windows-latest
@@ -36,14 +36,12 @@ jobs:
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
       - run: plano-self-test
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
-  # ubuntu:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: actions/setup-python@v4
-  #       with:
-  #         python-version: "3.x"
-  #     - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-  #     - run: pip install build
-  #     - run: make install
-  #     - run: plano-self-test
+  fedora:
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    steps:
+      - run: dnf -y install curl pip tar
+      - run: pip install build wheel
+      - run: make install
+      - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: plano-self-test

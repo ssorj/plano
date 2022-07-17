@@ -1025,10 +1025,16 @@ def join(*paths):
     return path
 
 def split(path):
-    return _os.path.split(path)
+    path = normalize_path(path)
+    parent, child = _os.path.split(path)
+
+    return parent, child
 
 def split_extension(path):
-    return _os.path.splitext(path)
+    path = normalize_path(path)
+    root, ext = _os.path.splitext(path)
+
+    return root, ext
 
 def get_parent_dir(path):
     path = normalize_path(path)
