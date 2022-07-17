@@ -88,6 +88,7 @@ DEVNULL = _os.devnull
 PYTHON2 = _sys.version_info[0] == 2
 PYTHON3 = _sys.version_info[0] == 3
 
+LINUX = _sys.platform == "linux"
 WINDOWS = _sys.platform in ("win32", "cygwin")
 
 PLANO_DEBUG = "PLANO_DEBUG" in ENV
