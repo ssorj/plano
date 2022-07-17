@@ -551,9 +551,9 @@ def path_operations():
     expect = normpath("../b")
     assert result == expect, (result, expect)
 
-    path = "/a/b"
+    path = abspath("/a/b")
     result = get_file_url(path)
-    expect = "file:/a/b"
+    expect = "file:{}".format(path)
     assert result == expect, (result, expect)
 
     with working_dir():

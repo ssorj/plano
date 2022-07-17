@@ -5,6 +5,21 @@ on:
   schedule:
     - cron: "0 0 * * 0"
 jobs:
+  main:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+      - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: pip install build wheel
+      - run: make install
+      - run: plano-self-test
   cygwin:
     runs-on: windows-latest
     steps:
@@ -21,14 +36,14 @@ jobs:
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
       - run: plano-self-test
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
-  ubuntu:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
-      - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - run: pip install build
-      - run: make install
-      - run: plano-self-test
+  # ubuntu:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-python@v4
+  #       with:
+  #         python-version: "3.x"
+  #     - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+  #     - run: pip install build
+  #     - run: make install
+  #     - run: plano-self-test
