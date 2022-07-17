@@ -17,6 +17,8 @@ jobs:
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
       - run: make install
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
+      - run: echo "C:\Users\runneradmin\AppData\Roaming\Python\Python39\Scripts" >> "$GITHUB_PATH"
+        shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
       - run: plano-self-test
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
   ubuntu:
