@@ -1012,7 +1012,10 @@ def is_link(path):
     return _os.path.islink(path)
 
 def join(*paths):
-    return _os.path.join(*paths)
+    path = _os.path.join(*paths)
+    path = normalize_path(path)
+
+    return path
 
 def split(path):
     return _os.path.split(path)
