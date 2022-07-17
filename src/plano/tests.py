@@ -550,7 +550,7 @@ def path_operations():
     expect = normpath("/c")
     assert result == expect, (result, expect)
 
-    path = "/a/b"
+    path = abspath("/a/b")
     result = get_relative_path(path, "/a/c")
     expect = normpath("../b")
     assert result == expect, (result, expect)

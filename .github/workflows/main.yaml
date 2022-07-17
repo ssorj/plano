@@ -13,15 +13,9 @@ jobs:
       - uses: cygwin/cygwin-install-action@master
         with:
           packages: python3
-      - run: echo "C:\Users\runneradmin\AppData\Roaming\Python\Python39\Scripts:/usr/bin:$(cygpath ${SYSTEMROOT})/system32" > "$GITHUB_PATH"
-        shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
       - run: pip install build
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
       - run: make install
-        shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
-      - run: which tar
-        shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
-      - run: echo $PATH
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
       - run: plano-self-test
         shell: C:\cygwin\bin\bash.exe -o igncr '{0}'
