@@ -41,8 +41,7 @@ jobs:
     container: fedora:latest
     steps:
       - uses: actions/checkout@v3
-      - run: dnf -y install make pip python
-      - run: pip install build wheel
+      - run: dnf -y install make pip python python-build python-wheel
       - run: make install
       - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - run: plano-self-test
