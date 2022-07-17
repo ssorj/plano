@@ -174,7 +174,7 @@ def env_operations():
         assert get_current_dir() == curr_dir, (get_current_dir(), curr_dir)
 
     result = get_home_dir()
-    assert result == ENV["HOME"], (result, ENV["HOME"])
+    assert result == _os.path.expanduser("~"), (result, _os.path.expanduser("~"))
 
     result = get_home_dir("alice")
     assert result.endswith("alice"), result
@@ -516,17 +516,22 @@ def logging_operations():
 
 @test
 def path_operations():
+    normpath = _os.path.normpath
+
     with working_dir("/"):
-        curr_dir = get_current_dir()
-        assert curr_dir == _os.path.abspath(_os.sep), curr_dir
+        result = get_current_dir()
+        expect = _os.path.abspath(_os.sep)
+        assert result == expect, (result, expect)
 
         path = "a/b/c"
         result = get_absolute_path(path)
-        assert result == join(curr_dir, path), result
+        expect = join(get_current_dir(), path)
+        assert result == expect, (result, expect)
 
     path = "/x/y/z"
     result = get_absolute_path(path)
-    assert result == path, result
+    expect = normpath(path)
+    assert result == expect, (result, expect)
 
     path = "/x/y/z"
     assert is_absolute(path)
@@ -536,23 +541,28 @@ def path_operations():
 
     path = "a//b/../c/"
     result = normalize_path(path)
-    assert result == "a/c", result
+    expect = normpath("a/c")
+    assert result == expect, (result, expect)
 
     path = "/a/../c"
     result = get_real_path(path)
-    assert result == "/c", result
+    expect = normpath("/c")
+    assert result == expect, (result, expect)
 
     path = "/a/b"
     result = get_relative_path(path, "/a/c")
-    assert result == "../b", result
+    expect = normpath("../b")
+    assert result == expect, (result, expect)
 
     path = "/a/b"
     result = get_file_url(path)
-    assert result == "file:/a/b", result
+    expect = "file:/a/b"
+    assert result == expect, (result, expect)
 
     with working_dir():
         result = get_file_url("afile")
-        assert result == "file:{0}/afile".format(get_current_dir()), result
+        expect = "file:{0}/afile".format(get_current_dir())
+        assert result == expect, (result, expect)
 
     path = "/alpha/beta.ext"
     path_split = "/alpha", "beta.ext"
@@ -560,28 +570,36 @@ def path_operations():
     name_split_extension = "beta", ".ext"
 
     result = join(*path_split)
-    assert result == path, result
+    expect = normpath(path)
+    assert result == expect, (result, expect)
 
     result = split(path)
-    assert result == path_split, result
+    expect = normpath(path_split[0]), normpath(path_split[1])
+    assert result == expect, (result, expect)
 
     result = split_extension(path)
-    assert result == path_split_extension, result
+    expect = normpath(path_split_extension[0]), normpath(path_split_extension[1])
+    assert result == expect, (result, expect)
 
     result = get_parent_dir(path)
-    assert result == path_split[0], result
+    expect = normpath(path_split[0])
+    assert result == expect, (result, expect)
 
     result = get_base_name(path)
-    assert result == path_split[1], result
+    expect = normpath(path_split[1])
+    assert result == expect, (result, expect)
 
     result = get_name_stem(path)
-    assert result == name_split_extension[0], result
+    expect = normpath(name_split_extension[0])
+    assert result == expect, (result, expect)
 
     result = get_name_stem("alpha.tar.gz")
-    assert result == "alpha", result
+    expect = "alpha"
+    assert result == expect, (result, expect)
 
     result = get_name_extension(path)
-    assert result == name_split_extension[1], result
+    expect = normpath(name_split_extension[1])
+    assert result == expect, (result, expect)
 
     with working_dir():
         touch("adir/afile")

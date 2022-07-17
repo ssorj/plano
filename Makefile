@@ -31,7 +31,7 @@ build:
 	python -m build
 
 .PHONY: test
-test: build
+test: clean build
 	python -m venv build/venv
 	. build/venv/bin/activate && pip install dist/plano-*-py3-none-any.whl
 	. build/venv/bin/activate && plano-self-test
