@@ -516,11 +516,12 @@ def logging_operations():
 
 @test
 def path_operations():
+    abspath = _os.path.abspath
     normpath = _os.path.normpath
 
     with working_dir("/"):
         result = get_current_dir()
-        expect = _os.path.abspath(_os.sep)
+        expect = abspath(_os.sep)
         assert result == expect, (result, expect)
 
         path = "a/b/c"
@@ -530,7 +531,7 @@ def path_operations():
 
     path = "/x/y/z"
     result = get_absolute_path(path)
-    expect = normpath(path)
+    expect = abspath(path)
     assert result == expect, (result, expect)
 
     path = "/x/y/z"
@@ -1156,13 +1157,12 @@ def plano_shell_command():
 
         PlanoShellCommand().main(["--command", "print_env()"])
 
-        # XXX
+        if not WINDOWS:
+            write("command", "from plano import *; PlanoShellCommand().main()")
 
-        # write("command", "from plano import *; PlanoShellCommand().main()")
-
-        # with working_env(PYTHONPATH=python_dir):
-        #     run("{0} command".format(_sys.executable), input="cprint('Hi!', color='green'); exit()")
-        #     run("echo \"cprint('Bi!', color='red')\" | {0} command -".format(_sys.executable), shell=True)
+            with working_env(PYTHONPATH=python_dir):
+                run("{0} command".format(_sys.executable), input="cprint('Hi!', color='green'); exit()")
+                run("echo \"cprint('Bi!', color='red')\" | {0} command -".format(_sys.executable), shell=True)
 
     with expect_system_exit():
         PlanoShellCommand().main(["no-such-file"])
