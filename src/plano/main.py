@@ -109,7 +109,7 @@ def make_archive(input_dir, output_file=None, quiet=False):
     _info(quiet, "Making archive {0} from directory {1}", repr(output_file), repr(input_dir))
 
     with working_dir(get_parent_dir(input_dir)):
-        run("tar -czf {0} {1}".format(output_file, archive_stem))
+        run("tar -czf {0} --force-local {1}".format(output_file, archive_stem))
 
     return output_file
 
