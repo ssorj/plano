@@ -29,7 +29,8 @@ try:
 except ImportError: # pragma: nocover
     import BaseHTTPServer as _http
 
-from plano.main import *
+from .main import *
+from .commands import *
 
 test_project_dir = join(get_parent_dir(__file__), "testproject")
 
@@ -1140,7 +1141,7 @@ def plano_command():
         assert result == ["bunk", "malarkey", "bollocks"], result
 
 @test
-def plano_shell_command():
+def planosh_command():
     python_dir = get_absolute_path("python")
 
     with working_dir():
@@ -1167,6 +1168,7 @@ def plano_shell_command():
 
 def main():
     test_modules = _sys.modules[__name__]
+
     PlanoTestCommand(test_modules).main()
 
     # import plano.bullseyetests as bullseyetests

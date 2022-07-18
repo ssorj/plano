@@ -1683,6 +1683,62 @@ def test(_function=None, name=None, timeout=None, disabled=False):
     else:
         return Test(_function)
 
+class expect_exception(object):
+    def __init__(self, exception_type=Exception, contains=None):
+        self.exception_type = exception_type
+        self.contains = contains
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_value is None:
+            assert False, "Never encountered expected exception {0}".format(self.exception_type.__name__)
+
+        if self.contains is None:
+            return isinstance(exc_value, self.exception_type)
+        else:
+            return isinstance(exc_value, self.exception_type) and self.contains in str(exc_value)
+
+class expect_error(expect_exception):
+    def __init__(self, contains=None):
+        super(expect_error, self).__init__(PlanoError, contains=contains)
+
+class expect_timeout(expect_exception):
+    def __init__(self, contains=None):
+        super(expect_timeout, self).__init__(PlanoTimeout, contains=contains)
+
+class expect_system_exit(expect_exception):
+    def __init__(self, contains=None):
+        super(expect_system_exit, self).__init__(SystemExit, contains=contains)
+
+class expect_output(temp_file):
+    def __init__(self, equals=None, contains=None, startswith=None, endswith=None):
+        super(expect_output, self).__init__()
+        self.equals = equals
+        self.contains = contains
+        self.startswith = startswith
+        self.endswith = endswith
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        result = read(self.file)
+
+        if self.equals is None:
+            assert len(result) > 0, result
+        else:
+            assert result == self.equals, result
+
+        if self.contains is not None:
+            assert self.contains in result, result
+
+        if self.startswith is not None:
+            assert result.startswith(self.startswith), result
+
+        if self.endswith is not None:
+            assert result.endswith(self.endswith), result
+
+        super(expect_output, self).__exit__(exc_type, exc_value, traceback)
+
 def print_tests(modules):
     if _inspect.ismodule(modules):
         modules = (modules,)
@@ -1878,116 +1934,6 @@ class TestRun(object):
     def __repr__(self):
         return format_repr(self)
 
-class expect_exception(object):
-    def __init__(self, exception_type=Exception, contains=None):
-        self.exception_type = exception_type
-        self.contains = contains
-
-    def __enter__(self):
-        pass
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if exc_value is None:
-            assert False, "Never encountered expected exception {0}".format(self.exception_type.__name__)
-
-        if self.contains is None:
-            return isinstance(exc_value, self.exception_type)
-        else:
-            return isinstance(exc_value, self.exception_type) and self.contains in str(exc_value)
-
-class expect_error(expect_exception):
-    def __init__(self, contains=None):
-        super(expect_error, self).__init__(PlanoError, contains=contains)
-
-class expect_timeout(expect_exception):
-    def __init__(self, contains=None):
-        super(expect_timeout, self).__init__(PlanoTimeout, contains=contains)
-
-class expect_system_exit(expect_exception):
-    def __init__(self, contains=None):
-        super(expect_system_exit, self).__init__(SystemExit, contains=contains)
-
-class expect_output(temp_file):
-    def __init__(self, equals=None, contains=None, startswith=None, endswith=None):
-        super(expect_output, self).__init__()
-        self.equals = equals
-        self.contains = contains
-        self.startswith = startswith
-        self.endswith = endswith
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        result = read(self.file)
-
-        if self.equals is None:
-            assert len(result) > 0, result
-        else:
-            assert result == self.equals, result
-
-        if self.contains is not None:
-            assert self.contains in result, result
-
-        if self.startswith is not None:
-            assert result.startswith(self.startswith), result
-
-        if self.endswith is not None:
-            assert result.endswith(self.endswith), result
-
-        super(expect_output, self).__exit__(exc_type, exc_value, traceback)
-
-class PlanoTestCommand(BaseCommand):
-    def __init__(self, test_modules=[]):
-        super(PlanoTestCommand, self).__init__()
-
-        self.test_modules = test_modules
-
-        if _inspect.ismodule(self.test_modules):
-            self.test_modules = [self.test_modules]
-
-        self.parser = BaseArgumentParser()
-        self.parser.add_argument("include", metavar="PATTERN", nargs="*", default=["*"],
-                                 help="Run only tests with names matching PATTERN. This option can be repeated.")
-        self.parser.add_argument("-e", "--exclude", metavar="PATTERN", action="append", default=[],
-                                 help="Do not run tests with names matching PATTERN. This option can be repeated.")
-        self.parser.add_argument("-m", "--module", action="append", default=[],
-                                 help="Load tests from MODULE.  This option can be repeated.")
-        self.parser.add_argument("-l", "--list", action="store_true",
-                                 help="Print the test names and exit")
-        self.parser.add_argument("--enable", metavar="PATTERN", action="append", default=[],
-                                 help="Enable disabled tests matching PATTERN.  This option can be repeated.")
-        self.parser.add_argument("--timeout", metavar="SECONDS", type=int, default=300,
-                                 help="Fail any test running longer than SECONDS (default 300)")
-        self.parser.add_argument("--fail-fast", action="store_true",
-                                 help="Exit on the first failure encountered in a test run")
-        self.parser.add_argument("--iterations", metavar="COUNT", type=int, default=1,
-                                 help="Run the tests COUNT times (default 1)")
-
-    def parse_args(self, args):
-        return self.parser.parse_args(args)
-
-    def init(self, args):
-        self.list_only = args.list
-        self.include_patterns = args.include
-        self.exclude_patterns = args.exclude
-        self.enable_patterns = args.enable
-        self.timeout = args.timeout
-        self.fail_fast = args.fail_fast
-        self.iterations = args.iterations
-
-        try:
-            for name in args.module:
-                self.test_modules.append(_import_module(name))
-        except ImportError as e:
-            raise PlanoError(e)
-
-    def run(self):
-        if self.list_only:
-            print_tests(self.test_modules)
-            return
-
-        for i in range(self.iterations):
-            run_tests(self.test_modules, include=self.include_patterns, exclude=self.exclude_patterns, enable=self.enable_patterns,
-                      test_timeout=self.timeout, fail_fast=self.fail_fast, verbose=self.verbose, quiet=self.quiet)
-
 ## Plano command operations
 
 _command_help = {
@@ -2085,6 +2031,7 @@ def command(_function=None, name=None, args=None, parent=None):
             return output_args
 
         def __call__(self, app, *args, **kwargs):
+            from .commands import PlanoCommand
             assert isinstance(app, PlanoCommand), app
 
             command = app.bound_commands[self.name]
@@ -2120,6 +2067,7 @@ def command(_function=None, name=None, args=None, parent=None):
                 cprint("{0}| {1}".format(dashes[:-2], name), color="magenta", file=_sys.stderr)
 
         def super(self, app, *args, **kwargs):
+            from .commands import PlanoCommand
             assert isinstance(app, PlanoCommand), app
 
             if self.parent is None:
@@ -2176,213 +2124,3 @@ class CommandArgument(object):
 
     def __repr__(self):
         return "argument '{0}' (default {1})".format(self.name, repr(self.default))
-
-class PlanoCommand(BaseCommand):
-    def __init__(self, planofile=None):
-        self.planofile = planofile
-
-        description = "Run commands defined as Python functions"
-
-        self.pre_parser = BaseArgumentParser(description=description, add_help=False)
-        self.pre_parser.add_argument("-h", "--help", action="store_true",
-                                     help="Show this help message and exit")
-
-        if self.planofile is None:
-            self.pre_parser.add_argument("-f", "--file",
-                                         help="Load commands from FILE (default 'Planofile' or '.planofile')")
-
-        self.parser = _argparse.ArgumentParser(parents=(self.pre_parser,), add_help=False, allow_abbrev=False)
-
-        self.bound_commands = _collections.OrderedDict()
-        self.running_commands = list()
-
-        self.default_command_name = None
-        self.default_command_args = None
-        self.default_command_kwargs = None
-
-    # def bind_commands(self, module):
-    #     self._bind_commands(vars(module))
-
-    def set_default_command(self, name, *args, **kwargs):
-        self.default_command_name = name
-        self.default_command_args = args
-        self.default_command_kwargs = kwargs
-
-    def parse_args(self, args):
-        pre_args, _ = self.pre_parser.parse_known_args(args)
-
-        self._load_config(getattr(pre_args, "file", None))
-        self._process_commands()
-
-        return self.parser.parse_args(args)
-
-    def init(self, args):
-        # XXX Can this move to the top of run?
-        if args.help or args.command is None and self.default_command_name is None:
-            self.parser.print_help()
-            self.init_only = True
-            return
-
-        if args.command is None:
-            self.selected_command = self.bound_commands[self.default_command_name]
-            self.command_args = self.default_command_args
-            self.command_kwargs = self.default_command_kwargs
-        else:
-            self.selected_command = self.bound_commands[args.command]
-            self.command_args = list()
-            self.command_kwargs = dict()
-
-            for arg in self.selected_command.args.values():
-                if arg.positional:
-                    if arg.multiple:
-                        self.command_args.extend(getattr(args, arg.name))
-                    else:
-                        self.command_args.append(getattr(args, arg.name))
-                else:
-                    self.command_kwargs[arg.name] = getattr(args, arg.name)
-
-    def run(self):
-        with Timer() as timer:
-            self.selected_command(self, *self.command_args, **self.command_kwargs)
-
-        cprint("OK", color="green", file=_sys.stderr, end="")
-        cprint(" ({0})".format(format_duration(timer.elapsed_time)), color="magenta", file=_sys.stderr)
-
-    def _bind_commands(self, scope):
-        for var in scope.values():
-            if callable(var) and var.__class__.__name__ == "Command":
-                self.bound_commands[var.name] = var
-
-    def _load_config(self, planofile):
-        if planofile is None:
-            planofile = self.planofile
-
-        if planofile is not None and is_dir(planofile):
-            planofile = self._find_planofile(planofile)
-
-        if planofile is not None and not is_file(planofile):
-            exit("Planofile '{0}' not found", planofile)
-
-        if planofile is None:
-            planofile = self._find_planofile(get_current_dir())
-
-        if planofile is None:
-            return
-
-        debug("Loading '{0}'", planofile)
-
-        _sys.path.insert(0, join(get_parent_dir(planofile), "python"))
-
-        scope = dict(globals())
-        scope["app"] = self
-
-        try:
-            with open(planofile) as f:
-                exec(f.read(), scope)
-        except Exception as e:
-            error(e)
-            exit("Failure loading {0}: {1}", repr(planofile), str(e))
-
-        self._bind_commands(scope)
-
-    def _find_planofile(self, dir):
-        for name in ("Planofile", ".planofile"):
-            path = join(dir, name)
-
-            if is_file(path):
-                return path
-
-    def _process_commands(self):
-        subparsers = self.parser.add_subparsers(title="commands", dest="command")
-
-        for command in self.bound_commands.values():
-            subparser = subparsers.add_parser(command.name, help=command.help,
-                                              description=nvl(command.description, command.help),
-                                              formatter_class=_argparse.RawDescriptionHelpFormatter)
-
-            for arg in command.args.values():
-                if arg.positional:
-                    if arg.multiple:
-                        subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help, nargs="*")
-                    elif arg.optional:
-                        subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help, nargs="?", default=arg.default)
-                    else:
-                        subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
-                else:
-                    flag_args = list()
-
-                    if arg.short_option is not None:
-                        flag_args.append("-{0}".format(arg.short_option))
-
-                    flag_args.append("--{0}".format(arg.display_name))
-
-                    help = arg.help
-
-                    if arg.default not in (None, False):
-                        if help is None:
-                            help = "Default value is {0}".format(repr(arg.default))
-                        else:
-                            help += " (default {0})".format(repr(arg.default))
-
-                    if arg.default is False:
-                        subparser.add_argument(*flag_args, dest=arg.name, default=arg.default, action="store_true", help=help)
-                    else:
-                        subparser.add_argument(*flag_args, dest=arg.name, default=arg.default, metavar=arg.metavar, type=arg.type, help=help)
-
-            _capitalize_help(subparser)
-
-## Plano shell operations
-
-class PlanoShellCommand(BaseCommand):
-    def __init__(self):
-        self.parser = BaseArgumentParser()
-        self.parser.add_argument("file", metavar="FILE", nargs="?",
-                                 help="Read program from FILE")
-        self.parser.add_argument("arg", metavar="ARG", nargs="*",
-                                 help="Program arguments")
-        self.parser.add_argument("-c", "--command",
-                                 help="A program passed in as a string")
-        self.parser.add_argument("-i", "--interactive", action="store_true",
-                                 help="Operate interactively after running the program (if any)")
-
-    def parse_args(self, args):
-        return self.parser.parse_args(args)
-
-    def init(self, args):
-        self.file = args.file
-        self.interactive = args.interactive
-        self.command = args.command
-
-    def run(self):
-        stdin_isatty = _os.isatty(_sys.stdin.fileno())
-        script = None
-
-        if self.file == "-": # pragma: nocover
-            script = _sys.stdin.read()
-        elif self.file is not None:
-            try:
-                with open(self.file) as f:
-                    script = f.read()
-            except IOError as e:
-                raise PlanoError(e)
-        elif not stdin_isatty: # pragma: nocover
-            # Stdin is a pipe
-            script = _sys.stdin.read()
-
-        if self.command is not None:
-            exec(self.command, globals())
-
-        if script is not None:
-            global ARGS
-            ARGS = ARGS[1:]
-
-            exec(script, globals())
-
-        if (self.command is None and self.file is None and stdin_isatty) or self.interactive: # pragma: nocover
-            _code.InteractiveConsole(locals=globals()).interact()
-
-if PLANO_DEBUG: # pragma: nocover
-    enable_logging(level="debug")
-
-def main():
-    PlanoCommand().main()
