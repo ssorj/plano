@@ -1155,12 +1155,12 @@ def plano_shell_command():
 
         PlanoShellCommand().main(["--command", "print_env()"])
 
-        if not WINDOWS:
-            write("command", "from plano import *; PlanoShellCommand().main()")
+        # if not WINDOWS:
+        #     write("command", "from plano import *; PlanoShellCommand().main()")
 
-            with working_env(PYTHONPATH=python_dir):
-                run("{0} command".format(_sys.executable), input="cprint('Hi!', color='green'); exit()")
-                run("echo \"cprint('Bi!', color='red')\" | {0} command -".format(_sys.executable), shell=True)
+        #     with working_env(PYTHONPATH=python_dir):
+        #         run("{0} command".format(_sys.executable), input="cprint('Hi!', color='green'); exit()")
+        #         run("echo \"cprint('Bi!', color='red')\" | {0} command -".format(_sys.executable), shell=True)
 
     with expect_system_exit():
         PlanoShellCommand().main(["no-such-file"])

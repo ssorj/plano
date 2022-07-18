@@ -33,12 +33,12 @@ build:
 .PHONY: test
 test: clean build
 	python -m venv build/venv
-	. build/venv/bin/activate && pip install dist/plano-*-py3-none-any.whl
+	. build/venv/bin/activate && pip install --force-reinstall dist/plano-*-py3-none-any.whl
 	. build/venv/bin/activate && plano-self-test
 
 .PHONY: install
 install: build
-	pip install --user --force-reinstall dist/plano-*-py3-none-any.whl
+	pip install --user dist/plano-*-py3-none-any.whl
 
 .PHONY: clean
 clean:
@@ -49,9 +49,11 @@ docs:
 	mkdir -p build
 	sphinx-build -M html docs build/docs
 
-# .PHONY: coverage
-# coverage:
-# 	coverage3 run --omit /tmp/\* scripts/test
-# 	coverage3 report
-# 	coverage3 html
-# 	@echo file:${CURDIR}/htmlcov/index.html
+.PHONY: coverage
+coverage: build
+	python -m venv build/venv
+	. build/venv/bin/activate && pip install --force-reinstall dist/plano-*-py3-none-any.whl
+	. build/venv/bin/activate && PYTHONPATH=build/venv/lib/python3.10/site-packages coverage3 run --omit /tmp/\*,\*/yaml/\* build/venv/bin/plano-self-test
+	coverage3 report
+	coverage3 html
+	@echo file:${CURDIR}/htmlcov/index.html
