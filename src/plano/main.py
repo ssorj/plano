@@ -415,7 +415,7 @@ def list_dir(dir=None, include="*", exclude=()):
     if dir in (None, ""):
         dir = get_current_dir()
 
-    assert is_dir(dir)
+    assert is_dir(dir), dir
 
     if is_string(include):
         include = (include,)
