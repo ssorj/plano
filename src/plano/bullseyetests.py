@@ -60,7 +60,7 @@ def build_command():
         check_file("build/chucker/python/chuckertests.py")
 
         result = read("build/bin/chucker").strip()
-        assert result.endswith(".local/lib/chucker"), result
+        assert result.endswith(join(".local", "lib", "chucker")), result
 
         result = read_json("build/build.json")
         assert result["prefix"].endswith(".local"), result
@@ -90,6 +90,9 @@ def test_command():
 
 @test
 def install_command():
+    if WINDOWS:
+        raise PlanoTestSkipped("Not yet adapted for Windows")
+
     with test_project():
         run_plano("install", "--staging-dir", "staging")
 

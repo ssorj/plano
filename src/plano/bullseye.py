@@ -177,6 +177,9 @@ def install(app, staging_dir="", prefix=None, clean_=False):
     build_prefix = project.build_dir + "/"
     install_prefix = staging_dir + build_data["prefix"]
 
+    # XXX Windows trouble
+    # > plano-self-test: notice: Copying 'build\\bin\\chucker' to 'stagingC:\\Users\\runneradmin\\.local\\build\\bin\\chucker'
+
     for path in find(join(project.build_dir, "bin")):
         copy(path, join(install_prefix, remove_prefix(path, build_prefix)), inside=False, symlinks=False)
 
