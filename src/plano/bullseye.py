@@ -26,6 +26,7 @@ import shutil as _shutil
 import sys as _sys
 
 from plano import *
+from plano import _import_module
 
 class _Project:
     def __init__(self):
@@ -135,7 +136,7 @@ def build(app, prefix=None, clean_=False):
                CommandArgument("enable", help="Enable disabled tests matching PATTERN", metavar="PATTERN"),
                CommandArgument("list_", help="Print the test names and exit", display_name="list"),
                _verbose_arg, _clean_arg))
-def test(app, include="*", exclude=None, enable=None, list_=False, verbose=False, clean_=False):
+def test_(app, include="*", exclude=None, enable=None, list_=False, verbose=False, clean_=False):
     check_project()
 
     if clean_:
@@ -145,7 +146,6 @@ def test(app, include="*", exclude=None, enable=None, list_=False, verbose=False
         build(app)
 
     with project_env():
-        from plano import _import_module
         modules = [_import_module(x) for x in project.test_modules]
 
         if not modules: # pragma: nocover

@@ -18,9 +18,8 @@
 #
 
 from plano import *
+from plano.commands import *
 from plano.bullseye import *
-
-from plano.bullseye import test as test_command
 
 test_project_dir = join(get_parent_dir(__file__), "testproject")
 result_file = "build/result.json"

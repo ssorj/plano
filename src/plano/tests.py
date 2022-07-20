@@ -1167,9 +1167,5 @@ def planosh_command():
         PlanoShellCommand().main(["no-such-file"])
 
 def main():
-    test_modules = _sys.modules[__name__]
-
-    PlanoTestCommand(test_modules).main()
-
-    # import plano.bullseyetests as bullseyetests
-    # PlanoTestCommand(bullseyetests).main()
+    import plano.bullseyetests as bullseyetests
+    PlanoTestCommand((_sys.modules[__name__], bullseyetests)).main()
