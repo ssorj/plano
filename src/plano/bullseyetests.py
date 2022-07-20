@@ -48,6 +48,9 @@ def project_operations():
 
 @test
 def build_command():
+    if WINDOWS:
+        raise PlanoTestSkipped("Not ready for for Windows")
+
     with test_project():
         run_plano("build")
 
@@ -91,7 +94,7 @@ def test_command():
 @test
 def install_command():
     if WINDOWS:
-        raise PlanoTestSkipped("Not yet adapted for Windows")
+        raise PlanoTestSkipped("Not ready for for Windows")
 
     with test_project():
         run_plano("install", "--staging-dir", "staging")
