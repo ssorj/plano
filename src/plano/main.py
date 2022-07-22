@@ -1066,8 +1066,11 @@ def get_name_extension(file):
 
 def _check_path(path, test_func, message):
     if not test_func(path):
-        found_paths = [repr(x) for x in list_dir(get_parent_dir(path))]
-        message = "{0}. The parent directory contains: {1}".format(message.format(repr(path)), ", ".join(found_paths))
+        parent_dir = get_parent_dir(path)
+
+        if is_dir(parent_dir):
+            found_paths = ", ".join([repr(x) for x in list_dir(parent_dir)])
+            message = "{0}. The parent directory contains: {1}".format(message.format(repr(path)), found_paths)
 
         raise PlanoError(message)
 
