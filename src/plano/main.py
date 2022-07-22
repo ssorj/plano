@@ -2071,15 +2071,6 @@ def command(_function=None, name=None, args=None, parent=None):
 
                 cprint("{0}| {1}".format(dashes[:-2], name), color="magenta", file=_sys.stderr)
 
-        def super(self, app, *args, **kwargs):
-            from .commands import PlanoCommand
-            assert isinstance(app, PlanoCommand), app
-
-            if self.parent is None:
-                raise PlanoError("You called super() in a command with no parent ({0})".format(self))
-
-            self.parent.function(app, *args, **kwargs)
-
         def get_display_args(self, args, kwargs):
             for i, arg in enumerate(self.args.values()):
                 if arg.positional:
