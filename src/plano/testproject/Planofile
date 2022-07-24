@@ -15,7 +15,7 @@ def extended_command(app, alpha, beta, omega="y"):
 def echo(app, message_, count=1, extra=None, trouble=False):
     """Print a message to the console"""
 
-    print("Echoing (message={0}, count={1})".format(message_, count))
+    print("Echoing (message={}, count={})".format(message_, count))
 
     if trouble:
         raise Exception("Trouble")

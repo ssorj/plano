@@ -151,7 +151,7 @@ class PlanoCommand(BaseCommand):
             self.selected_command(self, *self.command_args, **self.command_kwargs)
 
         cprint("OK", color="green", file=_sys.stderr, end="")
-        cprint(" ({0})".format(format_duration(timer.elapsed_time)), color="magenta", file=_sys.stderr)
+        cprint(" ({})".format(format_duration(timer.elapsed_time)), color="magenta", file=_sys.stderr)
 
     def _bind_commands(self, scope):
         for var in scope.values():
@@ -166,7 +166,7 @@ class PlanoCommand(BaseCommand):
             planofile = self._find_planofile(planofile)
 
         if planofile is not None and not is_file(planofile):
-            exit("Planofile '{0}' not found", planofile)
+            exit("Planofile '{}' not found", planofile)
 
         if planofile is None:
             planofile = self._find_planofile(get_current_dir())
@@ -174,7 +174,7 @@ class PlanoCommand(BaseCommand):
         if planofile is None:
             return
 
-        debug("Loading '{0}'", planofile)
+        debug("Loading '{}'", planofile)
 
         _sys.path.insert(0, join(get_parent_dir(planofile), "python"))
 
@@ -186,7 +186,7 @@ class PlanoCommand(BaseCommand):
                 exec(f.read(), scope)
         except Exception as e:
             error(e)
-            exit("Failure loading {0}: {1}", repr(planofile), str(e))
+            exit("Failure loading {}: {}", repr(planofile), str(e))
 
         self._bind_commands(scope)
 
@@ -217,17 +217,17 @@ class PlanoCommand(BaseCommand):
                     flag_args = list()
 
                     if arg.short_option is not None:
-                        flag_args.append("-{0}".format(arg.short_option))
+                        flag_args.append("-{}".format(arg.short_option))
 
-                    flag_args.append("--{0}".format(arg.display_name))
+                    flag_args.append("--{}".format(arg.display_name))
 
                     help = arg.help
 
                     if arg.default not in (None, False):
                         if help is None:
-                            help = "Default value is {0}".format(repr(arg.default))
+                            help = "Default value is {}".format(repr(arg.default))
                         else:
-                            help += " (default {0})".format(repr(arg.default))
+                            help += " (default {})".format(repr(arg.default))
 
                     if arg.default is False:
                         subparser.add_argument(*flag_args, dest=arg.name, default=arg.default, action="store_true", help=help)

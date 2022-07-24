@@ -332,7 +332,7 @@ def http_operations():
             self.server.serve_forever()
 
     host, port = "localhost", get_random_port()
-    url = "http://{0}:{1}".format(host, port)
+    url = "http://{}:{}".format(host, port)
     server = _http.HTTPServer((host, port), Handler)
     server_thread = ServerThread(server)
 
@@ -493,7 +493,7 @@ def logging_operations():
     notice("Take a look!")
     notice(123)
     debug("By the way")
-    debug("abc{0}{1}{2}", 1, 2, 3)
+    debug("abc{}{}{}", 1, 2, 3)
 
     with expect_exception(RuntimeError):
         fail(RuntimeError("Error!"))
@@ -1016,10 +1016,10 @@ def value_operations():
     result = format_empty((1,), "[nothing]")
     assert result == (1,), result
 
-    result = format_not_empty("abc", "[{0}]")
+    result = format_not_empty("abc", "[{}]")
     assert result == "[abc]", result
 
-    result = format_not_empty({}, "[{0}]")
+    result = format_not_empty({}, "[{}]")
     assert result == {}, result
 
     result = format_repr(Namespace(a=1, b=2), limit=1)
@@ -1161,8 +1161,8 @@ def planosh_command():
         #     write("command", "from plano import *; PlanoShellCommand().main()")
 
         #     with working_env(PYTHONPATH=python_dir):
-        #         run("{0} command".format(_sys.executable), input="cprint('Hi!', color='green'); exit()")
-        #         run("echo \"cprint('Bi!', color='red')\" | {0} command -".format(_sys.executable), shell=True)
+        #         run("{} command".format(_sys.executable), input="cprint('Hi!', color='green'); exit()")
+        #         run("echo \"cprint('Bi!', color='red')\" | {} command -".format(_sys.executable), shell=True)
 
     with expect_system_exit():
         PlanoShellCommand().main(["no-such-file"])
