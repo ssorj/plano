@@ -32,3 +32,17 @@ def haberdash(app, first, *middle, last="bowler"):
 def balderdash(app, required, optional="malarkey", other="rubbish"):
     data = [required, optional, other]
     write_json("balderdash.json", data)
+
+try:
+    @command
+    def missing_app_arg():
+        pass
+except:
+    pass
+
+try:
+    @command
+    def misnamed_app_arg(frootum):
+        pass
+except:
+    pass

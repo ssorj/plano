@@ -882,42 +882,42 @@ def temp_operations():
 @test
 def test_operations():
     with test_project():
-        with working_module_path("python"):
+        with working_module_path("src"):
             import chucker
-            import chuckertests
+            import chucker.tests
 
-            print_tests(chuckertests)
+            print_tests(chucker.tests)
 
             for verbose in (False, True):
-                run_tests(chuckertests, verbose=verbose)
-                run_tests(chuckertests, exclude="*hello*", verbose=verbose)
+                run_tests(chucker.tests, verbose=verbose)
+                run_tests(chucker.tests, exclude="*hello*", verbose=verbose)
 
                 with expect_error():
                     run_tests(chucker, verbose=verbose)
 
                 with expect_error():
-                    run_tests(chuckertests, enable="*badbye*", verbose=verbose)
+                    run_tests(chucker.tests, enable="*badbye*", verbose=verbose)
 
                 with expect_error():
-                    run_tests(chuckertests, enable="*badbye*", fail_fast=True, verbose=verbose)
+                    run_tests(chucker.tests, enable="*badbye*", fail_fast=True, verbose=verbose)
 
                 with expect_exception(KeyboardInterrupt):
-                    run_tests(chuckertests, enable="test_keyboard_interrupt", verbose=verbose)
+                    run_tests(chucker.tests, enable="test_keyboard_interrupt", verbose=verbose)
 
                 with expect_error():
-                    run_tests(chuckertests, enable="test_timeout", verbose=verbose)
+                    run_tests(chucker.tests, enable="test_timeout", verbose=verbose)
 
                 with expect_error():
-                    run_tests(chuckertests, enable="test_process_error", verbose=verbose)
+                    run_tests(chucker.tests, enable="test_process_error", verbose=verbose)
 
                 with expect_error():
-                    run_tests(chuckertests, enable="test_system_exit", verbose=verbose)
+                    run_tests(chucker.tests, enable="test_system_exit", verbose=verbose)
 
             with expect_system_exit():
                 PlanoTestCommand().main(["--module", "nosuchmodule"])
 
             def run_command(*args):
-                PlanoTestCommand(chuckertests).main(args)
+                PlanoTestCommand(chucker.tests).main(args)
 
             run_command("--verbose")
             run_command("--list")
@@ -1143,7 +1143,7 @@ def plano_command():
 
 @test
 def planosh_command():
-    python_dir = get_absolute_path("python")
+    # python_dir = get_absolute_path("python")
 
     with working_dir():
         write("script1", "garbage")
