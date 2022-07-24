@@ -19,11 +19,11 @@
 
 from .main import *
 from .main import _capitalize_help
-from .main import _import_module
 
 import argparse as _argparse
 import code as _code
 import collections as _collections
+import importlib as _importlib
 import inspect as _inspect
 import os as _os
 import sys as _sys
@@ -69,7 +69,7 @@ class PlanoTestCommand(BaseCommand):
 
         try:
             for name in args.module:
-                self.test_modules.append(_import_module(name))
+                self.test_modules.append(_importlib.import_module(name))
         except ImportError as e:
             raise PlanoError(e)
 

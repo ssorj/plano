@@ -41,21 +41,8 @@ import sys as _sys
 import tempfile as _tempfile
 import time as _time
 import traceback as _traceback
+import urllib as _urllib
 import uuid as _uuid
-
-try: # pragma: nocover
-    import urllib.parse as _urlparse
-except ImportError: # pragma: nocover
-    import urllib as _urlparse
-
-try:
-    import importlib as _importlib
-
-    def _import_module(name):
-        return _importlib.import_module(name)
-except ImportError: # pragma: nocover
-    def _import_module(name):
-        return __import__(name, fromlist=[""])
 
 _max = max
 
@@ -82,9 +69,6 @@ STDIN = _sys.stdin
 STDOUT = _sys.stdout
 STDERR = _sys.stderr
 DEVNULL = _os.devnull
-
-PYTHON2 = _sys.version_info[0] == 2
-PYTHON3 = _sys.version_info[0] == 3
 
 LINUX = _sys.platform == "linux"
 WINDOWS = _sys.platform in ("win32", "cygwin")
@@ -267,7 +251,7 @@ def _get_color_code(color, bright):
     return "".join(elems)
 
 def _is_color_enabled(file):
-    return PYTHON3 and hasattr(file, "isatty") and file.isatty()
+    return hasattr(file, "isatty") and file.isatty()
 
 class console_color(object):
     def __init__(self, color=None, bright=False, file=_sys.stdout):
@@ -1236,14 +1220,10 @@ def kill(proc, quiet=False):
 def wait(proc, timeout=None, check=False, quiet=False):
     _info(quiet, "Waiting for {} to exit", proc)
 
-    if PYTHON2: # pragma: nocover
-        assert timeout is None, "The timeout option is not supported on Python 2"
-        proc.wait()
-    else:
-        try:
-            proc.wait(timeout=timeout)
-        except _subprocess.TimeoutExpired:
-            raise PlanoTimeout()
+    try:
+        proc.wait(timeout=timeout)
+    except _subprocess.TimeoutExpired:
+        raise PlanoTimeout()
 
     if proc.exit_code == 0:
         debug("{} exited normally", proc)
@@ -1433,10 +1413,10 @@ def base64_decode(string):
     return _base64.b64decode(string)
 
 def url_encode(string):
-    return _urlparse.quote_plus(string)
+    return _urllib.parse.quote_plus(string)
 
 def url_decode(string):
-    return _urlparse.unquote_plus(string)
+    return _urllib.parse.unquote_plus(string)
 
 ## Temp operations
 

@@ -705,12 +705,11 @@ def process_operations():
     with expect_error():
         call("cat /whoa/not/really")
 
-    if PYTHON3:
-        proc = start("sleep 10")
+    proc = start("sleep 10")
 
-        if not WINDOWS:
-            with expect_timeout():
-                wait(proc, timeout=TINY_INTERVAL)
+    if not WINDOWS:
+        with expect_timeout():
+            wait(proc, timeout=TINY_INTERVAL)
 
     proc = start("echo hello")
     sleep(TINY_INTERVAL)
@@ -1061,9 +1060,6 @@ def yaml_operations():
 
 @test
 def plano_command():
-    if PYTHON2: # pragma: nocover
-        raise PlanoTestSkipped("The plano command is not supported on Python 2")
-
     with working_dir():
         PlanoCommand().main([])
 
@@ -1143,8 +1139,6 @@ def plano_command():
 
 @test
 def planosh_command():
-    # python_dir = get_absolute_path("python")
-
     with working_dir():
         write("script1", "garbage")
 
@@ -1156,13 +1150,6 @@ def planosh_command():
         PlanoShellCommand().main(["script2"])
 
         PlanoShellCommand().main(["--command", "print_env()"])
-
-        # if not WINDOWS:
-        #     write("command", "from plano import *; PlanoShellCommand().main()")
-
-        #     with working_env(PYTHONPATH=python_dir):
-        #         run("{} command".format(_sys.executable), input="cprint('Hi!', color='green'); exit()")
-        #         run("echo \"cprint('Bi!', color='red')\" | {} command -".format(_sys.executable), shell=True)
 
     with expect_system_exit():
         PlanoShellCommand().main(["no-such-file"])
