@@ -39,17 +39,17 @@ class PlanoTestCommand(BaseCommand):
 
         self.parser = BaseArgumentParser()
         self.parser.add_argument("include", metavar="PATTERN", nargs="*", default=["*"],
-                                 help="Run tests with names matching PATTERN. This option can be repeated.")
+                                 help="Run tests with names matching PATTERN (default '*', all tests)")
         self.parser.add_argument("-e", "--exclude", metavar="PATTERN", action="append", default=[],
-                                 help="Do not run tests with names matching PATTERN. This option can be repeated.")
+                                 help="Do not run tests with names matching PATTERN (repeatable)")
         self.parser.add_argument("-m", "--module", action="append", default=[],
-                                 help="Load tests from MODULE.  This option can be repeated.")
+                                 help="Collect tests from MODULE.  This option can be repeated.")
         self.parser.add_argument("-l", "--list", action="store_true",
                                  help="Print the test names and exit")
         self.parser.add_argument("--enable", metavar="PATTERN", action="append", default=[],
-                                 help="Enable disabled tests matching PATTERN.  This option can be repeated.")
+                                 help="Run disabled tests matching PATTERN (repeatable)")
         self.parser.add_argument("--unskip", metavar="PATTERN", action="append", default=[],
-                                 help="Enable skipped tests matching PATTERN.  This option can be repeated.")
+                                 help="Run skipped tests matching PATTERN (repeatable)")
         self.parser.add_argument("--timeout", metavar="SECONDS", type=int, default=300,
                                  help="Fail any test running longer than SECONDS (default 300)")
         self.parser.add_argument("--fail-fast", action="store_true",
