@@ -1666,6 +1666,12 @@ def test(_function=None, name=None, timeout=None, disabled=False):
     else:
         return Test(_function)
 
+def skip_test(reason=None):
+    # print(111, _inspect.stack()[1].frame.f_globals["__name__"])
+    # print(222, _inspect.stack()[1].function)
+
+    raise PlanoTestSkipped(reason)
+
 class expect_exception(object):
     def __init__(self, exception_type=Exception, contains=None):
         self.exception_type = exception_type
@@ -1730,7 +1736,7 @@ def print_tests(modules):
         for test in module._plano_tests:
             print(test)
 
-def run_tests(modules, include="*", exclude=(), enable=(), test_timeout=300, fail_fast=False, verbose=False, quiet=False):
+def run_tests(modules, include="*", exclude=(), enable=(), unskip=(), test_timeout=300, fail_fast=False, verbose=False, quiet=False):
     if _inspect.ismodule(modules):
         modules = (modules,)
 
@@ -1742,6 +1748,9 @@ def run_tests(modules, include="*", exclude=(), enable=(), test_timeout=300, fai
 
     if is_string(enable):
         enable = (enable,)
+
+    if is_string(unskip):
+        enable = (unskip,)
 
     test_run = TestRun(test_timeout=test_timeout, fail_fast=fail_fast, verbose=verbose, quiet=quiet)
 
@@ -2098,3 +2107,6 @@ class CommandArgument(object):
 
     def __repr__(self):
         return "argument '{}' (default {})".format(self.name, repr(self.default))
+
+if PLANO_DEBUG:
+    enable_logging(level="debug")

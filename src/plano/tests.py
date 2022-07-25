@@ -901,16 +901,16 @@ def test_operations():
                     run_tests(chucker.tests, enable="*badbye*", fail_fast=True, verbose=verbose)
 
                 with expect_exception(KeyboardInterrupt):
-                    run_tests(chucker.tests, enable="test_keyboard_interrupt", verbose=verbose)
+                    run_tests(chucker.tests, enable="keyboard_interrupt", verbose=verbose)
 
                 with expect_error():
-                    run_tests(chucker.tests, enable="test_timeout", verbose=verbose)
+                    run_tests(chucker.tests, enable="timeout", verbose=verbose)
 
                 with expect_error():
-                    run_tests(chucker.tests, enable="test_process_error", verbose=verbose)
+                    run_tests(chucker.tests, enable="process_error", verbose=verbose)
 
                 with expect_error():
-                    run_tests(chucker.tests, enable="test_system_exit", verbose=verbose)
+                    run_tests(chucker.tests, enable="system_exit", verbose=verbose)
 
             with expect_system_exit():
                 PlanoTestCommand().main(["--module", "nosuchmodule"])
@@ -1083,13 +1083,6 @@ def plano_command():
         run_command("--help")
         run_command("--quiet")
         run_command("--init-only")
-
-        # run_command("build")
-        # run_command("install")
-        # run_command("clean")
-
-        # with expect_system_exit():
-        #     run_command("build", "--help")
 
         with expect_system_exit():
             run_command("no-such-command")

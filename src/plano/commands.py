@@ -284,9 +284,6 @@ class PlanoShellCommand(BaseCommand):
         if (self.command is None and self.file is None and stdin_isatty) or self.interactive: # pragma: nocover
             _code.InteractiveConsole(locals=globals()).interact()
 
-if PLANO_DEBUG: # pragma: nocover
-    enable_logging(level="debug")
-
 def plano(): # pragma: nocover
     PlanoCommand().main()
 
