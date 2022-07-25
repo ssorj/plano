@@ -1779,12 +1779,14 @@ def run_tests(modules, include="*", exclude=(), enable=(), unskip=(), test_timeo
             continue
 
         for test in module._plano_tests:
+            if test.disabled and not any([_fnmatch.fnmatchcase(test.name, x) for x in enable]):
+                continue
+
             included = any([_fnmatch.fnmatchcase(test.name, x) for x in include])
             excluded = any([_fnmatch.fnmatchcase(test.name, x) for x in exclude])
             unskipped = any([_fnmatch.fnmatchcase(test.name, x) for x in unskip])
-            disabled = test.disabled and not any([_fnmatch.fnmatchcase(test.name, x) for x in enable])
 
-            if included and not excluded and not disabled:
+            if included and not excluded:
                 test_run.tests.append(test)
                 _run_test(test_run, test, unskipped)
 
