@@ -1734,7 +1734,8 @@ def print_tests(modules):
 
     for module in modules:
         for test in module._plano_tests:
-            print(test)
+            flags = "(disabled)" if test.disabled else ""
+            print(" ".join((str(test), flags)).strip())
 
 def run_tests(modules, include="*", exclude=(), enable=(), unskip=(), test_timeout=300, fail_fast=False, verbose=False, quiet=False):
     if _inspect.ismodule(modules):
