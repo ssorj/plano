@@ -1801,10 +1801,15 @@ def run_tests(modules, include="*", exclude=(), enable=(), unskip=(), test_timeo
     if total == 0:
         raise PlanoError("No tests ran")
 
+    notes = ""
+
+    if skipped != 0:
+        notes = "({} skipped)".format(skipped)
+
     if failed == 0:
-        result_message = "All tests passed ({} skipped)".format(skipped)
+        result_message = "All tests passed {}".format(notes).strip()
     else:
-        result_message = "{} {} failed ({} skipped)".format(failed, plural("test", failed), skipped)
+        result_message = "{} {} failed {}".format(failed, plural("test", failed), notes).strip()
 
     if verbose:
         if failed == 0:
