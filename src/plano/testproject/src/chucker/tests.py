@@ -32,9 +32,10 @@ def badbye():
     print("Badbye")
     assert False
 
-@test
+@test(disabled=True)
 def skipped():
-    skip_test("Test coverage")
+    skip_test("Skipped")
+    assert False
 
 @test(disabled=True)
 def keyboard_interrupt():

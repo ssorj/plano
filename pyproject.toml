@@ -9,8 +9,6 @@ authors = [
   {name="Justin Ross", email="jross@apache.org"},
 ]
 description = "Python functions for writing shell-style system scripts"
-readme = "README.md"
-license = {file="LICENSE.txt"}
 requires-python = ">=3.6"
 dependencies = ["PyYAML"]
 

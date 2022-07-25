@@ -888,11 +888,15 @@ def test_operations():
             print_tests(chucker.tests)
 
             for verbose in (False, True):
+                # Module 'chucker' has no tests
+                with expect_error():
+                    run_tests(chucker, verbose=verbose)
+
                 run_tests(chucker.tests, verbose=verbose)
                 run_tests(chucker.tests, exclude="*hello*", verbose=verbose)
 
                 with expect_error():
-                    run_tests(chucker, verbose=verbose)
+                    run_tests(chucker.tests, enable="skipped", unskip="*skipped*", verbose=verbose)
 
                 with expect_error():
                     run_tests(chucker.tests, enable="*badbye*", verbose=verbose)

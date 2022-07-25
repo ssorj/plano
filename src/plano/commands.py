@@ -39,7 +39,7 @@ class PlanoTestCommand(BaseCommand):
 
         self.parser = BaseArgumentParser()
         self.parser.add_argument("include", metavar="PATTERN", nargs="*", default=["*"],
-                                 help="Run only tests with names matching PATTERN. This option can be repeated.")
+                                 help="Run tests with names matching PATTERN. This option can be repeated.")
         self.parser.add_argument("-e", "--exclude", metavar="PATTERN", action="append", default=[],
                                  help="Do not run tests with names matching PATTERN. This option can be repeated.")
         self.parser.add_argument("-m", "--module", action="append", default=[],
@@ -48,6 +48,8 @@ class PlanoTestCommand(BaseCommand):
                                  help="Print the test names and exit")
         self.parser.add_argument("--enable", metavar="PATTERN", action="append", default=[],
                                  help="Enable disabled tests matching PATTERN.  This option can be repeated.")
+        self.parser.add_argument("--unskip", metavar="PATTERN", action="append", default=[],
+                                 help="Enable skipped tests matching PATTERN.  This option can be repeated.")
         self.parser.add_argument("--timeout", metavar="SECONDS", type=int, default=300,
                                  help="Fail any test running longer than SECONDS (default 300)")
         self.parser.add_argument("--fail-fast", action="store_true",
@@ -63,6 +65,7 @@ class PlanoTestCommand(BaseCommand):
         self.include_patterns = args.include
         self.exclude_patterns = args.exclude
         self.enable_patterns = args.enable
+        self.unskip_patterns = args.unskip
         self.timeout = args.timeout
         self.fail_fast = args.fail_fast
         self.iterations = args.iterations
@@ -79,8 +82,11 @@ class PlanoTestCommand(BaseCommand):
             return
 
         for i in range(self.iterations):
-            run_tests(self.test_modules, include=self.include_patterns, exclude=self.exclude_patterns, enable=self.enable_patterns,
-                      test_timeout=self.timeout, fail_fast=self.fail_fast, verbose=self.verbose, quiet=self.quiet)
+            run_tests(self.test_modules, include=self.include_patterns,
+                      exclude=self.exclude_patterns,
+                      enable=self.enable_patterns, unskip=self.unskip_patterns,
+                      test_timeout=self.timeout, fail_fast=self.fail_fast,
+                      verbose=self.verbose, quiet=self.quiet)
 
 class PlanoCommand(BaseCommand):
     def __init__(self, planofile=None):

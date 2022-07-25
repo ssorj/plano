@@ -1651,7 +1651,7 @@ def test(_function=None, name=None, timeout=None, disabled=False):
 
             self.module._plano_tests.append(self)
 
-        def __call__(self, test_run):
+        def __call__(self, test_run, unskipped):
             try:
                 self.function()
             except SystemExit as e:
@@ -1667,8 +1667,8 @@ def test(_function=None, name=None, timeout=None, disabled=False):
         return Test(_function)
 
 def skip_test(reason=None):
-    # print(111, _inspect.stack()[1].frame.f_globals["__name__"])
-    # print(222, _inspect.stack()[1].function)
+    if _inspect.stack()[2].frame.f_locals["unskipped"]:
+        return
 
     raise PlanoTestSkipped(reason)
 
@@ -1781,11 +1781,12 @@ def run_tests(modules, include="*", exclude=(), enable=(), unskip=(), test_timeo
         for test in module._plano_tests:
             included = any([_fnmatch.fnmatchcase(test.name, x) for x in include])
             excluded = any([_fnmatch.fnmatchcase(test.name, x) for x in exclude])
+            unskipped = any([_fnmatch.fnmatchcase(test.name, x) for x in unskip])
             disabled = test.disabled and not any([_fnmatch.fnmatchcase(test.name, x) for x in enable])
 
             if included and not excluded and not disabled:
                 test_run.tests.append(test)
-                _run_test(test_run, test)
+                _run_test(test_run, test, unskipped)
 
         if not verbose and not quiet:
             print()
@@ -1831,7 +1832,7 @@ def run_tests(modules, include="*", exclude=(), enable=(), unskip=(), test_timeo
     if failed != 0:
         raise PlanoError(result_message)
 
-def _run_test(test_run, test):
+def _run_test(test_run, test, unskipped):
     if test_run.verbose:
         notice("Running {}", test)
     elif not test_run.quiet:
@@ -1843,10 +1844,10 @@ def _run_test(test_run, test):
         try:
             with Timer(timeout=timeout) as timer:
                 if test_run.verbose:
-                    test(test_run)
+                    test(test_run, unskipped)
                 else:
                     with output_redirected(output_file, quiet=True):
-                        test(test_run)
+                        test(test_run, unskipped)
         except KeyboardInterrupt:
             raise
         except PlanoTestSkipped as e:
