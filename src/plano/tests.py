@@ -638,7 +638,12 @@ def port_operations():
     server_socket = _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM)
 
     try:
-        server_socket.bind(("localhost", server_port))
+        try:
+            server_socket.bind(("localhost", server_port))
+        except OSError:
+            server_port = get_random_port()
+            server_socket.bind(("localhost", server_port))
+
         server_socket.listen(5)
 
         await_port(server_port)
