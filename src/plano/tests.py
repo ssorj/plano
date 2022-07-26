@@ -333,7 +333,14 @@ def http_operations():
 
     host, port = "localhost", get_random_port()
     url = "http://{}:{}".format(host, port)
-    server = _http.HTTPServer((host, port), Handler)
+
+    try:
+        server = _http.HTTPServer((host, port), Handler)
+    except (OSError, PermissionError):
+        # Try one more time
+        port = get_random_port()
+        server = _http.HTTPServer((host, port), Handler)
+
     server_thread = ServerThread(server)
 
     server_thread.start()
@@ -640,7 +647,8 @@ def port_operations():
     try:
         try:
             server_socket.bind(("localhost", server_port))
-        except OSError:
+        except (OSError, PermissionError):
+            # Try one more time
             server_port = get_random_port()
             server_socket.bind(("localhost", server_port))
 
