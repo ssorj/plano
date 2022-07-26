@@ -102,7 +102,8 @@ class PlanoCommand(BaseCommand):
             self.pre_parser.add_argument("-f", "--file",
                                          help="Load commands from FILE (default 'Planofile' or '.planofile')")
 
-        self.parser = _argparse.ArgumentParser(parents=(self.pre_parser,), add_help=False, allow_abbrev=False)
+        self.parser = _argparse.ArgumentParser(parents=(self.pre_parser,),
+                                               description=description, add_help=False, allow_abbrev=False)
 
         self.bound_commands = _collections.OrderedDict()
         self.running_commands = list()
@@ -110,9 +111,6 @@ class PlanoCommand(BaseCommand):
         self.default_command_name = None
         self.default_command_args = None
         self.default_command_kwargs = None
-
-    # def bind_commands(self, module):
-    #     self._bind_commands(vars(module))
 
     def set_default_command(self, name, *args, **kwargs):
         self.default_command_name = name
@@ -128,20 +126,19 @@ class PlanoCommand(BaseCommand):
         return self.parser.parse_args(args)
 
     def init(self, args):
-        # XXX Can this move to the top of run?
-        if args.help or args.command is None and self.default_command_name is None:
-            self.parser.print_help()
-            self.init_only = True
-            return
+        self.help = args.help
+
+        self.selected_command = None
+        self.command_args = list()
+        self.command_kwargs = dict()
 
         if args.command is None:
-            self.selected_command = self.bound_commands[self.default_command_name]
-            self.command_args = self.default_command_args
-            self.command_kwargs = self.default_command_kwargs
+            if self.default_command_name is not None:
+                self.selected_command = self.bound_commands[self.default_command_name]
+                self.command_args = self.default_command_args
+                self.command_kwargs = self.default_command_kwargs
         else:
             self.selected_command = self.bound_commands[args.command]
-            self.command_args = list()
-            self.command_kwargs = dict()
 
             for arg in self.selected_command.args.values():
                 if arg.positional:
@@ -153,6 +150,10 @@ class PlanoCommand(BaseCommand):
                     self.command_kwargs[arg.name] = getattr(args, arg.name)
 
     def run(self):
+        if self.help or self.selected_command is None:
+            self.parser.print_help()
+            return
+
         with Timer() as timer:
             self.selected_command(self, *self.command_args, **self.command_kwargs)
 

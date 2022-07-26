@@ -21,6 +21,10 @@ app.set_default_command("echo", "hello", count=3)
 
 @command
 def base_command(app, alpha, beta, omega="x"):
+    """
+    Base command help
+    """
+
     print("base", alpha, beta, omega)
 
 @command(name="extended-command", parent=base_command)
@@ -32,7 +36,9 @@ def extended_command(app, alpha, beta, omega="y"):
                CommandArgument("count", help="Print the message COUNT times"),
                CommandArgument("extra", default=1, short_option="e")))
 def echo(app, message_, count=1, extra=None, trouble=False):
-    """Print a message to the console"""
+    """
+    Print a message to the console
+    """
 
     print("Echoing (message={}, count={})".format(message_, count))
 
@@ -44,11 +50,19 @@ def echo(app, message_, count=1, extra=None, trouble=False):
 
 @command
 def haberdash(app, first, *middle, last="bowler"):
+    """
+    Habberdash command help
+    """
+
     data = [first, *middle, last]
     write_json("haberdash.json", data)
 
 @command(args=(CommandArgument("optional", positional=True),))
 def balderdash(app, required, optional="malarkey", other="rubbish", **extra_kwargs):
+    """
+    Balderdash command help
+    """
+
     data = [required, optional, other]
     write_json("balderdash.json", data)
 
