@@ -47,7 +47,7 @@ class PlanoTestCommand(BaseCommand):
         self.parser.add_argument("-l", "--list", action="store_true",
                                  help="Print the test names and exit")
         self.parser.add_argument("--enable", metavar="PATTERN", action="append", default=[],
-                                 help="Run disabled tests matching PATTERN (repeatable)")
+                                 help=_argparse.SUPPRESS)
         self.parser.add_argument("--unskip", metavar="PATTERN", action="append", default=[],
                                  help="Run skipped tests matching PATTERN (repeatable)")
         self.parser.add_argument("--timeout", metavar="SECONDS", type=int, default=300,

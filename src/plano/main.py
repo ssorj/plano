@@ -2117,5 +2117,5 @@ class CommandArgument(object):
     def __repr__(self):
         return "argument '{}' (default {})".format(self.name, repr(self.default))
 
-if PLANO_DEBUG:
+if PLANO_DEBUG: # pragma: nocover
     enable_logging(level="debug")

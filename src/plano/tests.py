@@ -894,6 +894,7 @@ def test_operations():
 
                 run_tests(chucker.tests, verbose=verbose)
                 run_tests(chucker.tests, exclude="*hello*", verbose=verbose)
+                run_tests(chucker.tests, enable="skipped", verbose=verbose)
 
                 with expect_error():
                     run_tests(chucker.tests, enable="skipped", unskip="*skipped*", verbose=verbose)
