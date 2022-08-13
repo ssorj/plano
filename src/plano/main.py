@@ -18,6 +18,7 @@
 #
 
 import argparse as _argparse
+import asyncio as _asyncio
 import base64 as _base64
 import binascii as _binascii
 import code as _code
@@ -1653,7 +1654,10 @@ def test(_function=None, name=None, timeout=None, disabled=False):
 
         def __call__(self, test_run, unskipped):
             try:
-                self.function()
+                ret = self.function()
+
+                if _inspect.iscoroutine(ret):
+                    _asyncio.run(ret)
             except SystemExit as e:
                 error(e)
                 raise PlanoError("System exit with code {}".format(e))
@@ -1737,7 +1741,8 @@ def print_tests(modules):
             flags = "(disabled)" if test.disabled else ""
             print(" ".join((str(test), flags)).strip())
 
-def run_tests(modules, include="*", exclude=(), enable=(), unskip=(), test_timeout=300, fail_fast=False, verbose=False, quiet=False):
+def run_tests(modules, include="*", exclude=(), enable=(), unskip=(), test_timeout=300,
+              fail_fast=False, verbose=False, quiet=False):
     if _inspect.ismodule(modules):
         modules = (modules,)
 
