@@ -1612,12 +1612,16 @@ class Namespace(object):
 ## YAML operations
 
 def read_yaml(file):
+    check_module("yaml", "To install it, run 'pip install pyyaml'")
+
     import yaml as _yaml
 
     with _codecs.open(file, encoding="utf-8", mode="r") as f:
         return _yaml.safe_load(f)
 
 def write_yaml(file, data):
+    check_module("yaml", "To install it, run 'pip install pyyaml'")
+
     import yaml as _yaml
 
     make_parent_dir(file, quiet=True)
@@ -1628,11 +1632,17 @@ def write_yaml(file, data):
     return file
 
 def parse_yaml(yaml):
+    check_module("yaml", "To install it, run 'pip install pyyaml'")
+
     import yaml as _yaml
+
     return _yaml.safe_load(yaml)
 
 def emit_yaml(data):
+    check_module("yaml", "To install it, run 'pip install pyyaml'")
+
     import yaml as _yaml
+
     return _yaml.safe_dump(data)
 
 ## Test operations
