@@ -1419,7 +1419,7 @@ class PlanoProcessError(_subprocess.CalledProcessError, PlanoError):
 def _default_sigterm_handler(signum, frame):
     for proc in _child_processes:
         if proc.poll() is None:
-            proc.terminate()
+            kill(proc, quiet=True)
 
     exit(-(_signal.SIGTERM))
 
