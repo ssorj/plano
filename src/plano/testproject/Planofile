@@ -17,8 +17,6 @@
 # under the License.
 #
 
-app.set_default_command("echo", "hello", count=3)
-
 @command
 def base_command(alpha, beta, omega="x"):
     """
