@@ -49,6 +49,10 @@ def echo(message_, count=1, extra=None, trouble=False):
        print(message_)
 
 @command
+def echoecho(message):
+    echo(message)
+
+@command
 def haberdash(first, *middle, last="bowler"):
     """
     Habberdash command help
@@ -65,6 +69,14 @@ def balderdash(required, optional="malarkey", other="rubbish", **extra_kwargs):
 
     data = [required, optional, other]
     write_json("balderdash.json", data)
+
+@command
+def dasher(alpha, beta=123):
+    pass
+
+@command(passthrough=True)
+def dancer(gamma, omega="abc", passthrough_args=[]):
+    write_json("dancer.json", passthrough_args)
 
 try:
     @command

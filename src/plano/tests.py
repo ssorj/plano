@@ -139,7 +139,7 @@ def dir_operations():
         result = find(test_dir)
         assert result == [test_file_1, test_file_2], (result, [test_file_1, test_file_2])
 
-        result = find(test_dir, "*-file-1")
+        result = find(test_dir, include="*-file-1")
         assert result == [test_file_1], (result, [test_file_1])
 
         result = find(test_dir, exclude="*-file-1")
@@ -147,6 +147,11 @@ def dir_operations():
 
         with working_dir():
             result = find()
+            assert result == [], result
+
+            make_dir("subdir")
+
+            result = find("./subdir")
             assert result == [], result
 
     with working_dir():
@@ -336,13 +341,12 @@ def http_operations():
 
     try:
         server = _http.HTTPServer((host, port), Handler)
-    except (OSError, PermissionError):
+    except (OSError, PermissionError): # pragma: nocover
         # Try one more time
         port = get_random_port()
         server = _http.HTTPServer((host, port), Handler)
 
     server_thread = ServerThread(server)
-
     server_thread.start()
 
     try:
@@ -418,6 +422,9 @@ def io_operations():
             "alpha\n",
             "beta\n",
             "gamma\n",
+            "chi\n",
+            "psi\n",
+            "omega\n",
         ]
 
         file_b = write_lines("b", input_lines)
@@ -426,7 +433,7 @@ def io_operations():
         assert input_lines == output_lines, (input_lines, output_lines)
 
         pre_lines = ["pre-alpha\n"]
-        post_lines = ["post-gamma\n"]
+        post_lines = ["post-omega\n"]
 
         prepend_lines(file_b, pre_lines)
         append_lines(file_b, post_lines)
@@ -435,7 +442,7 @@ def io_operations():
         tailed_lines = tail_lines(file_b, 1)
 
         assert output_lines[0] == pre_lines[0], (output_lines[0], pre_lines[0])
-        assert output_lines[4] == post_lines[0], (output_lines[4], post_lines[0])
+        assert output_lines[-1] == post_lines[0], (output_lines[-1], post_lines[0])
         assert tailed_lines[0] == post_lines[0], (tailed_lines[0], post_lines[0])
 
         file_c = touch("c")
@@ -647,7 +654,7 @@ def port_operations():
     try:
         try:
             server_socket.bind(("localhost", server_port))
-        except (OSError, PermissionError):
+        except (OSError, PermissionError): # pragma: nocover
             # Try one more time
             server_port = get_random_port()
             server_socket.bind(("localhost", server_port))
@@ -1121,6 +1128,8 @@ def plano_command():
 
         run_command("echo", "Hello", "--count", "5")
 
+        run_command("echoecho", "Greetings")
+
         with expect_system_exit():
             run_command("echo", "Hello", "--count", "not-an-int")
 
@@ -1148,6 +1157,15 @@ def plano_command():
         result = read_json("balderdash.json")
         assert result == ["bunk", "malarkey", "bollocks"], result
 
+        # Gamma is an unexpected arg
+        with expect_system_exit():
+            run_command("dasher", "alpha", "--gamma", "123")
+
+        # Args after "xyz" are extra passthrough args
+        run_command("dancer", "gamma", "--omega", "xyz", "extra1", "--extra2", "extra3")
+        result = read_json("dancer.json")
+        assert result == ["extra1", "--extra2", "extra3"], result
+
 @test
 def planosh_command():
     with working_dir():
@@ -1168,5 +1186,5 @@ def planosh_command():
 def main():
     PlanoTestCommand(_sys.modules[__name__]).main()
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: nocover
     main()

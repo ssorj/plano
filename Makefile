@@ -57,10 +57,12 @@ docs:
 coverage: build
 	python -m venv build/venv
 	. build/venv/bin/activate && pip install --force-reinstall dist/plano-*-py3-none-any.whl
-	. build/venv/bin/activate && PYTHONPATH=build/venv/lib/python3.10/site-packages coverage3 run --omit /tmp/\*,\*/yaml/\* build/venv/bin/plano-self-test
-	coverage3 report
-	coverage3 html
-	@echo file:${CURDIR}/htmlcov/index.html
+	. build/venv/bin/activate && PYTHONPATH=build/venv/lib/python3.10/site-packages coverage run \
+		--include build/venv/lib/python\*/site-packages/plano/\*,build/venv/bin/\* \
+		build/venv/bin/plano-self-test
+	coverage report
+	coverage html
+	@echo "OUTPUT: file:${CURDIR}/htmlcov/index.html"
 
 .PHONY: upload
 upload: build

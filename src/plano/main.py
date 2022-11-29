@@ -716,26 +716,11 @@ def prepend_lines(file, lines):
     return file
 
 def tail_lines(file, count):
-    assert count >= 0
+    assert count >= 0, count
 
-    file = expand(file)
+    lines = read_lines(file)
 
-    with open(file) as f:
-        pos = count + 1
-        lines = list()
-
-        while len(lines) <= count:
-            try:
-                f.seek(-pos, 2)
-            except IOError:
-                f.seek(0)
-                break
-            finally:
-                lines = f.readlines()
-
-            pos *= 2
-
-        return lines[-count:]
+    return lines[-count:]
 
 def replace_in_file(file, expr, replacement, count=0):
     file = expand(file)
@@ -2132,9 +2117,11 @@ def command(_function=None, name=None, args=None, parent=None, passthrough=False
 
             command = app.bound_commands[self.name]
 
-            if command is not self:
-                command(*args, **kwargs)
-                return
+            # XXX I don't remember the logic behind this
+            # if command is not self:
+            #     command(*args, **kwargs)
+            #     return
+            assert command is self, command
 
             debug("Running {} {} {}".format(self, args, kwargs))
 
