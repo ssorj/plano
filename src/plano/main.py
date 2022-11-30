@@ -2115,12 +2115,16 @@ def command(_function=None, name=None, args=None, parent=None, passthrough=False
 
             assert isinstance(app, PlanoCommand), app
 
-            # XXX I don't remember the logic behind this
-            # command = app.bound_commands[self.name]
-            # if command is not self:
-            #     command(*args, **kwargs)
-            #     return
-            assert app.bound_commands[self.name] is self, app.bound_commands[self.name]
+            command = app.bound_commands[self.name]
+
+            if command is not self:
+                # The command bound to this name has been overridden.
+                # This happens when a parent command invokes a peer
+                # command that is overridden.
+
+                command(*args, **kwargs)
+
+                return
 
             debug("Running {} {} {}".format(self, args, kwargs))
 

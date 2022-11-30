@@ -76,16 +76,19 @@ def dasher(alpha, beta=123):
 def dancer(gamma, omega="abc", passthrough_args=[]):
     write_json("dancer.json", passthrough_args)
 
-try:
-    @command
-    def missing_app_arg():
-        pass
-except:
-    pass
+# Vixen's parent calls prancer.  We are testing to ensure the extended
+# prancer (below) is executed.
 
-try:
-    @command
-    def misnamed_app_arg(frootum):
-        pass
-except:
-    pass
+from plano.tests import prancer, vixen
+
+@command(parent=prancer)
+def prancer():
+    prancer.parent.function()
+
+    notice("Extended prancer")
+
+    write_json("prancer.json", True)
+
+@command(parent=vixen)
+def vixen():
+    vixen.parent.function()

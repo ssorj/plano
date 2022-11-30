@@ -43,7 +43,7 @@ class PlanoTestCommand(BaseCommand):
         self.parser.add_argument("-e", "--exclude", metavar="PATTERN", action="append", default=[],
                                  help="Do not run tests with names matching PATTERN (repeatable)")
         self.parser.add_argument("-m", "--module", action="append", default=[],
-                                 help="Collect tests from MODULE.  This option can be repeated.")
+                                 help="Collect tests from MODULE (repeatable)")
         self.parser.add_argument("-l", "--list", action="store_true",
                                  help="Print the test names and exit")
         self.parser.add_argument("--enable", metavar="PATTERN", action="append", default=[],

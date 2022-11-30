@@ -1166,6 +1166,18 @@ def plano_command():
         result = read_json("dancer.json")
         assert result == ["extra1", "--extra2", "extra3"], result
 
+        # Ensure indirect calls (through parent commands) are specialized
+        run_command("vixen")
+        assert exists("prancer.json")
+
+@command
+def prancer():
+    notice("Base prancer")
+
+@command
+def vixen():
+    prancer()
+
 @test
 def planosh_command():
     with working_dir():
