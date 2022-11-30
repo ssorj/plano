@@ -2115,13 +2115,12 @@ def command(_function=None, name=None, args=None, parent=None, passthrough=False
 
             assert isinstance(app, PlanoCommand), app
 
-            command = app.bound_commands[self.name]
-
             # XXX I don't remember the logic behind this
+            # command = app.bound_commands[self.name]
             # if command is not self:
             #     command(*args, **kwargs)
             #     return
-            assert command is self, command
+            assert app.bound_commands[self.name] is self, app.bound_commands[self.name]
 
             debug("Running {} {} {}".format(self, args, kwargs))
 
