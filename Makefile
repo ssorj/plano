@@ -46,7 +46,7 @@ install: build
 
 .PHONY: clean
 clean:
-	rm -rf build dist htmlcov .coverage
+	rm -rf build dist htmlcov .coverage src/plano/__pycache__ src/plano.egg-info
 
 .PHONY: docs
 docs:
