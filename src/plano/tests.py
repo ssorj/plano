@@ -1170,6 +1170,9 @@ def plano_command():
         run_command("vixen")
         assert exists("prancer.json")
 
+        with expect_system_exit():
+            run_command("no-parent")
+
 @command
 def prancer():
     notice("Base prancer")

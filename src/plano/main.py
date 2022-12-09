@@ -2111,10 +2111,9 @@ def command(_function=None, name=None, args=None, parent=None, passthrough=False
 
         def __call__(self, *args, **kwargs):
             from .commands import _plano_command, PlanoCommand
+            assert isinstance(_plano_command, PlanoCommand), _plano_command
+
             app = _plano_command
-
-            assert isinstance(app, PlanoCommand), app
-
             command = app.bound_commands[self.name]
 
             if command is not self:
@@ -2184,6 +2183,15 @@ def command(_function=None, name=None, args=None, parent=None, passthrough=False
         return Command
     else:
         return Command(_function)
+
+def parent(*args, **kwargs):
+    try:
+        f_locals = _inspect.stack()[2].frame.f_locals
+        parent_fn = f_locals["self"].parent.function
+    except:
+        fail("Missing parent command")
+
+    parent_fn(*args, **kwargs)
 
 class CommandArgument:
     def __init__(self, name, display_name=None, type=None, metavar=None, help=None, short_option=None, default=None, positional=None):
