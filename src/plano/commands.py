@@ -102,7 +102,7 @@ class PlanoCommand(BaseCommand):
 
         if self.planofile is None:
             self.pre_parser.add_argument("-f", "--file",
-                                         help="Load commands from FILE (default 'Planofile' or '.plano.py')")
+                                         help="Load commands from FILE (default '.plano.py')")
 
         self.parser = _argparse.ArgumentParser(parents=(self.pre_parser,),
                                                description=description, add_help=False, allow_abbrev=False)
@@ -177,7 +177,7 @@ class PlanoCommand(BaseCommand):
             planofile = self._find_planofile(planofile)
 
         if planofile is not None and not is_file(planofile):
-            exit("Planofile '{}' not found", planofile)
+            exit("File '{}' not found", planofile)
 
         if planofile is None:
             planofile = self._find_planofile(get_current_dir())
@@ -202,8 +202,8 @@ class PlanoCommand(BaseCommand):
         self._bind_commands(scope)
 
     def _find_planofile(self, dir):
-        # XXX .planofile remains temporarily for backward compatibility
-        for name in ("Planofile", ".plano.py", ".planofile"):
+        # XXX Planofile and .planofile remain temporarily for backward compatibility
+        for name in (".plano.py", "Planofile", ".planofile"):
             path = join(dir, name)
 
             if is_file(path):

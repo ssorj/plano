@@ -1089,7 +1089,7 @@ def plano_command():
         PlanoCommand().main([])
 
     with working_dir():
-        write("Planofile", "garbage")
+        write(".plano.py", "garbage")
 
         with expect_system_exit():
             PlanoCommand().main([])
