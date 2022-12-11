@@ -847,8 +847,8 @@ def http_post_json(url, data, insecure=False):
 
 ## Link operations
 
-def make_link(path, linked_path, quiet=False):
-    _info(quiet, "Making link {} to {}", repr(path), repr(linked_path))
+def make_link(path: str, linked_path: str, quiet=False) -> str:
+    _info(quiet, "Making symlink {} to {}", repr(path), repr(linked_path))
 
     make_parent_dir(path, quiet=True)
     remove(path, quiet=True)
