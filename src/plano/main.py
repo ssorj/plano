@@ -313,8 +313,8 @@ except NameError: # pragma: nocover
         import pdb
         pdb.set_trace()
 
-def repl(vars): # pragma: nocover
-    _code.InteractiveConsole(locals=vars).interact()
+def repl(locals): # pragma: nocover
+    _code.InteractiveConsole(locals=locals).interact()
 
 def print_properties(props, file=None):
     size = max([len(x[0]) for x in props])

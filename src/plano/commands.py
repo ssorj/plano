@@ -21,7 +21,6 @@ from .main import *
 from .main import _capitalize_help
 
 import argparse as _argparse
-import code as _code
 import importlib as _importlib
 import inspect as _inspect
 import os as _os
@@ -293,7 +292,7 @@ class PlanoShellCommand(BaseCommand):
             exec(script, globals())
 
         if (self.command is None and self.file is None and stdin_isatty) or self.interactive: # pragma: nocover
-            _code.InteractiveConsole(locals=globals()).interact()
+            repl(locals=globals())
 
 def plano(): # pragma: nocover
     PlanoCommand().main()
