@@ -143,7 +143,7 @@ class BaseCommand:
     def main(self, args=None):
         args = self.parse_args(args)
 
-        assert args is None or isinstance(args, _argparse.Namespace), args
+        assert isinstance(args, _argparse.Namespace), args
 
         self.verbose = args.verbose or args.debug
         self.quiet = args.quiet

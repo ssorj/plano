@@ -17,6 +17,8 @@
 # under the License.
 #
 
+from plano import *
+
 @command
 def base_command(alpha, beta, omega="x"):
     """

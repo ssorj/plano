@@ -1096,7 +1096,7 @@ def plano_command():
     with working_dir():
         PlanoCommand().main([])
 
-    PlanoCommand(globals()).main([])
+    PlanoCommand(_sys.modules[__name__]).main([])
 
     PlanoCommand().main(["-m", "plano.tests"])
 

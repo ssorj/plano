@@ -102,8 +102,6 @@ class PlanoCommand(BaseCommand):
         if self.module is None:
             self.pre_parser.add_argument("-f", "--file", help="Load commands from FILE (default '.plano.py')")
             self.pre_parser.add_argument("-m", "--module", help="Load commands from MODULE")
-        else:
-            self._bind_commands(self.module)
 
         self.parser = _argparse.ArgumentParser(parents=(self.pre_parser,),
                                                description=description, epilog=epilog,
@@ -113,18 +111,16 @@ class PlanoCommand(BaseCommand):
         _plano_command = self
 
     def parse_args(self, args):
+        pre_args, _ = self.pre_parser.parse_known_args(args)
+
         if self.module is None:
-            pre_args, _ = self.pre_parser.parse_known_args(args)
-
             if pre_args.module is None:
-                self._load_config(pre_args.file)
+                self.module = self._load_file(pre_args.file)
             else:
-                try:
-                    module = _importlib.import_module(pre_args.module)
-                except ImportError:
-                    exit("Module '{}' not found", pre_args.module)
+                self.module = self._load_module(pre_args.module)
 
-                self._bind_commands(vars(module))
+        if self.module is not None:
+            self._bind_commands(self.module)
 
         self._process_commands()
 
@@ -161,7 +157,7 @@ class PlanoCommand(BaseCommand):
                 self.command_kwargs["passthrough_args"] = self.passthrough_args
 
     def run(self):
-        if self.help or self.selected_command is None:
+        if self.help or self.module is None or self.selected_command is None:
             self.parser.print_help()
             return
 
@@ -171,41 +167,47 @@ class PlanoCommand(BaseCommand):
         cprint("OK", color="green", file=_sys.stderr, end="")
         cprint(" ({})".format(format_duration(timer.elapsed_time)), color="magenta", file=_sys.stderr)
 
-    def _bind_commands(self, scope):
-        for var in scope.values():
+    def _bind_commands(self, module):
+        for var in vars(module).values():
             if callable(var) and var.__class__.__name__ == "Command":
                 self.bound_commands[var.name] = var
 
-    def _load_config(self, planofile):
-        if planofile is not None and is_dir(planofile):
-            planofile = self._find_planofile(planofile)
+    def _load_module(self, name):
+        try:
+            return _importlib.import_module(name)
+        except ImportError:
+            exit("Module '{}' not found", name)
 
-        if planofile is not None and not is_file(planofile):
-            exit("File '{}' not found", planofile)
+    def _load_file(self, path):
+        if path is not None and is_dir(path):
+            path = self._find_file(path)
 
-        if planofile is None:
-            planofile = self._find_planofile(get_current_dir())
+        if path is not None and not is_file(path):
+            exit("File '{}' not found", path)
 
-        if planofile is None:
+        if path is None:
+            path = self._find_file(get_current_dir())
+
+        if path is None:
             return
 
-        debug("Loading '{}'", planofile)
+        debug("Loading '{}'", path)
 
-        _sys.path.insert(0, join(get_parent_dir(planofile), "python"))
+        _sys.path.insert(0, join(get_parent_dir(path), "python"))
 
-        scope = dict(globals())
-        scope["app"] = _plano_command
+        spec = _importlib.util.spec_from_file_location("_plano", path)
+        module = _importlib.util.module_from_spec(spec)
+        _sys.modules["_plano"] = module
 
         try:
-            with open(planofile) as f:
-                exec(f.read(), scope)
+            spec.loader.exec_module(module)
         except Exception as e:
             error(e)
-            exit("Failure loading {}: {}", repr(planofile), str(e))
+            exit("Failure loading {}: {}", path, str(e))
 
-        self._bind_commands(scope)
+        return module
 
-    def _find_planofile(self, dir):
+    def _find_file(self, dir):
         # Planofile and .planofile remain temporarily for backward compatibility
         for name in (".plano.py", "Planofile", ".planofile"):
             path = join(dir, name)
