@@ -14,7 +14,7 @@ make install
 
 ## Example 1
 
-widget:
+`~/.local/bin/widget`:
 ~~~ python
 #!/usr/bin/python
 
