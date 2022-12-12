@@ -1094,8 +1094,7 @@ def plano_command():
         with expect_system_exit():
             PlanoCommand().main([])
 
-    with expect_system_exit():
-        PlanoCommand("no-such-file").main([])
+    PlanoCommand(globals()).main([])
 
     with expect_system_exit():
         PlanoCommand().main(["-f", "no-such-file"])

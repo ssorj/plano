@@ -22,7 +22,6 @@ from .main import _capitalize_help
 
 import argparse as _argparse
 import code as _code
-import collections as _collections
 import importlib as _importlib
 import inspect as _inspect
 import os as _os
@@ -91,26 +90,25 @@ class PlanoTestCommand(BaseCommand):
 _plano_command = None
 
 class PlanoCommand(BaseCommand):
-    def __init__(self, planofile=None):
-        self.planofile = planofile
-
-        description = "Run commands defined as Python functions"
+    def __init__(self, module=None, description="Run commands defined as Python functions", epilog=None):
+        self.module = module
+        self.bound_commands = dict()
+        self.running_commands = list()
+        self.passthrough_args = None
 
         self.pre_parser = BaseArgumentParser(description=description, add_help=False)
         self.pre_parser.add_argument("-h", "--help", action="store_true",
                                      help="Show this help message and exit")
 
-        if self.planofile is None:
+        if self.module is None:
             self.pre_parser.add_argument("-f", "--file",
                                          help="Load commands from FILE (default '.plano.py')")
+        else:
+            self._bind_commands(self.module)
 
         self.parser = _argparse.ArgumentParser(parents=(self.pre_parser,),
-                                               description=description, add_help=False, allow_abbrev=False)
-
-        self.bound_commands = _collections.OrderedDict()
-        self.running_commands = list()
-
-        self.passthrough_args = None
+                                               description=description, epilog=epilog,
+                                               add_help=False, allow_abbrev=False)
 
         global _plano_command
         _plano_command = self
@@ -118,7 +116,9 @@ class PlanoCommand(BaseCommand):
     def parse_args(self, args):
         pre_args, _ = self.pre_parser.parse_known_args(args)
 
-        self._load_config(getattr(pre_args, "file", None))
+        if self.module is None:
+            self._load_config(getattr(pre_args, "file", None))
+
         self._process_commands()
 
         args, self.passthrough_args = self.parser.parse_known_args(args)
@@ -170,9 +170,6 @@ class PlanoCommand(BaseCommand):
                 self.bound_commands[var.name] = var
 
     def _load_config(self, planofile):
-        if planofile is None:
-            planofile = self.planofile
-
         if planofile is not None and is_dir(planofile):
             planofile = self._find_planofile(planofile)
 
