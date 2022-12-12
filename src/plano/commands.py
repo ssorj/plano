@@ -167,11 +167,6 @@ class PlanoCommand(BaseCommand):
         cprint("OK", color="green", file=_sys.stderr, end="")
         cprint(" ({})".format(format_duration(timer.elapsed_time)), color="magenta", file=_sys.stderr)
 
-    def _bind_commands(self, module):
-        for var in vars(module).values():
-            if callable(var) and var.__class__.__name__ == "Command":
-                self.bound_commands[var.name] = var
-
     def _load_module(self, name):
         try:
             return _importlib.import_module(name)
@@ -214,6 +209,11 @@ class PlanoCommand(BaseCommand):
 
             if is_file(path):
                 return path
+
+    def _bind_commands(self, module):
+        for var in vars(module).values():
+            if callable(var) and var.__class__.__name__ == "Command":
+                self.bound_commands[var.name] = var
 
     def _process_commands(self):
         subparsers = self.parser.add_subparsers(title="commands", dest="command")

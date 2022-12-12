@@ -1169,6 +1169,8 @@ def plano_command():
         result = read_json("balderdash.json")
         assert result == ["bunk", "malarkey", "bollocks"], result
 
+        run_command("dasher", "alpha", "--beta", "123")
+
         # Gamma is an unexpected arg
         with expect_system_exit():
             run_command("dasher", "alpha", "--gamma", "123")
