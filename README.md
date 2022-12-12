@@ -14,6 +14,7 @@ make install
 
 ## Example 1
 
+widget:
 ~~~ python
 #!/usr/bin/python
 
@@ -28,7 +29,7 @@ if __name__ == "__main__":
 ~~~
 
 ~~~ shell
-$ plano greeting --message Hello
+$ widget greeting --message Hello
 --> greeting
 Hello
 <-- greeting
