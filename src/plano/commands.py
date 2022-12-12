@@ -95,6 +95,8 @@ class PlanoCommand(BaseCommand):
         self.running_commands = list()
         self.passthrough_args = None
 
+        assert self.module is None or _inspect.ismodule(self.module), self.module
+
         self.pre_parser = BaseArgumentParser(description=description, add_help=False)
         self.pre_parser.add_argument("-h", "--help", action="store_true",
                                      help="Show this help message and exit")
