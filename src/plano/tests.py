@@ -1083,18 +1083,31 @@ def yaml_operations():
         assert input_data == parsed_data, (input_data, parsed_data)
         assert yaml == emitted_yaml, (yaml, emitted_yaml)
 
+@command
+def prancer():
+    notice("Base prancer")
+
+@command
+def vixen():
+    prancer()
+
 @test
 def plano_command():
     with working_dir():
         PlanoCommand().main([])
+
+    PlanoCommand(globals()).main([])
+
+    PlanoCommand().main(["-m", "plano.tests"])
+
+    with expect_system_exit():
+        PlanoCommand().main(["-m", "nosuchmodule"])
 
     with working_dir():
         write(".plano.py", "garbage")
 
         with expect_system_exit():
             PlanoCommand().main([])
-
-    PlanoCommand(globals()).main([])
 
     with expect_system_exit():
         PlanoCommand().main(["-f", "no-such-file"])
@@ -1171,14 +1184,6 @@ def plano_command():
 
         with expect_system_exit():
             run_command("no-parent")
-
-@command
-def prancer():
-    notice("Base prancer")
-
-@command
-def vixen():
-    prancer()
 
 @test
 def planosh_command():

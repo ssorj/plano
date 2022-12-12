@@ -1928,7 +1928,7 @@ def _run_test(test_run, test, unskipped):
     if test_run.verbose:
         notice("Running {}", test)
     elif not test_run.quiet:
-        print("{:.<72} ".format(test.name + " "), end="")
+        print("{:.<65} ".format(test.name + " "), end="")
 
     timeout = nvl(test.timeout, test_run.test_timeout)
 

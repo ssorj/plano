@@ -100,8 +100,8 @@ class PlanoCommand(BaseCommand):
                                      help="Show this help message and exit")
 
         if self.module is None:
-            self.pre_parser.add_argument("-f", "--file",
-                                         help="Load commands from FILE (default '.plano.py')")
+            self.pre_parser.add_argument("-f", "--file", help="Load commands from FILE (default '.plano.py')")
+            self.pre_parser.add_argument("-m", "--module", help="Load commands from MODULE")
         else:
             self._bind_commands(self.module)
 
@@ -113,10 +113,18 @@ class PlanoCommand(BaseCommand):
         _plano_command = self
 
     def parse_args(self, args):
-        pre_args, _ = self.pre_parser.parse_known_args(args)
-
         if self.module is None:
-            self._load_config(getattr(pre_args, "file", None))
+            pre_args, _ = self.pre_parser.parse_known_args(args)
+
+            if pre_args.module is None:
+                self._load_config(pre_args.file)
+            else:
+                try:
+                    module = _importlib.import_module(pre_args.module)
+                except ImportError:
+                    exit("Module '{}' not found", pre_args.module)
+
+                self._bind_commands(vars(module))
 
         self._process_commands()
 
@@ -198,7 +206,7 @@ class PlanoCommand(BaseCommand):
         self._bind_commands(scope)
 
     def _find_planofile(self, dir):
-        # XXX Planofile and .planofile remain temporarily for backward compatibility
+        # Planofile and .planofile remain temporarily for backward compatibility
         for name in (".plano.py", "Planofile", ".planofile"):
             path = join(dir, name)
 
