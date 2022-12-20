@@ -1187,23 +1187,6 @@ def plano_command():
         with expect_system_exit():
             run_command("no-parent")
 
-@test
-def planosh_command():
-    with working_dir():
-        write("script1", "garbage")
-
-        with expect_exception(NameError):
-            PlanoShellCommand().main(["script1"])
-
-        write("script2", "print_env()")
-
-        PlanoShellCommand().main(["script2"])
-
-        PlanoShellCommand().main(["--command", "print_env()"])
-
-    with expect_system_exit():
-        PlanoShellCommand().main(["no-such-file"])
-
 def main():
     PlanoTestCommand(_sys.modules[__name__]).main()
 
