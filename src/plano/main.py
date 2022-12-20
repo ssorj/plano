@@ -189,7 +189,7 @@ class BaseCommand:
 
 class BaseArgumentParser(_argparse.ArgumentParser):
     def __init__(self, **kwargs):
-        super(BaseArgumentParser, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self.allow_abbrev = False
         self.formatter_class = _argparse.RawDescriptionHelpFormatter
@@ -923,7 +923,7 @@ class logging_enabled:
 
 class logging_disabled(logging_enabled):
     def __init__(self):
-        super(logging_disabled, self).__init__(level="disabled")
+        super().__init__(level="disabled")
 
 def fail(message, *args):
     error(message, *args)
@@ -1378,7 +1378,7 @@ class PlanoProcess(_subprocess.Popen):
     def __init__(self, args, **options):
         self.stash_file = options.pop("stash_file", None)
 
-        super(PlanoProcess, self).__init__(args, **options)
+        super().__init__(args, **options)
 
         self.args = args
         self.stdout_result = None
@@ -1401,7 +1401,7 @@ class PlanoProcess(_subprocess.Popen):
 
 class PlanoProcessError(_subprocess.CalledProcessError, PlanoError):
     def __init__(self, proc):
-        super(PlanoProcessError, self).__init__(proc.exit_code, _format_command(proc.args, represent=False))
+        super().__init__(proc.exit_code, _format_command(proc.args, represent=False))
 
 def _default_sigterm_handler(signum, frame):
     for proc in _child_processes:
@@ -1774,19 +1774,19 @@ class expect_exception:
 
 class expect_error(expect_exception):
     def __init__(self, contains=None):
-        super(expect_error, self).__init__(PlanoError, contains=contains)
+        super().__init__(PlanoError, contains=contains)
 
 class expect_timeout(expect_exception):
     def __init__(self, contains=None):
-        super(expect_timeout, self).__init__(PlanoTimeout, contains=contains)
+        super().__init__(PlanoTimeout, contains=contains)
 
 class expect_system_exit(expect_exception):
     def __init__(self, contains=None):
-        super(expect_system_exit, self).__init__(SystemExit, contains=contains)
+        super().__init__(SystemExit, contains=contains)
 
 class expect_output(temp_file):
     def __init__(self, equals=None, contains=None, startswith=None, endswith=None):
-        super(expect_output, self).__init__()
+        super().__init__()
         self.equals = equals
         self.contains = contains
         self.startswith = startswith
@@ -1809,7 +1809,7 @@ class expect_output(temp_file):
         if self.endswith is not None:
             assert result.endswith(self.endswith), result
 
-        super(expect_output, self).__exit__(exc_type, exc_value, traceback)
+        super().__exit__(exc_type, exc_value, traceback)
 
 def print_tests(modules):
     if _inspect.ismodule(modules):
