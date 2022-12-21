@@ -29,6 +29,9 @@ import traceback as _traceback
 
 class BaseCommand:
     def main(self, args=None):
+        if args is None:
+            args = ARGS[1:]
+
         args = self.parse_args(args)
 
         assert isinstance(args, _argparse.Namespace), args

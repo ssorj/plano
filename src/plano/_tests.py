@@ -1177,6 +1177,9 @@ def plano_command():
         with expect_system_exit():
             run_command("no-such-command,splasher")
 
+        with expect_system_exit():
+            run_command("splasher,no-such-command-nope")
+
         run_command("dasher", "alpha", "--beta", "123")
 
         # Gamma is an unexpected arg
