@@ -109,6 +109,11 @@ class PlanoCommand(BaseCommand):
                                                description=description, epilog=epilog,
                                                add_help=False, allow_abbrev=False)
 
+        # This is intentionally added after self.pre_parser is passed
+        # as parent to self.parser, since it is used only in the
+        # preliminary parsing.
+        self.pre_parser.add_argument("command", nargs="?", help=_argparse.SUPPRESS)
+
         global _plano_command
         _plano_command = self
 
@@ -126,6 +131,19 @@ class PlanoCommand(BaseCommand):
 
         self._process_commands()
 
+        self.preceding_commands = list()
+
+        if pre_args.command is not None and "," in pre_args.command:
+            names = pre_args.command.split(",")
+
+            for name in names[:-1]:
+                try:
+                    self.preceding_commands.append(self.bound_commands[name])
+                except KeyError:
+                    self.parser.error(f"Command '{name}' is unknown")
+
+            args[args.index(pre_args.command)] = names[-1]
+
         args, self.passthrough_args = self.parser.parse_known_args(args)
 
         return args
@@ -138,6 +156,9 @@ class PlanoCommand(BaseCommand):
         self.command_kwargs = dict()
 
         if args.command is not None:
+            for command in self.preceding_commands:
+                command()
+
             self.selected_command = self.bound_commands[args.command]
 
             if not self.selected_command.passthrough and self.passthrough_args:

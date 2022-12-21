@@ -71,6 +71,10 @@ def balderdash(required, optional="malarkey", other="rubbish", **extra_kwargs):
     write_json("balderdash.json", data)
 
 @command
+def splasher():
+    write_json("splasher.json", [1])
+
+@command
 def dasher(alpha, beta=123):
     pass
 
