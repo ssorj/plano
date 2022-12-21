@@ -20,4 +20,5 @@
 from .main import *
 from .main import _default_sigterm_handler
 
-from .commands import PlanoCommand, PlanoTestCommand
+from .commands import *
+from .tests import *

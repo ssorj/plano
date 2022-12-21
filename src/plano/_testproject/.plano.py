@@ -85,7 +85,7 @@ def dancer(gamma, omega="abc", passthrough_args=[]):
 # Vixen's parent calls prancer.  We are testing to ensure the extended
 # prancer (below) is executed.
 
-from plano.tests import prancer, vixen
+from plano._tests import prancer, vixen
 
 @command(parent=prancer)
 def prancer():
