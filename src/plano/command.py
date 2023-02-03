@@ -20,7 +20,6 @@
 from .main import *
 
 import argparse as _argparse
-import collections as _collections
 import importlib as _importlib
 import inspect as _inspect
 import os as _os
@@ -341,7 +340,7 @@ def command(_function=None, name=None, args=None, parent=None, passthrough=False
             sig = _inspect.signature(self.function)
             params = list(sig.parameters.values())
             input_args = {x.name: x for x in nvl(input_args, ())}
-            output_args = _collections.OrderedDict()
+            output_args = dict()
 
             for param in params:
                 try:
