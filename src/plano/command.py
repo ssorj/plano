@@ -378,7 +378,7 @@ def command(_function=None, name=None, args=None, parent=None, passthrough=False
             return output_args
 
         def __call__(self, *args, **kwargs):
-            from .commands import _plano_command, PlanoCommand
+            from .command import _plano_command, PlanoCommand
             assert isinstance(_plano_command, PlanoCommand), _plano_command
 
             app = _plano_command

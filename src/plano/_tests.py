@@ -29,7 +29,7 @@ try:
 except ImportError: # pragma: nocover
     import BaseHTTPServer as _http
 
-from .tests import *
+from .test import *
 
 test_project_dir = join(get_parent_dir(__file__), "_testproject")
 
@@ -1097,7 +1097,7 @@ def plano_command():
 
     PlanoCommand(_sys.modules[__name__]).main([])
 
-    PlanoCommand().main(["-m", "plano.tests"])
+    PlanoCommand().main(["-m", "plano.test"])
 
     with expect_system_exit():
         PlanoCommand().main(["-m", "nosuchmodule"])
