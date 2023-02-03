@@ -1198,6 +1198,10 @@ def plano_command():
         with expect_system_exit():
             run_command("no-parent")
 
+        run_command("feta", "--spinach", "oregano")
+        result = read_json("feta.json")
+        assert result == "oregano"
+
 def main():
     PlanoTestCommand(_sys.modules[__name__]).main()
 

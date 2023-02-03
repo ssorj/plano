@@ -307,12 +307,15 @@ def command(_function=None, name=None, parameters=None, parent=None, passthrough
             self.module = _inspect.getmodule(self.function)
 
             self.name = name
-            self.parameters = parameters
+            self.parameters = self._process_parameters(parameters)
             self.parent = parent
 
             if self.parent is None:
-                self.name = nvl(self.name, self.function.__name__.rstrip("_").replace("_", "-"))
-                self.parameters = self.process_parameters(self.parameters)
+                # Strip trailing underscores and convert remaining
+                # underscores to hyphens
+                default = self.function.__name__.rstrip("_").replace("_", "-")
+
+                self.name = nvl(self.name, default)
             else:
                 self.name = nvl(self.name, self.parent.name)
                 self.parameters = nvl(self.parameters, self.parent.parameters)
@@ -340,14 +343,18 @@ def command(_function=None, name=None, parameters=None, parent=None, passthrough
         def __repr__(self):
             return "command '{}:{}'".format(self.module.__name__, self.name)
 
-        def process_parameters(self, cparams):
+        def _process_parameters(self, cparams):
+            # CommandParameter objects from the @command decorator
+            cparams_in = {x.name: x for x in nvl(cparams, ())}
+            cparams_out = dict()
+
             # Parameter objects from the function signature
             sig = _inspect.signature(self.function)
             sparams = list(sig.parameters.values())
 
-            # CommandParameter objects from the @command decorator
-            cparams_in = {x.name: x for x in nvl(cparams, ())}
-            cparams_out = dict()
+            if len(sparams) == 2 and sparams[0].name == "args" and sparams[1].name == "kwargs":
+                # Don't try to derive command parameters from *args and **kwargs
+                return cparams_in
 
             for sparam in sparams:
                 try:
@@ -404,7 +411,7 @@ def command(_function=None, name=None, parameters=None, parent=None, passthrough
             app.running_commands.append(self)
 
             dashes = "--" * len(app.running_commands)
-            display_args = list(self.get_display_args(args, kwargs))
+            display_args = list(self._get_display_args(args, kwargs))
 
             with console_color("magenta", file=_sys.stderr):
                 eprint("{}> {}".format(dashes, self.name), end="")
@@ -425,7 +432,7 @@ def command(_function=None, name=None, parameters=None, parent=None, passthrough
 
                 cprint("{}| {}".format(dashes[:-2], name), color="magenta", file=_sys.stderr)
 
-        def get_display_args(self, args, kwargs):
+        def _get_display_args(self, args, kwargs):
             for i, param in enumerate(self.parameters.values()):
                 if param.positional:
                     if param.multiple:

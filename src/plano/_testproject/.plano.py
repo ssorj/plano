@@ -32,9 +32,9 @@ def extended_command(alpha, beta, omega="y"):
     print("extended", alpha, omega)
     parent(alpha, beta, omega)
 
-@command(parameters=(CommandParameter("message_", help="The message to print", display_name="message"),
+@command(parameters=[CommandParameter("message_", help="The message to print", display_name="message"),
                      CommandParameter("count", help="Print the message COUNT times"),
-                     CommandParameter("extra", default=1, short_option="e")))
+                     CommandParameter("extra", default=1, short_option="e")])
 def echo(message_, count=1, extra=None, trouble=False):
     """
     Print a message to the console
@@ -61,7 +61,7 @@ def haberdash(first, *middle, last="bowler"):
     data = [first, *middle, last]
     write_json("haberdash.json", data)
 
-@command(parameters=(CommandParameter("optional", positional=True),))
+@command(parameters=[CommandParameter("optional", positional=True)])
 def balderdash(required, optional="malarkey", other="rubbish", **extra_kwargs):
     """
     Balderdash command help
@@ -102,3 +102,7 @@ def vixen():
 @command
 def no_parent():
     parent()
+
+@command(parameters=[CommandParameter("spinach")])
+def feta(*args, **kwargs):
+    write_json("feta.json", kwargs["spinach"])
