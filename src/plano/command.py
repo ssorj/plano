@@ -248,13 +248,19 @@ class PlanoCommand(BaseCommand):
                 self.bound_commands[var.name] = var
 
     def _process_commands(self):
-        subparsers = self.parser.add_subparsers(title="commands", dest="command")
+        subparsers = self.parser.add_subparsers(title="commands", dest="command", metavar="{command}")
 
         for command in self.bound_commands.values():
-            add_help = False if command.passthrough else True
+            # This doesn't work yet, but in the future it might.
+            # https://bugs.python.org/issue22848
+            #
+            # help = _argparse.SUPPRESS if command.hidden else command.help
 
-            subparser = subparsers.add_parser(command.name, help=command.help,
-                                              description=nvl(command.description, command.help), add_help=add_help,
+            help = "[internal]" if command.hidden else command.help
+            add_help = False if command.passthrough else True
+            description = nvl(command.description, command.help)
+
+            subparser = subparsers.add_parser(command.name, help=help, add_help=add_help, description=description,
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)
 
             for param in command.parameters.values():
@@ -300,7 +306,7 @@ _command_help = {
     "test":     "Run the tests",
 }
 
-def command(_function=None, name=None, parameters=None, parent=None, passthrough=False):
+def command(_function=None, name=None, parameters=None, parent=None, passthrough=False, hidden=False):
     class Command:
         def __init__(self, function):
             self.function = function
@@ -334,6 +340,7 @@ def command(_function=None, name=None, parameters=None, parent=None, passthrough
                 self.description = nvl(self.description, self.parent.description)
 
             self.passthrough = passthrough
+            self.hidden = hidden
 
             debug("Defining {}", self)
 

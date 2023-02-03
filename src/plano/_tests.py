@@ -1202,6 +1202,10 @@ def plano_command():
         result = read_json("feta.json")
         assert result == "oregano"
 
+        run_command("invisible")
+        result = read_json("invisible.json")
+        assert result == "nothing"
+
 def main():
     PlanoTestCommand(_sys.modules[__name__]).main()
 

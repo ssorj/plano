@@ -106,3 +106,7 @@ def no_parent():
 @command(parameters=[CommandParameter("spinach")])
 def feta(*args, **kwargs):
     write_json("feta.json", kwargs["spinach"])
+
+@command(hidden=True)
+def invisible(something="nothing"):
+    write_json("invisible.json", something)
