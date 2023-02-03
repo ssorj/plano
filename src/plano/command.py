@@ -173,17 +173,17 @@ class PlanoCommand(BaseCommand):
             if not self.selected_command.passthrough and self.passthrough_args:
                 self.parser.error(f"unrecognized arguments: {' '.join(self.passthrough_args)}")
 
-            for arg in self.selected_command.args.values():
-                if arg.name == "passthrough_args":
+            for param in self.selected_command.parameters.values():
+                if param.name == "passthrough_args":
                     continue
 
-                if arg.positional:
-                    if arg.multiple:
-                        self.command_args.extend(getattr(args, arg.name))
+                if param.positional:
+                    if param.multiple:
+                        self.command_args.extend(getattr(args, param.name))
                     else:
-                        self.command_args.append(getattr(args, arg.name))
+                        self.command_args.append(getattr(args, param.name))
                 else:
-                    self.command_kwargs[arg.name] = getattr(args, arg.name)
+                    self.command_kwargs[param.name] = getattr(args, param.name)
 
             if self.selected_command.passthrough:
                 self.command_kwargs["passthrough_args"] = self.passthrough_args
@@ -257,34 +257,38 @@ class PlanoCommand(BaseCommand):
                                               description=nvl(command.description, command.help), add_help=add_help,
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)
 
-            for arg in command.args.values():
-                if arg.positional:
-                    if arg.multiple:
-                        subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help, nargs="*")
-                    elif arg.optional:
-                        subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help, nargs="?", default=arg.default)
+            for param in command.parameters.values():
+                if param.positional:
+                    if param.multiple:
+                        subparser.add_argument(param.name, metavar=param.metavar, type=param.type, help=param.help,
+                                               nargs="*")
+                    elif param.optional:
+                        subparser.add_argument(param.name, metavar=param.metavar, type=param.type, help=param.help,
+                                               nargs="?", default=param.default)
                     else:
-                        subparser.add_argument(arg.name, metavar=arg.metavar, type=arg.type, help=arg.help)
+                        subparser.add_argument(param.name, metavar=param.metavar, type=param.type, help=param.help)
                 else:
                     flag_args = list()
 
-                    if arg.short_option is not None:
-                        flag_args.append("-{}".format(arg.short_option))
+                    if param.short_option is not None:
+                        flag_args.append("-{}".format(param.short_option))
 
-                    flag_args.append("--{}".format(arg.display_name))
+                    flag_args.append("--{}".format(param.display_name))
 
-                    help = arg.help
+                    help = param.help
 
-                    if arg.default not in (None, False):
+                    if param.default not in (None, False):
                         if help is None:
-                            help = "Default value is {}".format(repr(arg.default))
+                            help = "Default value is {}".format(repr(param.default))
                         else:
-                            help += " (default {})".format(repr(arg.default))
+                            help += " (default {})".format(repr(param.default))
 
-                    if arg.default is False:
-                        subparser.add_argument(*flag_args, dest=arg.name, default=arg.default, action="store_true", help=help)
+                    if param.default is False:
+                        subparser.add_argument(*flag_args, dest=param.name, default=param.default, action="store_true",
+                                               help=help)
                     else:
-                        subparser.add_argument(*flag_args, dest=arg.name, default=arg.default, metavar=arg.metavar, type=arg.type, help=help)
+                        subparser.add_argument(*flag_args, dest=param.name, default=param.default,
+                                               metavar=param.metavar, type=param.type, help=help)
 
             _capitalize_help(subparser)
 
@@ -296,22 +300,22 @@ _command_help = {
     "test":     "Run the tests",
 }
 
-def command(_function=None, name=None, args=None, parent=None, passthrough=False):
+def command(_function=None, name=None, parameters=None, parent=None, passthrough=False):
     class Command:
         def __init__(self, function):
             self.function = function
             self.module = _inspect.getmodule(self.function)
 
             self.name = name
-            self.args = args
+            self.parameters = parameters
             self.parent = parent
 
             if self.parent is None:
                 self.name = nvl(self.name, self.function.__name__.rstrip("_").replace("_", "-"))
-                self.args = self.process_args(self.args)
+                self.parameters = self.process_parameters(self.parameters)
             else:
                 self.name = nvl(self.name, self.parent.name)
-                self.args = nvl(self.args, self.parent.args)
+                self.parameters = nvl(self.parameters, self.parent.parameters)
 
             doc = _inspect.getdoc(self.function)
 
@@ -330,51 +334,54 @@ def command(_function=None, name=None, args=None, parent=None, passthrough=False
 
             debug("Defining {}", self)
 
-            for arg in self.args.values():
-                debug("  {}", str(arg).capitalize())
+            for param in self.parameters.values():
+                debug("  {}", str(param).capitalize())
 
         def __repr__(self):
             return "command '{}:{}'".format(self.module.__name__, self.name)
 
-        def process_args(self, input_args):
+        def process_parameters(self, cparams):
+            # Parameter objects from the function signature
             sig = _inspect.signature(self.function)
-            params = list(sig.parameters.values())
-            input_args = {x.name: x for x in nvl(input_args, ())}
-            output_args = dict()
+            sparams = list(sig.parameters.values())
 
-            for param in params:
+            # CommandParameter objects from the @command decorator
+            cparams_in = {x.name: x for x in nvl(cparams, ())}
+            cparams_out = dict()
+
+            for sparam in sparams:
                 try:
-                    arg = input_args[param.name]
+                    cparam = cparams_in[sparam.name]
                 except KeyError:
-                    arg = CommandArgument(param.name)
+                    cparam = CommandParameter(sparam.name)
 
-                if param.kind is param.POSITIONAL_ONLY: # pragma: nocover
-                    if arg.positional is None:
-                        arg.positional = True
-                elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is param.empty:
-                    if arg.positional is None:
-                        arg.positional = True
-                elif param.kind is param.POSITIONAL_OR_KEYWORD and param.default is not param.empty:
-                    arg.optional = True
-                    arg.default = param.default
-                elif param.kind is param.VAR_POSITIONAL:
-                    if arg.positional is None:
-                        arg.positional = True
-                    arg.multiple = True
-                elif param.kind is param.VAR_KEYWORD:
+                if sparam.kind is sparam.POSITIONAL_ONLY: # pragma: nocover
+                    if sparam.positional is None:
+                        cparam.positional = True
+                elif sparam.kind is sparam.POSITIONAL_OR_KEYWORD and sparam.default is sparam.empty:
+                    if cparam.positional is None:
+                        cparam.positional = True
+                elif sparam.kind is sparam.POSITIONAL_OR_KEYWORD and sparam.default is not sparam.empty:
+                    cparam.optional = True
+                    cparam.default = sparam.default
+                elif sparam.kind is sparam.VAR_POSITIONAL:
+                    if cparam.positional is None:
+                        cparam.positional = True
+                    cparam.multiple = True
+                elif sparam.kind is sparam.VAR_KEYWORD:
                     continue
-                elif param.kind is param.KEYWORD_ONLY:
-                    arg.optional = True
-                    arg.default = param.default
+                elif sparam.kind is sparam.KEYWORD_ONLY:
+                    cparam.optional = True
+                    cparam.default = sparam.default
                 else: # pragma: nocover
-                    raise NotImplementedError(param.kind)
+                    raise NotImplementedError(sparam.kind)
 
-                if arg.type is None and arg.default not in (None, False): # XXX why false?
-                    arg.type = type(arg.default)
+                if cparam.type is None and cparam.default not in (None, False): # XXX why false?
+                    cparam.type = type(cparam.default)
 
-                output_args[arg.name] = arg
+                cparams_out[cparam.name] = cparam
 
-            return output_args
+            return cparams_out
 
         def __call__(self, *args, **kwargs):
             from .command import _plano_command, PlanoCommand
@@ -419,24 +426,24 @@ def command(_function=None, name=None, args=None, parent=None, passthrough=False
                 cprint("{}| {}".format(dashes[:-2], name), color="magenta", file=_sys.stderr)
 
         def get_display_args(self, args, kwargs):
-            for i, arg in enumerate(self.args.values()):
-                if arg.positional:
-                    if arg.multiple:
+            for i, param in enumerate(self.parameters.values()):
+                if param.positional:
+                    if param.multiple:
                         for va in args[i:]:
                             yield repr(va)
-                    elif arg.optional:
+                    elif param.optional:
                         value = args[i]
 
-                        if value == arg.default:
+                        if value == param.default:
                             continue
 
                         yield repr(value)
                     else:
                         yield repr(args[i])
                 else:
-                    value = kwargs.get(arg.name, arg.default)
+                    value = kwargs.get(param.name, param.default)
 
-                    if value == arg.default:
+                    if value == param.default:
                         continue
 
                     if value in (True, False):
@@ -444,7 +451,7 @@ def command(_function=None, name=None, args=None, parent=None, passthrough=False
                     else:
                         value = repr(value)
 
-                    yield "{}={}".format(arg.display_name, value)
+                    yield "{}={}".format(param.display_name, value)
 
     if _function is None:
         return Command
@@ -460,7 +467,7 @@ def parent(*args, **kwargs):
 
     parent_fn(*args, **kwargs)
 
-class CommandArgument:
+class CommandParameter:
     def __init__(self, name, display_name=None, type=None, metavar=None, help=None, short_option=None, default=None, positional=None):
         self.name = name
         self.display_name = nvl(display_name, self.name.replace("_", "-"))
