@@ -313,7 +313,6 @@ def command(_function=None, name=None, parameters=None, parent=None, passthrough
             self.module = _inspect.getmodule(self.function)
 
             self.name = name
-            self.parameters = self._process_parameters(parameters)
             self.parent = parent
 
             if self.parent is None:
@@ -322,9 +321,12 @@ def command(_function=None, name=None, parameters=None, parent=None, passthrough
                 default = self.function.__name__.rstrip("_").replace("_", "-")
 
                 self.name = nvl(self.name, default)
+                self.parameters = self._process_parameters(parameters)
             else:
+                assert parameters is None
+
                 self.name = nvl(self.name, self.parent.name)
-                self.parameters = nvl(self.parameters, self.parent.parameters)
+                self.parameters = self.parent.parameters
 
             doc = _inspect.getdoc(self.function)
 
