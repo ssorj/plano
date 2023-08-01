@@ -310,8 +310,10 @@ def change_dir(dir, quiet=False):
     return prev_dir
 
 def list_dir(dir=None, include="*", exclude=()):
-    if dir in (None, ""):
+    if dir is None:
         dir = get_current_dir()
+    else:
+        dir = expand(dir)
 
     assert is_dir(dir), dir
 
@@ -343,6 +345,8 @@ class working_dir:
         if self.dir is None:
             self.dir = make_temp_dir()
             self.remove = True
+        else:
+            self.dir = expand(self.dir)
 
     def __enter__(self):
         if self.dir == ".":
