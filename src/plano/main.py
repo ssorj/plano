@@ -1314,7 +1314,7 @@ class PlanoProcess(_subprocess.Popen):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        kill(self)
+        stop(self)
 
     def __repr__(self):
         return "process {} (command {})".format(self.pid, _format_command(self.args))
