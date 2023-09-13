@@ -689,6 +689,8 @@ def process_operations():
 
     run("date", stash=True)
 
+    run(["echo", 1, 2, 3])
+
     proc = run(["echo", "hello"], check=False)
     assert proc.exit_code == 0, proc.exit_code
 

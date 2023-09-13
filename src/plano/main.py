@@ -1109,7 +1109,7 @@ def _format_command(command, represent=True):
     else:
         args = command
 
-    args = [expand(x) for x in args]
+    args = [expand(str(x)) for x in args]
     command = " ".join(args)
 
     if represent:
@@ -1163,14 +1163,14 @@ def start(command, stdin=None, stdout=None, stderr=None, output=None, shell=Fals
         if is_string(command):
             args = command
         else:
-            args = " ".join(command)
+            args = " ".join(map(str, command))
     else:
         if is_string(command):
             args = _shlex.split(command)
         else:
             args = command
 
-        args = [expand(x) for x in args]
+        args = [expand(str(x)) for x in args]
 
     try:
         proc = PlanoProcess(args, stdin=stdin, stdout=stdout, stderr=stderr, shell=shell, close_fds=True, stash_file=stash_file)
