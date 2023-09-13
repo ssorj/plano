@@ -704,6 +704,9 @@ def parse_json(json):
 def emit_json(data):
     return _json.dumps(data, indent=4, separators=(",", ": "), sort_keys=True)
 
+def print_json(data, **kwargs):
+    print(emit_json(data), **kwargs)
+
 ## HTTP operations
 
 def _run_curl(method, url, content=None, content_file=None, content_type=None, output_file=None, insecure=False):
@@ -1633,6 +1636,9 @@ def emit_yaml(data):
     import yaml as _yaml
 
     return _yaml.safe_dump(data)
+
+def print_yaml(data, **kwargs):
+    print(emit_yaml(data), **kwargs)
 
 if PLANO_DEBUG: # pragma: nocover
     enable_logging(level="debug")

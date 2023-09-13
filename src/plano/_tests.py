@@ -488,6 +488,10 @@ def json_operations():
         assert input_data == parsed_data, (input_data, parsed_data)
         assert json == emitted_json, (json, emitted_json)
 
+        with expect_output(equals=emitted_json) as out:
+            with open(out, "w") as f:
+                print_json(input_data, file=f, end="")
+
 @test
 def link_operations():
     with working_dir():
@@ -1084,6 +1088,10 @@ def yaml_operations():
 
         assert input_data == parsed_data, (input_data, parsed_data)
         assert yaml == emitted_yaml, (yaml, emitted_yaml)
+
+        with expect_output(equals=emitted_yaml) as out:
+            with open(out, "w") as f:
+                print_yaml(input_data, file=f, end="")
 
 @command
 def prancer():
