@@ -45,7 +45,9 @@ _max = max
 ## Exceptions
 
 class PlanoException(Exception):
-    pass
+    def __init__(self, message=None):
+        super().__init__(message)
+        self.message = message
 
 class PlanoError(PlanoException):
     pass
