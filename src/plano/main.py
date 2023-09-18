@@ -1420,17 +1420,17 @@ def get_user_temp_dir():
     except KeyError:
         return join(get_system_temp_dir(), get_user())
 
-def make_temp_file(suffix="", dir=None):
+def make_temp_file(prefix="plano-", suffix="", dir=None):
     if dir is None:
         dir = get_system_temp_dir()
 
-    return _tempfile.mkstemp(prefix="plano-", suffix=suffix, dir=dir)[1]
+    return _tempfile.mkstemp(prefix=prefix, suffix=suffix, dir=dir)[1]
 
-def make_temp_dir(suffix="", dir=None):
+def make_temp_dir(prefix="plano-", suffix="", dir=None):
     if dir is None:
         dir = get_system_temp_dir()
 
-    return _tempfile.mkdtemp(prefix="plano-", suffix=suffix, dir=dir)
+    return _tempfile.mkdtemp(prefix=prefix, suffix=suffix, dir=dir)
 
 class temp_file:
     def __init__(self, suffix="", dir=None):
