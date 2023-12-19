@@ -20,6 +20,7 @@
 import base64 as _base64
 import binascii as _binascii
 import code as _code
+import datetime as _datetime
 import fnmatch as _fnmatch
 import getpass as _getpass
 import json as _json
@@ -1460,25 +1461,65 @@ class temp_dir:
 
 ## Time operations
 
-def sleep(seconds, quiet=False):
-    _info(quiet, "Sleeping for {} {}", seconds, plural("second", seconds))
-
-    _time.sleep(seconds)
-
+# Unix time
 def get_time():
     return _time.time()
 
-def format_duration(duration, align=False):
-    assert duration >= 0
+# Python UTC time
+def get_datetime():
+    return _datetime.datetime.now(tz=_datetime.timezone.utc)
 
-    if duration >= 3600:
-        value = duration / 3600
+def parse_timestamp(timestamp, format="%Y-%m-%dT%H:%M:%SZ"):
+    if timestamp is None:
+        return None
+
+    datetime = _datetime.datetime.strptime(timestamp, format)
+    datetime = datetime.replace(tzinfo=_datetime.timezone.utc)
+
+    return datetime
+
+def format_timestamp(datetime=None, format="%Y-%m-%dT%H:%M:%SZ"):
+    if datetime is None:
+        datetime = get_datetime()
+
+    return datetime.strftime(format)
+
+def format_date(datetime=None):
+    if datetime is None:
+        datetime = get_datetime()
+
+    day = datetime.day
+    month = datetime.strftime("%B")
+    year = datetime.strftime("%Y")
+
+    return f"{day} {month} {year}"
+
+def format_time(datetime=None, precision="second"):
+    if datetime is None:
+        datetime = get_datetime()
+
+    assert precision in ("minute", "second"), "Illegal precision value"
+
+    hour = datetime.hour
+    minute = datetime.strftime("%M")
+    second = datetime.strftime("%S")
+
+    if precision == "second":
+        return f"{hour}:{minute}:{second}"
+    else:
+        return f"{hour}:{minute}"
+
+def format_duration(seconds, align=False):
+    assert seconds >= 0
+
+    if seconds >= 3600:
+        value = seconds / 3600
         unit = "h"
-    elif duration >= 5 * 60:
-        value = duration / 60
+    elif seconds >= 5 * 60:
+        value = seconds / 60
         unit = "m"
     else:
-        value = duration
+        value = seconds
         unit = "s"
 
     if align:
@@ -1487,6 +1528,11 @@ def format_duration(duration, align=False):
         return "{:.0f}{}".format(value, unit)
     else:
         return remove_suffix("{:.1f}".format(value), ".0") + unit
+
+def sleep(seconds, quiet=False):
+    _info(quiet, "Sleeping for {} {}", seconds, plural("second", seconds))
+
+    _time.sleep(seconds)
 
 class Timer:
     def __init__(self, timeout=None, timeout_message=None):

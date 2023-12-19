@@ -17,6 +17,7 @@
 # under the License.
 #
 
+import datetime as _datetime
 import getpass as _getpass
 import os as _os
 import signal as _signal
@@ -976,10 +977,42 @@ def time_operations():
 
     assert get_time() - start_time > TINY_INTERVAL
 
-    with expect_system_exit():
-        with start("sleep 10"):
-            from plano import _default_sigterm_handler
-            _default_sigterm_handler(_signal.SIGTERM, None)
+    start_datetime = get_datetime()
+
+    sleep(TINY_INTERVAL)
+
+    assert get_datetime() - start_datetime > _datetime.timedelta(seconds=TINY_INTERVAL)
+
+    timestamp = format_timestamp()
+    result = parse_timestamp(timestamp)
+    assert format_timestamp(result) == timestamp
+
+    result = parse_timestamp(None)
+    assert result is None
+
+    earlier = get_datetime()
+    result = format_date()
+    later = _datetime.datetime.strptime(result, "%d %B %Y")
+    later = later.replace(tzinfo=_datetime.timezone.utc)
+    assert later - earlier < _datetime.timedelta(days=1)
+
+    now = get_datetime()
+    result = format_date(now)
+    assert result == f"{now.day} {now.strftime('%B')} {now.strftime('%Y')}"
+
+    now = get_datetime()
+    result = format_time()
+    later = _datetime.datetime.strptime(result, "%H:%M:%S")
+    later = later.replace(tzinfo=_datetime.timezone.utc)
+    assert later - earlier < _datetime.timedelta(seconds=1)
+
+    now = get_datetime()
+    result = format_time(now)
+    assert result == f"{now.hour}:{now.strftime('%M')}:{now.strftime('%S')}"
+
+    now = get_datetime()
+    result = format_time(now, precision="minute")
+    assert result == f"{now.hour}:{now.strftime('%M')}"
 
     result = format_duration(0.1)
     assert result == "0.1s", result
@@ -995,6 +1028,11 @@ def time_operations():
 
     result = format_duration(3600)
     assert result == "1h", result
+
+    with expect_system_exit():
+        with start("sleep 10"):
+            from plano import _default_sigterm_handler
+            _default_sigterm_handler(_signal.SIGTERM, None)
 
     with Timer() as timer:
         sleep(TINY_INTERVAL)
