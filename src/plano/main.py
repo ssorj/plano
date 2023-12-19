@@ -414,7 +414,7 @@ def check_env(var, message=None):
 def check_module(module, message=None):
     if _pkgutil.find_loader(module) is None:
         if message is None:
-            message = "Module {} is not found".format(repr(module))
+            message = "Python module {} is not found".format(repr(module))
 
         raise PlanoError(message)
 
@@ -1648,7 +1648,7 @@ class Namespace:
 ## YAML operations
 
 def read_yaml(file):
-    check_module("yaml", "To install it, run 'pip install pyyaml'")
+    check_module("yaml", "Python module 'yaml' is not found.  To install it, run 'pip install pyyaml'.")
 
     import yaml as _yaml
 
@@ -1658,7 +1658,7 @@ def read_yaml(file):
         return _yaml.safe_load(f)
 
 def write_yaml(file, data):
-    check_module("yaml", "To install it, run 'pip install pyyaml'")
+    check_module("yaml", "Python module 'yaml' is not found.  To install it, run 'pip install pyyaml'.")
 
     import yaml as _yaml
 
@@ -1672,14 +1672,14 @@ def write_yaml(file, data):
     return file
 
 def parse_yaml(yaml):
-    check_module("yaml", "To install it, run 'pip install pyyaml'")
+    check_module("yaml", "Python module 'yaml' is not found.  To install it, run 'pip install pyyaml'.")
 
     import yaml as _yaml
 
     return _yaml.safe_load(yaml)
 
 def emit_yaml(data):
-    check_module("yaml", "To install it, run 'pip install pyyaml'")
+    check_module("yaml", "Python module 'yaml' is not found.  To install it, run 'pip install pyyaml'.")
 
     import yaml as _yaml
 
