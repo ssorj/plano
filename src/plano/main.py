@@ -806,6 +806,7 @@ _DISABLED = _logging_levels.index("disabled")
 
 _logging_output = None
 _logging_threshold = _NOTICE
+_logging_contexts = list()
 
 def enable_logging(level="notice", output=None):
     assert level in _logging_levels
@@ -851,6 +852,16 @@ class logging_disabled(logging_enabled):
     def __init__(self):
         super().__init__(level="disabled")
 
+class logging_context:
+    def __init__(self, name):
+        self.name = name
+
+    def __enter__(self):
+        _logging_contexts.append(self.name)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        _logging_contexts.pop()
+
 def fail(message, *args):
     error(message, *args)
 
@@ -882,28 +893,39 @@ def log(level, message, *args):
         _print_message(level, message, args)
 
 def _print_message(level, message, args):
+    line = list()
     out = nvl(_logging_output, _sys.stderr)
-    exception = None
+
+    line.append(get_program_name())
+
+    level_color = ("cyan", "cyan", "cyan", "yellow", "red", None)[level]
+    level_bright = (False, False, False, False, True, False)[level]
+    level = cformat("{:>6}".format(_logging_levels[level]), color=level_color, bright=level_bright, file=out)
+
+    line.append(level)
+
+    for name in _logging_contexts:
+        line.append(name)
 
     if isinstance(message, BaseException):
         exception = message
-        message = "{}: {}".format(type(message).__name__, str(message))
+
+        line.append(type(exception).__name__)
+        line.append(str(exception))
+
+        print(": ".join(line), file=out)
+
+        if hasattr(exception, "__traceback__"):
+            _traceback.print_exception(type(exception), exception, exception.__traceback__, file=out)
     else:
         message = str(message)
 
-    if args:
-        message = message.format(*args)
+        if args:
+            message = message.format(*args)
 
-    program = "{}:".format(get_program_name())
+        line.append(capitalize(message))
 
-    level_color = ("cyan", "cyan", "blue", "yellow", "red", None)[level]
-    level_bright = (False, False, False, False, True, False)[level]
-    level = cformat("{:>6}:".format(_logging_levels[level]), color=level_color, bright=level_bright, file=out)
-
-    print(program, level, capitalize(message), file=out)
-
-    if exception is not None and hasattr(exception, "__traceback__"):
-        _traceback.print_exception(type(exception), exception, exception.__traceback__, file=out)
+        print(": ".join(line), file=out)
 
     out.flush()
 
