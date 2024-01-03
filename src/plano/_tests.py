@@ -357,6 +357,9 @@ def http_operations():
             result = http_get(url, insecure=True)
             assert result == "[1]", result
 
+            result = http_get(url, user="fritz", password="secret")
+            assert result == "[1]", result
+
             result = http_get(url, output_file="a")
             output = read("a")
             assert result is None, result
