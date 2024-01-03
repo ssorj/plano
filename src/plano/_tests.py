@@ -881,6 +881,9 @@ def string_operations():
     decoded_result = url_decode(encoded_result)
     assert decoded_result == "abc=123&yeah!", decoded_result
 
+    result = parse_url("http://example.net/index.html")
+    assert result.hostname == "example.net"
+
 @test
 def temp_operations():
     system_temp_dir = get_system_temp_dir()

@@ -1428,6 +1428,9 @@ def url_encode(string):
 def url_decode(string):
     return _urllib.parse.unquote_plus(string)
 
+def parse_url(url):
+    return _urllib.parse.urlparse(url)
+
 ## Temp operations
 
 def get_system_temp_dir():
