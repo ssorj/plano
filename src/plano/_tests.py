@@ -90,10 +90,9 @@ def command_operations():
 
     SomeCommand().main([])
     SomeCommand().main(["--interrupt"])
-    SomeCommand().main(["--debug"])
 
     with expect_system_exit():
-        SomeCommand().main(["--verbose", "--debug", "--explode"])
+        SomeCommand().main(["--verbose", "--explode"])
 
 @test
 def console_operations():

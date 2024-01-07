@@ -39,9 +39,8 @@ class BaseCommand:
 
         assert isinstance(args, _argparse.Namespace), args
 
-        self.verbose = args.verbose or args.debug
+        self.verbose = args.verbose
         self.quiet = args.quiet
-        self.debug = args.debug
         self.init_only = args.init_only
 
         level = self.initial_logging_level
@@ -51,9 +50,6 @@ class BaseCommand:
 
         if self.quiet:
             level = self.quiet_logging_level
-
-        if self.debug:
-            level = "debug"
 
         with logging_enabled(level=level):
             try:
@@ -66,7 +62,7 @@ class BaseCommand:
             except KeyboardInterrupt:
                 pass
             except PlanoError as e:
-                if self.debug:
+                if PLANO_DEBUG:
                     _traceback.print_exc()
                     exit(1)
                 else:
@@ -92,8 +88,6 @@ class BaseArgumentParser(_argparse.ArgumentParser):
                           help="Print detailed logging to the console")
         self.add_argument("--quiet", action="store_true",
                           help="Print no logging to the console")
-        self.add_argument("--debug", action="store_true",
-                          help="Print debugging output to the console")
         self.add_argument("--init-only", action="store_true",
                           help=_argparse.SUPPRESS)
 

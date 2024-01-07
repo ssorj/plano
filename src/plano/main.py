@@ -1247,7 +1247,7 @@ def wait(proc, timeout=None, check=False, quiet=False):
     try:
         proc.wait(timeout=timeout)
     except _subprocess.TimeoutExpired:
-        # XXX warning or error
+        error("{} timed out after {} seconds", proc, timeout)
         raise PlanoTimeout()
 
     if proc.exit_code == 0:
