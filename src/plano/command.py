@@ -27,7 +27,7 @@ import sys as _sys
 import traceback as _traceback
 
 class BaseCommand:
-    initial_logging_level = "warning"
+    default_logging_level = "warning"
     verbose_logging_level = "notice"
     quiet_logging_level = "error"
 
@@ -43,7 +43,7 @@ class BaseCommand:
         self.quiet = args.quiet
         self.init_only = args.init_only
 
-        level = self.initial_logging_level
+        level = self.default_logging_level
 
         if self.verbose:
             level = self.verbose_logging_level
@@ -96,8 +96,9 @@ class BaseArgumentParser(_argparse.ArgumentParser):
 _plano_command = None
 
 class PlanoCommand(BaseCommand):
-    initial_logging_level = "notice"
+    default_logging_level = "notice"
     verbose_logging_level = "debug"
+    quiet_logging_level = "error"
 
     def __init__(self, module=None, description="Run commands defined as Python functions", epilog=None):
         self.module = module
@@ -317,9 +318,9 @@ def command(_function=None, name=None, parameters=None, parent=None, passthrough
             self.parent = parent
 
             if self.parent is None:
-                # Strip trailing underscores and convert remaining
-                # underscores to hyphens
-                default = self.function.__name__.rstrip("_").replace("_", "-")
+                # Strip leading and trailing underscores and convert
+                # remaining underscores to hyphens
+                default = self.function.__name__.strip("_").replace("_", "-")
 
                 self.name = nvl(self.name, default)
                 self.parameters = self._process_parameters(parameters)
