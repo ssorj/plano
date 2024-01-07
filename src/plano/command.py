@@ -31,6 +31,20 @@ class BaseCommand:
     verbose_logging_level = "notice"
     quiet_logging_level = "error"
 
+    def __init__(self):
+        self.verbose = False
+        self.quiet = False
+        self.init_only = False
+
+    def parse_args(self, args): # pragma: nocover
+        raise NotImplementedError()
+
+    def init(self, args): # pragma: nocover
+        pass
+
+    def run(self): # pragma: nocover
+        raise NotImplementedError()
+
     def main(self, args=None):
         if args is None:
             args = ARGS[1:]
@@ -38,10 +52,6 @@ class BaseCommand:
         args = self.parse_args(args)
 
         assert isinstance(args, _argparse.Namespace), args
-
-        self.verbose = args.verbose
-        self.quiet = args.quiet
-        self.init_only = args.init_only
 
         level = self.default_logging_level
 
@@ -68,28 +78,12 @@ class BaseCommand:
                 else:
                     exit(str(e))
 
-    def parse_args(self, args): # pragma: nocover
-        raise NotImplementedError()
-
-    def init(self, args): # pragma: nocover
-        pass
-
-    def run(self): # pragma: nocover
-        raise NotImplementedError()
-
 class BaseArgumentParser(_argparse.ArgumentParser):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
         self.allow_abbrev = False
         self.formatter_class = _argparse.RawDescriptionHelpFormatter
-
-        self.add_argument("--verbose", action="store_true",
-                          help="Print detailed logging to the console")
-        self.add_argument("--quiet", action="store_true",
-                          help="Print no logging to the console")
-        self.add_argument("--init-only", action="store_true",
-                          help=_argparse.SUPPRESS)
 
         _capitalize_help(self)
 
@@ -101,6 +95,8 @@ class PlanoCommand(BaseCommand):
     quiet_logging_level = "error"
 
     def __init__(self, module=None, description="Run commands defined as Python functions", epilog=None):
+        super().__init__()
+
         self.module = module
         self.bound_commands = dict()
         self.running_commands = list()
@@ -111,6 +107,12 @@ class PlanoCommand(BaseCommand):
         self.pre_parser = BaseArgumentParser(description=description, add_help=False)
         self.pre_parser.add_argument("-h", "--help", action="store_true",
                                      help="Show this help message and exit")
+        self.pre_parser.add_argument("--verbose", action="store_true",
+                                     help="Print detailed logging to the console")
+        self.pre_parser.add_argument("--quiet", action="store_true",
+                                     help="Print no logging to the console")
+        self.pre_parser.add_argument("--init-only", action="store_true",
+                                     help=_argparse.SUPPRESS)
 
         if self.module is None:
             self.pre_parser.add_argument("-f", "--file", help="Load commands from FILE (default '.plano.py')")
