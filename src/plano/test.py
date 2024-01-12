@@ -74,6 +74,9 @@ class PlanoTestCommand(BaseCommand):
         self.timeout = args.timeout
         self.fail_fast = args.fail_fast
         self.iterations = args.iterations
+        self.verbose = args.verbose
+        self.quiet = args.quiet
+        self.init_only = args.init_only
 
         try:
             for name in args.module:
