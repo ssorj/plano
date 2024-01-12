@@ -107,12 +107,6 @@ class PlanoCommand(BaseCommand):
         self.pre_parser = BaseArgumentParser(description=description, add_help=False)
         self.pre_parser.add_argument("-h", "--help", action="store_true",
                                      help="Show this help message and exit")
-        self.pre_parser.add_argument("--verbose", action="store_true",
-                                     help="Print detailed logging to the console")
-        self.pre_parser.add_argument("--quiet", action="store_true",
-                                     help="Print no logging to the console")
-        self.pre_parser.add_argument("--init-only", action="store_true",
-                                     help=_argparse.SUPPRESS)
 
         if self.module is None:
             self.pre_parser.add_argument("-f", "--file", help="Load commands from FILE (default '.plano.py')")
@@ -169,6 +163,11 @@ class PlanoCommand(BaseCommand):
         self.command_kwargs = dict()
 
         if args.command is not None:
+            # These args are taken from the subcommand
+            self.verbose = args.verbose
+            self.quiet = args.quiet
+            self.init_only = args.init_only
+
             for command in self.preceding_commands:
                 command()
 
@@ -266,8 +265,17 @@ class PlanoCommand(BaseCommand):
 
             subparser = subparsers.add_parser(command.name, help=help, add_help=add_help, description=description,
                                               formatter_class=_argparse.RawDescriptionHelpFormatter)
+            subparser.add_argument("--verbose", action="store_true",
+                                   help="Print detailed logging to the console")
+            subparser.add_argument("--quiet", action="store_true",
+                                   help="Print no logging to the console")
+            subparser.add_argument("--init-only", action="store_true",
+                                   help=_argparse.SUPPRESS)
 
             for param in command.parameters.values():
+                if param.name in ("verbose", "quiet", "init_only"):
+                    continue
+
                 if param.positional:
                     if param.multiple:
                         subparser.add_argument(param.name, metavar=param.metavar, type=param.type, help=param.help,
@@ -497,7 +505,7 @@ class CommandParameter:
         self.multiple = False
 
     def __repr__(self):
-        return "argument '{}' (default {})".format(self.name, repr(self.default))
+        return "parameter '{}' (default {})".format(self.name, repr(self.default))
 
 # Patch the default help text
 def _capitalize_help(parser):
