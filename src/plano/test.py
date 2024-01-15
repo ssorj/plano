@@ -61,6 +61,15 @@ class PlanoTestCommand(BaseCommand):
     def parse_args(self, args):
         return self.parser.parse_args(args)
 
+    def configure_logging(self, args):
+        if args.verbose:
+            return "notice", None
+
+        if args.quiet:
+            return "error", None
+
+        return "warning", None
+
     def init(self, args):
         self.list_only = args.list
         self.include_patterns = args.include
