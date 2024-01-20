@@ -33,7 +33,7 @@ class BaseCommand:
     def configure_logging(self, args):
         return "warning", None
 
-    def init(self, args):
+    def init(self, args): # pragma: nocover
         raise NotImplementedError()
 
     def run(self): # pragma: nocover
@@ -56,7 +56,7 @@ class BaseCommand:
             except KeyboardInterrupt:
                 pass
             except PlanoError as e:
-                if PLANO_DEBUG:
+                if PLANO_DEBUG: # pragma: nocover
                     error(e)
                 else:
                     error(str(e))
