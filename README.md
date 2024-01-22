@@ -46,7 +46,7 @@ from plano import *
 
 @test
 def check():
-    run("widget --message Yo")
+    run("widget greeting --message Yo")
 
 if __name__ == "__main__":
     PlanoTestCommand(sys.modules[__name__]).main()
@@ -77,7 +77,7 @@ All tests passed
 from plano import *
 
 def test_widget(message):
-    run(f"widget --message {message}")
+    run(f"widget greeting --message {message}")
 
 for message in "hi", "lo", "in between":
     add_test(f"message-{message}", test_widget, message)
