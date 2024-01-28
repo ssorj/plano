@@ -54,15 +54,15 @@ def archive_operations():
         assert is_file("some-dir.tar.gz"), list_dir()
 
         extract_archive("some-dir.tar.gz", output_dir="some-subdir")
-        assert is_dir("some-subdir/some-dir")
-        assert is_file("some-subdir/some-dir/some-file")
+        assert is_dir("some-subdir/some-dir"), list_dir("some-subdir")
+        assert is_file("some-subdir/some-dir/some-file"), list_dir("some-subdir/some-dir")
 
         rename_archive("some-dir.tar.gz", "something-else")
-        assert is_file("something-else.tar.gz")
+        assert is_file("something-else.tar.gz"), list_dir()
 
         extract_archive("something-else.tar.gz")
-        assert is_dir("something-else")
-        assert is_file("something-else/some-file")
+        assert is_dir("something-else"), list_dir()
+        assert is_file("something-else/some-file"), list_dir("something-else")
 
 @test
 def command_operations():
