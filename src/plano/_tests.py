@@ -96,6 +96,7 @@ def command_operations():
                 print("Hello")
 
     SomeCommand().main([])
+    SomeCommand().main(["--verbose"])
     SomeCommand().main(["--interrupt"])
 
     with expect_system_exit():
@@ -955,6 +956,7 @@ def test_operations():
         with working_module_path("src"):
             import chucker
             import chucker.tests
+            import chucker.moretests
 
             print_tests(chucker.tests)
 
@@ -975,6 +977,9 @@ def test_operations():
 
                 with expect_error():
                     run_tests(chucker.tests, enable="*badbye*", fail_fast=True, verbose=verbose)
+
+                with expect_error():
+                    run_tests([chucker.tests, chucker.moretests], enable="*badbye2*", fail_fast=True, verbose=verbose)
 
                 with expect_exception(KeyboardInterrupt):
                     run_tests(chucker.tests, enable="keyboard-interrupt", verbose=verbose)

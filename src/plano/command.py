@@ -260,7 +260,7 @@ class PlanoCommand(BaseCommand):
                                        help="Print no logging to the console")
 
             for param in command.parameters.values():
-                if param.name in ("verbose", "quiet"):
+                if not command.passthrough and param.name in ("verbose", "quiet"):
                     continue
 
                 if param.positional:
