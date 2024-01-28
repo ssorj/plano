@@ -74,16 +74,16 @@ PLANO_COLOR = "PLANO_COLOR" in ENV
 ## Archive operations
 
 def make_archive(input_dir, output_file=None, quiet=False):
-    """
-    group: archive_operations
-    """
-
     check_program("tar")
 
     archive_stem = get_base_name(input_dir)
 
     if output_file is None:
-        output_file = "{}.tar.gz".format(join(get_current_dir(), archive_stem))
+        # Cygwin needs this
+        base = join(get_current_dir(), archive_stem)
+        base = base.replace("\\", "/")
+
+        output_file = f"{base}.tar.gz"
 
     _notice(quiet, "Making archive {} from directory {}", repr(output_file), repr(input_dir))
 
