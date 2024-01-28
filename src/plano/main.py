@@ -116,6 +116,9 @@ def rename_archive(input_file, new_archive_stem, quiet=False):
     output_dir = get_absolute_path(get_parent_dir(input_file))
     output_file = "{}.tar.gz".format(join(output_dir, new_archive_stem))
 
+    # tar on Windows needs this
+    output_file = output_file.replace("\\", "/")
+
     input_file = get_absolute_path(input_file)
 
     with working_dir(quiet=True):
