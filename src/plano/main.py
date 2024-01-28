@@ -79,7 +79,7 @@ def make_archive(input_dir, output_file=None, quiet=False):
     archive_stem = get_base_name(input_dir)
 
     if output_file is None:
-        # Cygwin needs this
+        # tar on Windows needs this
         base = join(get_current_dir(), archive_stem)
         base = base.replace("\\", "/")
 
@@ -101,6 +101,9 @@ def extract_archive(input_file, output_dir=None, quiet=False):
     _notice(quiet, "Extracting archive {} to directory {}", repr(input_file), repr(output_dir))
 
     input_file = get_absolute_path(input_file)
+
+    # tar on Windows needs this
+    input_file = input_file.replace("\\", "/")
 
     with working_dir(output_dir, quiet=True):
         run(f"tar -xf {input_file}", quiet=True)
