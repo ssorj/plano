@@ -65,7 +65,6 @@ def update_external_from_github(dir, owner, repo, ref="main"):
     make_parent_dir(dir)
 
     url = f"https://github.com/{owner}/{repo}/archive/{ref}.tar.gz"
-    name = f"{repo}-{ref}"
 
     with temp_file() as temp:
         http_get(url, output_file=temp)
@@ -74,6 +73,6 @@ def update_external_from_github(dir, owner, repo, ref="main"):
             extract_archive(temp)
 
             extracted_dir = list_dir()[0]
-            assert is_dir(extracted_dir), list_dir()
+            assert is_dir(extracted_dir)
 
             move(extracted_dir, dir, inside=False)
