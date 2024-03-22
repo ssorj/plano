@@ -112,7 +112,7 @@ Add the Plano code as a subdirectory:
 Symlink the Plano library into your `python` directory:
 
     mkdir -p python
-    ln -s ../external/plano/python/plano python/plano
+    ln -s ../external/plano/src/plano python/plano
 
 Copy the `plano` command into the root of your project:
 
