@@ -88,3 +88,32 @@ for message in "hi", "lo", "in between":
 * The plano command accepts command sequences in the form "this,that"
   (no spaces).  The command arguments are applied to the last command
   only.
+
+## Dependencies
+
+PyYAML:
+
+~~~
+pip install pyyaml
+~~~
+
+## Setting up Plano as an embedded dependency
+
+Change directory to the root of your project:
+
+    cd <project-dir>/
+
+Add the Plano code as a subdirectory:
+
+    mkdir -p external
+    curl -sfL https://github.com/ssorj/plano/archive/main.tar.gz | tar -C external -xz
+    mv external/plano-main external/plano
+
+Symlink the Plano library into your `python` directory:
+
+    mkdir -p python
+    ln -s ../external/plano/python/plano python/plano
+
+Copy the `plano` command into the root of your project:
+
+    cp external/plano/bin/plano plano
