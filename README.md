@@ -117,3 +117,12 @@ Symlink the Plano library into your `python` directory:
 Copy the `plano` command into the root of your project:
 
     cp external/plano/bin/plano plano
+
+## Extending an existing command
+
+~~~ python
+@command(parent=blammo)
+def blammo(*args, **kwargs):
+    parent(*args, **kwargs)
+    # Do child stuff
+~~~
