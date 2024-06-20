@@ -6,7 +6,13 @@ Python functions for writing shell-style system scripts.
 
 ## Installation
 
-To install plano globally for the current user:
+Install the dependencies if you need to:
+
+~~~
+sudo dnf -y install python-build python-pip python-pyyaml
+~~~
+
+Install plano globally for the current user:
 
 ~~~
 make install
