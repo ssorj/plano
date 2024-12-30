@@ -278,9 +278,9 @@ def find(dirs=None, include="*", exclude=[]):
                     for name in _fnmatch.filter(names, exclude_pattern):
                         names.remove(name)
 
-                if root.startswith("./"):
-                    root = remove_prefix(root, "./")
-                elif root == ".":
+                root = root.removeprefix("./")
+
+                if root == ".":
                     root = ""
 
                 found.update([join(root, x) for x in names])
@@ -695,9 +695,9 @@ def tail_lines(file, count):
 
     return lines[-count:]
 
-def string_replace_file(file, expr, replacement, count=0):
+def string_replace_in_file(file, old, new, count=0):
     file = expand(file)
-    return write(file, string_replace(read(file), expr, replacement, count=count))
+    return write(file, read(file).replace(old, new, count))
 
 def concatenate(file, input_files):
     file = expand(file)
@@ -1470,26 +1470,14 @@ _signal.signal(_signal.SIGTERM, _default_sigterm_handler)
 
 ## String operations
 
-def string_replace(string, expr, replacement, count=0):
-    return _re.sub(expr, replacement, string, count)
+def string_replace_re(string, pattern, replacement, count=0):
+    return _re.sub(pattern, replacement, string, count)
 
-def remove_prefix(string, prefix):
-    if string is None:
-        return ""
+def string_matches_re(string, pattern):
+    return _re.search(pattern, string) is not None
 
-    if prefix and string.startswith(prefix):
-        string = string[len(prefix):]
-
-    return string
-
-def remove_suffix(string, suffix):
-    if string is None:
-        return ""
-
-    if suffix and string.endswith(suffix):
-        string = string[:-len(suffix)]
-
-    return string
+def string_matches_glob(string, pattern):
+    return _fnmatch.fnmatchcase(string, pattern)
 
 def shorten(string, max, ellipsis=None):
     assert max is None or isinstance(max, int)
@@ -1690,7 +1678,7 @@ def format_duration(seconds, align=False):
     elif value > 10:
         return "{:.0f}{}".format(value, unit)
     else:
-        return remove_suffix("{:.1f}".format(value), ".0") + unit
+        return "{:.1f}".format(value).removesuffix(".0") + unit
 
 def sleep(seconds, quiet=False):
     _notice(quiet, "Sleeping for {} {}", seconds, plural("second", seconds))
