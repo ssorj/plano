@@ -1552,15 +1552,20 @@ def parse_url(url):
 # append.join() -> "abc\n\n123"
 class Appender:
     def __init__(self):
-        self.items = list()
+        self._items = list()
 
     def __call__(self, item=""):
         assert item is not None
-
-        self.items.append(str(item))
+        self._items.append(str(item))
 
     def join(self, separator="\n"):
-        return separator.join(self.items)
+        return separator.join(self._items)
+
+    def write(self, file, separator="\n"):
+        return write(file, self.join(separator=separator))
+
+    def clear(self):
+        self._items.clear()
 
 ## Temp operations
 

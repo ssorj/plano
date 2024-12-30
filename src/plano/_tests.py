@@ -946,11 +946,32 @@ def string_operations():
     assert result.hostname == "example.net"
 
     append = Appender()
+
+    result = append.join()
+    assert result == ""
+
     append("abc")
-    append()
     append("123")
     result = append.join()
-    assert result == "abc\n\n123"
+    assert result == "abc\n123"
+
+    append.clear()
+    append()
+    append()
+    result = append.join()
+    assert result == "\n"
+
+    append.clear()
+    append("xyz")
+    result = append.join()
+    assert result == "xyz"
+
+    append.clear()
+    append("789")
+
+    with temp_file() as f:
+        result = read(append.write(f))
+        assert result == "789"
 
 @test
 def temp_operations():
