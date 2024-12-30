@@ -1543,6 +1543,25 @@ def url_decode(string):
 def parse_url(url):
     return _urllib_parse.urlparse(url)
 
+# A class for building up long strings
+#
+# append = Appender()
+# append("abc")
+# append()
+# append("123")
+# append.join() -> "abc\n\n123"
+class Appender:
+    def __init__(self):
+        self.items = list()
+
+    def __call__(self, item=""):
+        assert item is not None
+
+        self.items.append(str(item))
+
+    def join(self, separator="\n"):
+        return separator.join(self.items)
+
 ## Temp operations
 
 def get_system_temp_dir():

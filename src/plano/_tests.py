@@ -945,6 +945,13 @@ def string_operations():
     result = parse_url("http://example.net/index.html")
     assert result.hostname == "example.net"
 
+    append = Appender()
+    append("abc")
+    append()
+    append("123")
+    result = append.join()
+    assert result == "abc\n\n123"
+
 @test
 def temp_operations():
     system_temp_dir = get_system_temp_dir()
