@@ -1545,16 +1545,22 @@ def parse_url(url):
 
 # A class for building up long strings
 #
-# append = Appender()
+# append = StringBuilder()
 # append("abc")
 # append()
 # append("123")
-# append.join() -> "abc\n\n123"
-class Appender:
+# str(append) -> "abc\n\n123"
+class StringBuilder:
     def __init__(self):
         self._items = list()
 
     def __call__(self, item=""):
+        self.append(item=item)
+
+    def __str__(self):
+        return self.join()
+
+    def append(self, item=""):
         assert item is not None
         self._items.append(str(item))
 

@@ -945,11 +945,17 @@ def string_operations():
     result = parse_url("http://example.net/index.html")
     assert result.hostname == "example.net"
 
-    append = Appender()
+    append = StringBuilder()
 
     result = append.join()
     assert result == ""
 
+    append("alpha")
+    append("beta")
+    result = str(append)
+    assert result == "alpha\nbeta"
+
+    append.clear()
     append("abc")
     append("123")
     result = append.join()
