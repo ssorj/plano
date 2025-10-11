@@ -538,6 +538,8 @@ def copy(from_path, to_path, symlinks=True, inside=True, quiet=False):
     if is_link(from_path) and symlinks:
         make_link(to_path, read_link(from_path), quiet=True)
     elif is_dir(from_path):
+        make_dir(to_path, quiet=True)
+
         for name in list_dir(from_path):
             copy(join(from_path, name), join(to_path, name), symlinks=symlinks, inside=False, quiet=True)
 
