@@ -23,10 +23,10 @@ import code as _code
 import datetime as _datetime
 import fnmatch as _fnmatch
 import getpass as _getpass
+import importlib.util as _importlib_util
 import json as _json
 import os as _os
 import pprint as _pprint
-import pkgutil as _pkgutil
 import random as _random
 import re as _re
 import shlex as _shlex
@@ -429,7 +429,7 @@ def check_env(var, message=None):
         raise PlanoError(message)
 
 def check_module(module, message=None):
-    if _pkgutil.find_loader(module) is None:
+    if _importlib_util.find_spec(module) is None:
         if message is None:
             message = "Python module {} is not found".format(repr(module))
 
